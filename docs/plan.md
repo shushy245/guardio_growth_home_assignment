@@ -292,6 +292,13 @@ Cases:
 - B15. (forwarded from S1 review) a row written through the API in one integration test is not visible in the next — proves `get_session` and the driver's `dependency_overrides` seam, which had no caller in S1
 - F1. `breach.fromDTO` parses dates and maps data classes (pure)
 - F2. `useBreaches` hook builds the query string from `{ page, sort, order, q, dataClass, verifiedOnly }` (pure `buildBreachesQuery`)
+- Pre-mortem (added at /story-start):
+  - B16. pagination is deterministic when the sort value ties: with several breaches sharing a `breach_date`, page 1 and page 2 are disjoint and together cover every row (secondary sort key on `name`)
+  - B17. `total` is computed under the same filters as `items`: a filtered request reports the filtered count, not the table count, and it equals the number of items gathered across all its pages
+  - B18. `upsert_many` run twice with a changed record leaves the row count unchanged, advances `fetched_at`, applies the change, and leaves a row absent from the second payload in place (HIBP never deletes; neither do we)
+  - B19. HIBP failing while the table already holds rows serves the stored rows with 200 and logs the staleness — 503 is only for "nothing to serve"
+  - B20. a sync failure at startup does not stop the app: `/api/health` is still 200 and the catalog endpoints answer 503 `{ error }`
+  - B21. two syncs racing the same TTL window do not double-write: the second sees the first's `fetched_at` and skips (checked against the fake port's call count, with both runs inside one window)
 
 Commits:
 - C1 `[test+impl B1b]` `shared/html.py` `strip_html`
