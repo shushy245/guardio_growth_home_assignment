@@ -4,7 +4,7 @@
 // hands back the live object, so an in-place mutation would silently rewrite a DTO a previous
 // `build()` already returned — a failure that surfaces nowhere near the builder.
 
-import type { BreachDTO, BreachPageDTO, BreachSummaryDTO } from '~/models/breach';
+import type { BreachDTO, BreachSummaryDTO } from '~/models/breach';
 
 const ADOBE: BreachDTO = {
     name: 'Adobe',
@@ -52,28 +52,6 @@ class BreachDTOBuilder {
 }
 
 export const aBreachDTO = (): BreachDTOBuilder => new BreachDTOBuilder();
-
-class BreachPageDTOBuilder {
-    private state: BreachPageDTO = { items: [aBreachDTO().build()], total: 1, page: 1, limit: 20 };
-
-    withItems(...items: BreachDTO[]): this {
-        this.state = { ...this.state, items, total: items.length };
-
-        return this;
-    }
-
-    withTotal(total: number): this {
-        this.state = { ...this.state, total };
-
-        return this;
-    }
-
-    build(): BreachPageDTO {
-        return this.state;
-    }
-}
-
-export const aBreachPageDTO = (): BreachPageDTOBuilder => new BreachPageDTOBuilder();
 
 const CATALOG_SUMMARY: BreachSummaryDTO = {
     totalBreaches: 1031,
