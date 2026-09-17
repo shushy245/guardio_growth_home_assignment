@@ -1,0 +1,51 @@
+"""Builder for `Settings`.
+
+House builder shape: `a_settings()` factory, module-private class, `with_*` returns a **new**
+builder (never mutates), `build()` returns the model. Defaults are valid so a test only states
+what it cares about.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, replace
+
+from pydantic import SecretStr
+
+from app.config import Env, Settings
+
+
+def a_settings() -> _SettingsBuilder:
+    return _SettingsBuilder(
+        env=Env.TEST,
+        database_url="postgresql+psycopg://breachscan:breachscan@localhost:5432/breachscan_test",
+        frontend_origin="http://frontend.test",
+        admin_token="test-admin-token",
+        hibp_user_agent="breach-scan-tests",
+    )
+
+
+@dataclass(frozen=True)
+class _SettingsBuilder:
+    env: Env
+    database_url: str
+    frontend_origin: str
+    admin_token: str
+    hibp_user_agent: str
+
+    def with_env(self, env: Env) -> _SettingsBuilder:
+        return replace(self, env=env)
+
+    def with_frontend_origin(self, frontend_origin: str) -> _SettingsBuilder:
+        return replace(self, frontend_origin=frontend_origin)
+
+    def with_admin_token(self, admin_token: str) -> _SettingsBuilder:
+        return replace(self, admin_token=admin_token)
+
+    def build(self) -> Settings:
+        return Settings(
+            env=self.env,
+            database_url=self.database_url,
+            frontend_origin=self.frontend_origin,
+            admin_token=SecretStr(self.admin_token),
+            hibp_user_agent=self.hibp_user_agent,
+        )

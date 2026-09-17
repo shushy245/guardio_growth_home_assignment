@@ -21,27 +21,39 @@ from fastapi.testclient import TestClient
 from structlog.testing import capture_logs
 from structlog.typing import EventDict
 
+from app.main import create_app
+from tests.builders.settings import a_settings
+
 
 class HttpDriver:
-    def __init__(self, client: TestClient) -> None:
-        self._client = client
+    """Builds the app lazily on the first request, so `given.*` can shape settings first."""
+
+    def __init__(self) -> None:
+        self._settings = a_settings()
+        self._client: TestClient | None = None
         self._response: httpx.Response | None = None
         self._logs: list[EventDict] = []
-        self.given = _Given()
+        self.given = _Given(self)
         self.get = _Get(self)
         self.post = _Post(self)
         self.patch = _Patch(self)
         self.then = _Then(self)
 
-    def _perform(self, request: Callable[[], httpx.Response]) -> None:
+    def _perform(self, request: Callable[[TestClient], httpx.Response]) -> None:
         """Every request runs under log capture so `then.logged(...)` can assert on it.
 
         `capture_logs` replaces the processor chain, so the contextvars merge step from
         production logging is re-added or bound fields (correlation id) would not be captured.
         """
+        client = self._app_client()  # create_app configures logging; must precede the capture
         with capture_logs(processors=[structlog.contextvars.merge_contextvars]) as logs:
-            self._response = request()
+            self._response = request(client)
         self._logs = logs
+
+    def _app_client(self) -> TestClient:
+        if self._client is None:
+            self._client = TestClient(create_app(self._settings.build()))
+        return self._client
 
     @property
     def _last(self) -> httpx.Response:
@@ -52,7 +64,11 @@ class HttpDriver:
 
 
 class _Given:
-    """Scenario setup lives here as stories add state (db rows, fakes). Empty in S1."""
+    def __init__(self, driver: HttpDriver) -> None:
+        self._driver = driver
+
+    def frontend_origin(self, origin: str) -> None:
+        self._driver._settings = self._driver._settings.with_frontend_origin(origin)
 
 
 class _Get:
@@ -60,7 +76,7 @@ class _Get:
         self._driver = driver
 
     def path(self, path: str, *, headers: dict[str, str] | None = None) -> None:
-        self._driver._perform(lambda: self._driver._client.get(path, headers=headers))
+        self._driver._perform(lambda client: client.get(path, headers=headers))
 
 
 class _Post:
@@ -70,7 +86,7 @@ class _Post:
     def json(
         self, path: str, body: dict[str, Any], *, headers: dict[str, str] | None = None
     ) -> None:
-        self._driver._perform(lambda: self._driver._client.post(path, json=body, headers=headers))
+        self._driver._perform(lambda client: client.post(path, json=body, headers=headers))
 
 
 class _Patch:
@@ -80,7 +96,7 @@ class _Patch:
     def json(
         self, path: str, body: dict[str, Any], *, headers: dict[str, str] | None = None
     ) -> None:
-        self._driver._perform(lambda: self._driver._client.patch(path, json=body, headers=headers))
+        self._driver._perform(lambda client: client.patch(path, json=body, headers=headers))
 
 
 class _Then:
