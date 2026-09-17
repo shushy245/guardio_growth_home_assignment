@@ -118,6 +118,9 @@ class _Then:
         assert set(body) == {"error"}, f"error body must be exactly {{error}}, got {body}"
         assert isinstance(body["error"], str) and body["error"], "error must be a non-empty string"
 
+    def body_lacks(self, fragment: str) -> None:
+        assert fragment not in self._driver._last.text, f"response body leaked {fragment!r}"
+
     def header(self, name: str, expected: str) -> None:
         assert self._driver._last.headers.get(name) == expected
 

@@ -21,8 +21,6 @@ from sqlalchemy.orm import Session
 from tests.drivers.db import DbDriver
 from tests.drivers.http import HttpDriver
 
-pytestmark = pytest.mark.integration
-
 
 def _test_database_url() -> str:
     url = os.environ.get("TEST_DATABASE_URL")

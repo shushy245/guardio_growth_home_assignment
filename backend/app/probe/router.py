@@ -20,3 +20,9 @@ class ProbeResponse(BaseModel):
 @router.post("/_probe/validation", response_model=ProbeResponse)
 def post_probe(body: ProbeBody) -> ProbeResponse:
     return ProbeResponse(count=body.count)
+
+
+@router.get("/_probe/crash")
+def get_crash() -> None:
+    msg = "probe: secret detail that must never reach the client"
+    raise RuntimeError(msg)

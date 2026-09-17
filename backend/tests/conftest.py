@@ -4,9 +4,24 @@ A test asks for a fixture by naming it as a parameter. `driver` is the Given pha
 test shares: the house driver, which builds the app from test settings on first request.
 """
 
+from pathlib import Path
+
 import pytest
 
 from tests.drivers.http import HttpDriver
+
+INTEGRATION_DIR = Path(__file__).parent / "integration"
+
+
+def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
+    """Every test under tests/integration/ carries the `integration` marker by location.
+
+    A `pytestmark` in a conftest is inert, so the marker is applied here at collection; this is
+    what makes `pytest -m "not integration"` a real unit-only run with no database.
+    """
+    for item in items:
+        if INTEGRATION_DIR in Path(item.fspath).parents:
+            item.add_marker(pytest.mark.integration)
 
 
 @pytest.fixture
