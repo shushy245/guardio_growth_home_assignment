@@ -88,6 +88,10 @@ class _When:
     def listed_page(self, *, page: int, limit: int) -> None:
         self._driver._list(f"?page={page}&limit={limit}")
 
+    def listed_sorted_by(self, *, sort: str, order: str) -> None:
+        """`sort` and `order` are strings, not enums, so a test can send a value that is not one."""
+        self._driver._list(f"?sort={sort}&order={order}")
+
     def every_page_was_listed_while_the_catalog_was_re_synced(self, *, limit: int) -> None:
         """Walk the pages with a sync landing between each one — the real interleaving.
 
@@ -116,6 +120,14 @@ class _Then:
     def the_breach_names_are(self, *expected: str) -> None:
         actual = [str(item["name"]) for item in self._driver._items()]
         assert actual == list(expected), f"expected {list(expected)}, got {actual}"
+
+    def the_request_was_rejected(self) -> None:
+        self._driver._http.then.status(400)
+        self._driver._http.then.error_body()
+
+    def the_error_names(self, fragment: str) -> None:
+        body = self._driver._http._last.json()
+        assert fragment in str(body.get("error")), f"error did not mention {fragment!r}: {body}"
 
     def the_page_holds(self, *, count: int) -> None:
         actual = len(self._driver._items())

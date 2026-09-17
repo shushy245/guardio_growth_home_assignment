@@ -7,6 +7,7 @@ vocabularies never have to be kept in step by hand.
 """
 
 from datetime import date
+from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
@@ -20,11 +21,30 @@ MAX_LIMIT = 100
 _wire = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
 
+class BreachSort(StrEnum):
+    """The sortable columns, named as the wire names them.
+
+    An enum rather than a free string: an unrecognised value has to be a 400, because silently
+    falling back to the default sort is a screen showing a different order than it claims to.
+    """
+
+    BREACH_DATE = "breachDate"
+    PWN_COUNT = "pwnCount"
+    NAME = "name"
+
+
+class SortOrder(StrEnum):
+    ASC = "asc"
+    DESC = "desc"
+
+
 class BreachListQuery(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     page: int = Field(default=DEFAULT_PAGE, ge=1)
     limit: int = Field(default=DEFAULT_LIMIT, ge=1, le=MAX_LIMIT)
+    sort: BreachSort = BreachSort.BREACH_DATE
+    order: SortOrder = SortOrder.DESC
 
 
 class BreachResponse(BaseModel):

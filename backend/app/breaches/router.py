@@ -17,7 +17,7 @@ def list_breaches(
     query: Annotated[BreachListQuery, Query()],
     session: Annotated[Session, Depends(get_session)],
 ) -> BreachPage:
-    rows, total = repository.list_breaches(session=session, page=query.page, limit=query.limit)
+    rows, total = repository.list_breaches(session=session, query=query)
 
     return BreachPage(
         items=[BreachResponse.model_validate(row) for row in rows],

@@ -5,12 +5,25 @@ from datetime import datetime
 
 from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import InstrumentedAttribute, Session
+from sqlalchemy.sql.elements import UnaryExpression
 
 from app.breaches.models import BreachRow
+from app.breaches.schemas import BreachListQuery, BreachSort, SortOrder
 from app.ports.breach_catalog import Breach
 
 _KEY_COLUMNS = frozenset({"name"})
+
+# A lookup, not an if-chain: a new sortable column is one row here and one enum member, and
+# mypy proves the map covers the enum.
+_sort_column_map: dict[BreachSort, InstrumentedAttribute[object]] = {
+    BreachSort.BREACH_DATE: BreachRow.breach_date,
+    BreachSort.PWN_COUNT: BreachRow.pwn_count,
+    BreachSort.NAME: BreachRow.name,
+}
+
+# The primary key, so appending it makes any sort total.
+_TIEBREAKER: InstrumentedAttribute[object] = BreachRow.name
 
 
 def latest_fetched_at(*, session: Session) -> datetime | None:
@@ -22,12 +35,8 @@ def latest_fetched_at(*, session: Session) -> datetime | None:
     return session.execute(select(func.max(BreachRow.fetched_at))).scalar_one()
 
 
-def list_breaches(*, session: Session, page: int, limit: int) -> tuple[list[BreachRow], int]:
-    """One page of breaches, newest first, plus the total behind it.
-
-    `name` is the secondary sort key and it is not decoration: LIMIT/OFFSET over a tied
-    `breach_date` has no defined order in Postgres, so without it page 2 can repeat or skip rows
-    that page 1 already showed.
+def list_breaches(*, session: Session, query: BreachListQuery) -> tuple[list[BreachRow], int]:
+    """One page of breaches plus the total behind it.
 
     The count and the page are built from one `select` so a filter can only ever apply to both —
     a `total` that disagrees with `items` is a number the screen states and cannot back up.
@@ -35,12 +44,25 @@ def list_breaches(*, session: Session, page: int, limit: int) -> tuple[list[Brea
     filtered = select(BreachRow)
     total = session.execute(select(func.count()).select_from(filtered.subquery())).scalar_one()
     rows = session.execute(
-        filtered.order_by(BreachRow.breach_date.desc(), BreachRow.name.asc())
-        .limit(limit)
-        .offset((page - 1) * limit)
+        filtered.order_by(*_order_by(sort=query.sort, order=query.order))
+        .limit(query.limit)
+        .offset((query.page - 1) * query.limit)
     ).scalars()
 
     return list(rows), total
+
+
+def _order_by(*, sort: BreachSort, order: SortOrder) -> list[UnaryExpression[object]]:
+    """`name` always closes the sort, and it is not decoration.
+
+    LIMIT/OFFSET over a tied `breach_date` has no defined order in Postgres, so page 2 can repeat
+    or skip rows page 1 already showed. `name` is the primary key, so appending it makes every
+    sort total; when it *is* the sort key the second clause simply never decides anything.
+    """
+    column = _sort_column_map[sort]
+    leading = column.desc() if order is SortOrder.DESC else column.asc()
+
+    return [leading, _TIEBREAKER.asc()]
 
 
 def upsert_many(*, session: Session, breaches: Sequence[Breach], fetched_at: datetime) -> None:
