@@ -28,6 +28,7 @@ from app.db.session import get_session
 from app.main import create_app
 from app.middleware.correlation_id import CORRELATION_ID_HEADER
 from tests.builders.settings import a_settings
+from tests.fakes.breach_catalog import FakeBreachCatalog
 
 
 class HttpDriver:
@@ -35,6 +36,7 @@ class HttpDriver:
 
     def __init__(self) -> None:
         self._settings = a_settings()
+        self._catalog = FakeBreachCatalog()
         self._session_override: Session | None = None
         self._built_app: FastAPI | None = None
         self._client: TestClient | None = None
@@ -79,7 +81,7 @@ class HttpDriver:
 
     def _app(self) -> FastAPI:
         if self._built_app is None:
-            app = create_app(self._settings.build())
+            app = create_app(self._settings.build(), catalog=self._catalog)
             if self._session_override is not None:
                 session = self._session_override
                 app.dependency_overrides[get_session] = lambda: session

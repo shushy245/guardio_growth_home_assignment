@@ -38,6 +38,8 @@ class Settings(BaseModel):
     env: Env
     database_url: str
     frontend_origin: str
+    # HIBP refuses API calls that do not identify their consumer; an unset value is a 403.
+    hibp_user_agent: str
 
     @property
     def log_format(self) -> LogFormat:

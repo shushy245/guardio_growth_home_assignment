@@ -281,6 +281,9 @@ Cases:
 - B1d. (added in C2) a payload that is no longer HIBP's shape raises `BreachCatalogError` naming the offending index and wire field — never a half-populated breach
 - B2. sync upserts every record from the fake `BreachCatalogPort` and is idempotent on a second run (same row count, updated `fetched_at`)
 - B3. sync is skipped when `fetched_at` is younger than 24h and runs when older (pure `should_sync` + service test)
+- B3b. (added in C4b) the adapter asks HIBP for `/breaches` with the configured user agent — HIBP answers 403 to a consumer that does not identify itself
+- B3c. (added in C4b) an unreachable HIBP, a non-2xx answer, or a 200 whose body is not JSON each become a `BreachCatalogError` naming the cause
+- B3d. (added in C4b) `HIBP_USER_AGENT` is a required setting; missing → `SettingsError` naming the variable
 - B4. list defaults: sorted by breachDate desc, 20 per page, `total` reported
 - B5. sort by pwnCount desc returns the largest breach first
 - B6. `q` matches name or domain case-insensitively
@@ -307,7 +310,7 @@ Commits:
 - C2 `[test+impl B1, B1c, B1d]` `ports/breach_catalog.py` `Breach` domain model + `BreachCatalogError`; `adapters/hibp/breach_catalog.py` wire schema + translator (no I/O yet). The `BreachCatalogPort` Protocol moves to C4, where the fake is its first implementor — a Protocol with no implementor has no failing test to demand it.
 - C3 `[chore]` `breach` table migration + SQLAlchemy model
 - C4 `[test+impl B2, B18]` `BreachCatalogPort` Protocol (deferred from C2 to its first implementor); `tests/fakes/breach_catalog.py`; repository `upsert_many`; `breaches/sync.py` taking the port as a parameter. All four tests were green on arrival, so each was proved non-vacuous by mutation: excluding `fetched_at`/`title` from the update set failed two, a prune-before-insert failed the third.
-- C4b `[test+impl B3]` `should_sync` pure rule + startup hook; httpx adapter completed and wired in `main.py` only
+- C4b `[test+impl B3, B3b, B3c, B3d, B20, B21]` `staleness.py` `should_sync` pure rule; `sync_breaches_if_stale`; `sync_catalog_at_startup` (swallows `BreachCatalogError` so the boot survives); `HibpBreachCatalog` over httpx2 with an injected transport. **Deviation from the layout above:** `create_app(settings, *, catalog)` now receives the catalog and `app/asgi.py` is the one place a real adapter is named. The startup sync runs in the lifespan, where no `dependency_overrides` seam exists, so the only way a unit test can be sure it never reaches the network is to inject the port. The database stays in `create_app` because it is reached per request through the overridable `get_session`.
 - C5 `[test+impl B4, B15]` `GET /api/breaches` with defaults and pagination envelope; first integration test through the API seam
 - C6 `[test+impl B5, B11]` `sort`/`order` params as enums via Pydantic query model
 - C7 `[test+impl B6, B7]` `q`, `dataClass`

@@ -5,12 +5,70 @@ boundary: untrusted JSON in, validated domain objects out. Validation happens he
 code downstream ever has to ask whether a field was present or what type it arrived as.
 """
 
+import json
 from datetime import date, datetime
 
+import httpx2 as httpx
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError
 
 from app.ports.breach_catalog import Breach, BreachCatalogError
 from app.shared.html import strip_html
+
+HIBP_BASE_URL = "https://haveibeenpwned.com/api/v3"
+BREACHES_PATH = "/breaches"
+# A blocking startup sync must not hang the boot on a slow upstream. The catalog is ~1MB.
+HIBP_TIMEOUT_SECONDS = 15.0
+
+
+def build_hibp_transport() -> httpx.BaseTransport:
+    """The real network transport, named here so the composition root never imports httpx."""
+    return httpx.HTTPTransport()
+
+
+def build_hibp_client(*, user_agent: str, transport: httpx.BaseTransport) -> httpx.Client:
+    """Built once in the composition root and closed over — a client per call is a connection
+    pool per call. The transport is injected because it is a real dependency: production passes
+    the network, tests pass a fake wire, and neither is a special case of the other."""
+    return httpx.Client(
+        base_url=HIBP_BASE_URL,
+        headers={"User-Agent": user_agent},
+        timeout=HIBP_TIMEOUT_SECONDS,
+        transport=transport,
+    )
+
+
+class HibpBreachCatalog:
+    """The production `BreachCatalogPort`. Every way HTTP can fail becomes `BreachCatalogError`,
+    so callers choose between serving what is stored and failing visibly without knowing that
+    HIBP — or HTTP at all — is on the other side."""
+
+    def __init__(self, *, client: httpx.Client) -> None:
+        self._client = client
+
+    def fetch_all(self) -> list[Breach]:
+        try:
+            response = self._client.get(BREACHES_PATH)
+            response.raise_for_status()
+        except httpx.HTTPStatusError as error:
+            msg = (
+                f"fetch_all: HIBP answered {error.response.status_code} for "
+                f"{HIBP_BASE_URL}{BREACHES_PATH}"
+            )
+            raise BreachCatalogError(msg) from error
+        except httpx.HTTPError as error:
+            msg = f"fetch_all: HIBP is unreachable at {HIBP_BASE_URL}{BREACHES_PATH} — {error!r}"
+            raise BreachCatalogError(msg) from error
+
+        try:
+            payload = response.json()
+        except json.JSONDecodeError as error:
+            msg = (
+                f"fetch_all: HIBP answered {response.status_code} but the body is not JSON — "
+                f"first 80 bytes: {response.text[:80]!r}"
+            )
+            raise BreachCatalogError(msg) from error
+
+        return to_breaches(payload)
 
 
 class _HibpBreach(BaseModel):

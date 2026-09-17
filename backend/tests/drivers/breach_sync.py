@@ -10,7 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.breaches.models import BreachRow
-from app.breaches.sync import sync_breaches, sync_breaches_if_stale
+from app.breaches.sync import sync_breaches, sync_breaches_if_stale, sync_catalog_at_startup
 from app.ports.breach_catalog import Breach
 from tests.fakes.breach_catalog import FakeBreachCatalog
 
@@ -28,6 +28,9 @@ class BreachSyncDriver:
 
     def _sync_if_stale(self, at: datetime) -> None:
         sync_breaches_if_stale(session=self._session, catalog=self._catalog, now=at)
+
+    def _start_up(self, at: datetime) -> None:
+        sync_catalog_at_startup(session=self._session, catalog=self._catalog, now=at)
 
     def _row(self, name: str) -> BreachRow:
         row = self._session.execute(
@@ -48,6 +51,9 @@ class _Given:
     def already_synced(self, *, at: datetime) -> None:
         self._driver._sync(at)
 
+    def the_catalog_is_unreachable(self) -> None:
+        self._driver._catalog.becomes_unreachable()
+
 
 class _When:
     def __init__(self, driver: BreachSyncDriver) -> None:
@@ -58,6 +64,10 @@ class _When:
 
     def synced_if_stale(self, *, at: datetime) -> None:
         self._driver._sync_if_stale(at)
+
+    def the_app_started_up(self, *, at: datetime) -> None:
+        """The startup hook, which must survive an unreachable catalog rather than raise."""
+        self._driver._start_up(at)
 
 
 class _Then:

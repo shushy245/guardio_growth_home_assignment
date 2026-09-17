@@ -90,3 +90,35 @@ def test_a_second_sync_inside_the_same_ttl_window_does_not_fetch_again(
 
     sync.then.the_catalog_was_fetched(1)
     sync.then.stored_fetched_at_is(name="Adobe", at=FIRST_SYNC)
+
+
+def test_startup_stores_the_catalog_when_it_is_reachable(sync: BreachSyncDriver) -> None:
+    sync.given.catalog_holds(a_breach().with_name("Adobe").build())
+
+    sync.when.the_app_started_up(at=FIRST_SYNC)
+
+    sync.then.stored_names_are("Adobe")
+
+
+def test_a_catalog_that_cannot_be_reached_does_not_stop_the_app_from_starting(
+    sync: BreachSyncDriver,
+) -> None:
+    """A boot loop is invisible to a visitor; a 503 naming the reason is not."""
+    sync.given.the_catalog_is_unreachable()
+
+    sync.when.the_app_started_up(at=FIRST_SYNC)
+
+    sync.then.stored_names_are()
+
+
+def test_a_catalog_that_cannot_be_reached_leaves_what_is_already_stored_alone(
+    sync: BreachSyncDriver,
+) -> None:
+    sync.given.catalog_holds(a_breach().with_name("Adobe").build())
+    sync.given.already_synced(at=FIRST_SYNC)
+    sync.given.the_catalog_is_unreachable()
+
+    sync.when.the_app_started_up(at=FIRST_SYNC + timedelta(hours=25))
+
+    sync.then.stored_names_are("Adobe")
+    sync.then.stored_fetched_at_is(name="Adobe", at=FIRST_SYNC)

@@ -28,6 +28,7 @@ services:
       ENV: ${ENV:-dev}
       DATABASE_URL: postgresql+psycopg://breachscan:breachscan@db:5432/breachscan
       FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:5173}
+      HIBP_USER_AGENT: ${HIBP_USER_AGENT:-breach-scan-funnel}
     ports:
       - "8000:8000"
     depends_on:

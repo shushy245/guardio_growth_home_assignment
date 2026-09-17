@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 
+from tests.drivers.hibp_catalog import HibpCatalogDriver
 from tests.drivers.http import HttpDriver
 
 INTEGRATION_DIR = Path(__file__).parent / "integration"
@@ -27,3 +28,8 @@ def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
 @pytest.fixture
 def driver() -> HttpDriver:
     return HttpDriver()
+
+
+@pytest.fixture
+def hibp() -> HibpCatalogDriver:
+    return HibpCatalogDriver()

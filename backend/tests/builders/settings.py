@@ -17,6 +17,7 @@ def a_settings() -> _SettingsBuilder:
         env=Env.TEST,
         database_url="postgresql+psycopg://breachscan:breachscan@localhost:5433/breachscan_test",
         frontend_origin="http://frontend.test",
+        hibp_user_agent="breach-scan-funnel-test",
     )
 
 
@@ -25,6 +26,7 @@ class _SettingsBuilder:
     env: Env
     database_url: str
     frontend_origin: str
+    hibp_user_agent: str
 
     def with_frontend_origin(self, frontend_origin: str) -> _SettingsBuilder:
         return replace(self, frontend_origin=frontend_origin)
@@ -34,4 +36,5 @@ class _SettingsBuilder:
             env=self.env,
             database_url=self.database_url,
             frontend_origin=self.frontend_origin,
+            hibp_user_agent=self.hibp_user_agent,
         )

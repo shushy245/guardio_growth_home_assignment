@@ -6,6 +6,7 @@ COMPLETE_ENVIRON = {
     "ENV": "prod",
     "DATABASE_URL": "postgresql+psycopg://u:p@db:5432/breachscan",
     "FRONTEND_ORIGIN": "https://funnel.example",
+    "HIBP_USER_AGENT": "breach-scan-funnel",
 }
 
 
@@ -15,12 +16,21 @@ def test_complete_environment_loads_typed_settings() -> None:
     assert settings.env is Env.PROD
     assert settings.database_url == COMPLETE_ENVIRON["DATABASE_URL"]
     assert settings.frontend_origin == COMPLETE_ENVIRON["FRONTEND_ORIGIN"]
+    assert settings.hibp_user_agent == COMPLETE_ENVIRON["HIBP_USER_AGENT"]
 
 
 def test_missing_database_url_fails_loudly_naming_the_variable() -> None:
     environ = {key: value for key, value in COMPLETE_ENVIRON.items() if key != "DATABASE_URL"}
 
     with pytest.raises(SettingsError, match="DATABASE_URL"):
+        load_settings(environ)
+
+
+def test_missing_hibp_user_agent_fails_loudly_naming_the_variable() -> None:
+    """HIBP refuses API calls that do not identify their consumer, so an unset value is a 403."""
+    environ = {key: value for key, value in COMPLETE_ENVIRON.items() if key != "HIBP_USER_AGENT"}
+
+    with pytest.raises(SettingsError, match="HIBP_USER_AGENT"):
         load_settings(environ)
 
 
