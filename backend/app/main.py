@@ -9,6 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import Settings
+from app.db.engine import build_engine, build_session_factory
 from app.errors import register_exception_handlers
 from app.health.router import router as health_router
 from app.logging import configure_logging
@@ -19,6 +20,9 @@ from app.probe.router import router as probe_router
 def create_app(settings: Settings) -> FastAPI:
     configure_logging(log_format=settings.log_format)
     app = FastAPI(title="Breach Scan API")
+    app.state.session_factory = build_session_factory(
+        build_engine(database_url=settings.database_url)
+    )
     app.add_middleware(CorrelationIdMiddleware)
     app.add_middleware(
         CORSMiddleware,

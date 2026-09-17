@@ -6,7 +6,8 @@ services:
       POSTGRES_PASSWORD: breachscan
       POSTGRES_DB: breachscan
     ports:
-      - "5432:5432"
+      # 5433 on the host so a locally installed Postgres on 5432 never collides
+      - "5433:5432"
     volumes:
       - db-data:/var/lib/postgresql/data
       - ./infra/postgres/init-test-db.sql:/docker-entrypoint-initdb.d/init-test-db.sql:ro

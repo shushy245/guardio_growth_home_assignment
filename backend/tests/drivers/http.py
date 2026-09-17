@@ -18,9 +18,11 @@ from typing import Any
 import httpx2 as httpx
 import structlog
 from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
 from structlog.testing import capture_logs
 from structlog.typing import EventDict
 
+from app.db.session import get_session
 from app.main import create_app
 from tests.builders.settings import a_settings
 
@@ -30,6 +32,7 @@ class HttpDriver:
 
     def __init__(self) -> None:
         self._settings = a_settings()
+        self._session_override: Session | None = None
         self._client: TestClient | None = None
         self._response: httpx.Response | None = None
         self._logs: list[EventDict] = []
@@ -52,7 +55,11 @@ class HttpDriver:
 
     def _app_client(self) -> TestClient:
         if self._client is None:
-            self._client = TestClient(create_app(self._settings.build()))
+            app = create_app(self._settings.build())
+            if self._session_override is not None:
+                session = self._session_override
+                app.dependency_overrides[get_session] = lambda: session
+            self._client = TestClient(app)
         return self._client
 
     @property
@@ -69,6 +76,10 @@ class _Given:
 
     def frontend_origin(self, origin: str) -> None:
         self._driver._settings = self._driver._settings.with_frontend_origin(origin)
+
+    def database_session(self, session: Session) -> None:
+        """Integration tests: route every request's DB work through the test's session."""
+        self._driver._session_override = session
 
 
 class _Get:

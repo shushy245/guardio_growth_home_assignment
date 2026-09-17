@@ -17,7 +17,7 @@ from app.config import Env, Settings
 def a_settings() -> _SettingsBuilder:
     return _SettingsBuilder(
         env=Env.TEST,
-        database_url="postgresql+psycopg://breachscan:breachscan@localhost:5432/breachscan_test",
+        database_url="postgresql+psycopg://breachscan:breachscan@localhost:5433/breachscan_test",
         frontend_origin="http://frontend.test",
         admin_token="test-admin-token",
         hibp_user_agent="breach-scan-tests",
