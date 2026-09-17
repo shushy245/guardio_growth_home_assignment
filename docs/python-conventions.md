@@ -80,5 +80,6 @@ enforced mechanically here, the tool is named; otherwise it is a review item.
 | verb-first pure utils | `calculate_*`, `apply_*`, `build_*` |
 | `fromDTO` / `toAPI` | `to_<model>(raw)` in adapters; response models are Pydantic `*Response` |
 | `*Model` domain types | dataclass `Breach`, `FeatureFlag` (no suffix; the module namespace disambiguates) |
+| — | SQLAlchemy table classes carry a `Row` suffix (`BreachRow`) so they never collide with the domain model of the same name; `sync.py` holds both in one scope |
 | `is*/has*/can*` | `is_*/has_*/can_*` |
 | ports `*.port.ts`, fakes `Fake*` | `app/ports/<name>.py` with `<Name>Port` Protocol; `tests/fakes/<name>.py` with `Fake<Name>` |

@@ -11,6 +11,7 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
+from app.breaches.models import BreachRow  # noqa: F401 — imported so autogenerate sees it
 from app.db.base import Base
 
 config = context.config
