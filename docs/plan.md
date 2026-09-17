@@ -38,14 +38,19 @@ structured logging, functional core, TDD) carries over unchanged.
 
 | Decision | Options weighed | Chosen and why |
 |---|---|---|
-| Backend framework | FastAPI / Flask / Django | **FastAPI + Pydantic v2**. Pydantic is the Zod analogue: schema first, type derived, validation at the boundary before the handler runs. Async fits the HIBP proxy calls. |
-| Persistence | SQLAlchemy 2 + Alembic / SQLModel / raw SQL | **SQLAlchemy 2 (typed mapped classes) + Alembic**, forward-only migrations. |
+| Backend framework | FastAPI / Flask / Django | **FastAPI + Pydantic v2**. Pydantic is the Zod analogue: schema first, type derived, validation at the boundary before the handler runs. Django was weighed seriously (its admin UI would give the flag page for free) but drags a monolith into a "small Python backend" and would mean two admin surfaces; not used anywhere. |
+| Persistence | SQLAlchemy 2 + Alembic / Django ORM / SQLModel / Tortoise, Peewee, Piccolo / raw psycopg | **SQLAlchemy 2 (typed `Mapped[]` classes) + Alembic**, forward-only migrations. The industry default for FastAPI; Drizzle + drizzle-kit analogue. SQLModel rejected (immature, Pydantic v2 rough edges, hides rather than replaces SQLAlchemy); small ORMs rejected (niche, weak typing/migrations); raw SQL rejected by house rule. Usage kept thin: one session per request, one repository module per entity. |
+| Python tooling | none / flake8+black / ruff+mypy | **ruff (lint + format) + mypy `--strict` + pytest**, wired into the same husky commit gate as the frontend. mypy strict is the `tsc --strict` analogue and the reason untyped Python cannot land. |
+| Backend shape | Domain Model / Transaction Script | **Transaction Script (Fowler, PoEAA)**, deliberately: simple domain, no invariants that earn a class. Each entity = `schemas.py` (Pydantic boundary), `models.py` (SQLAlchemy), `repository.py` (thin DB functions), `router.py` (thin shell), plus a pure `*.py` when there is logic. No service layer. |
+| External APIs | Call HIBP inline / ports & adapters | **Ports & Adapters.** `app/ports/` holds two `typing.Protocol` interfaces: `BreachCatalogPort.fetch_all()` and `PwnedPasswordRangePort.fetch_range(prefix)`. `app/adapters/hibp/` is the only place that knows HIBP URLs, headers or wire shape and translates into our model. `tests/fakes/` implements the same Protocols in memory. The composition root wires real adapters; tests swap fakes via FastAPI `dependency_overrides`. Replacing HIBP = one adapter file + one line in `main.py`. |
+| Admin protection | none / env token / full auth | **Env-configured admin token** (`X-Admin-Token`) required on flag PATCH → 401 otherwise. Full auth is out of scope; an open write endpoint is not acceptable for a security company's take-home. |
+| Cookies & CORS | defaults / explicit | Visitor cookie `HttpOnly; SameSite=Lax; Secure` outside dev. CORS allow-list = configured frontend origin only. |
 | DB / runtime | Postgres in docker-compose / SQLite | **Postgres 16 via docker-compose.** One `docker compose up` runs db + backend + frontend. |
 | Breach data | Proxy per request / in-memory cache / persist | **Persist to a `breach` table** with `fetched_at`, synced on startup and on a 24h TTL. Enables server-side sort/filter/summary and keeps the funnel alive if HIBP is slow. If HIBP fails *and* the table is empty, the scan fails visibly (`503 { error }`), never fake data. |
 | Feature flag home | DB + admin page / GrowthBook container / DB only | **DB table + barely-designed `/admin` page.** Fowler taxonomy: an *Experiment* toggle, product-owned, medium lifetime. |
 | Variant assignment | Client hash / server hash / random + store | **Server-side, stored.** `POST /api/visitors` creates the visitor, hashes `visitor_id:flag_key` into [0,100) against the flag's live weights, persists the assignment. Stable across refreshes via cookie + DB row; changing weights only affects *new* visitors (documented). |
 | Password check | Client → HIBP directly / backend proxy | **Browser hashes with Web Crypto SHA-1, backend proxies the range call** with `Add-Padding`. Full hash never leaves the browser; proxy gives structured logging and a fail-visible seam. |
-| Password storage | Reuse SHA-1 / proper hash | **bcrypt.** Unsalted SHA-1 as a credential is wrong for a security company; the write-up says so. SHA-1 is used only for the k-anonymity check. |
+| Password storage | Reuse SHA-1 / bcrypt / Argon2id | **Argon2id via `argon2-cffi`** (OWASP Password Storage Cheat Sheet's first recommendation; bcrypt is its fallback). Unsalted SHA-1 as a credential is wrong for a security company; the write-up says so. SHA-1 is used only for the k-anonymity check and never stored. |
 | Analysis | Dashboard / notebook / both | **In-app dashboard**, parameterised by flag key so it points at the next test. |
 | Stats | z-test / chi-square / Bayesian | **Two-proportion z-test + 95% CI on absolute and relative lift + sample-size adequacy vs a stated MDE** (`scipy`). Bayesian is stretch. |
 | Charts | Hand SVG / Recharts | **Recharts**, wrapped once in a `charts/` adapter. Load the `dataviz` skill before chart code. |
@@ -58,22 +63,25 @@ structured logging, functional core, TDD) carries over unchanged.
   docker-compose.yml           db + backend + frontend
   package.json                 workspaces: ["frontend"]  (project-init anchor)
   CLAUDE.md                    project file
-  docs/plan.md  docs/adr/  docs/changelog.md
+  docs/plan.md  docs/adr/  docs/changelog.md  docs/python-primer.md (TS → Python map for the reader)
   backend/
-    pyproject.toml             uv-managed; fastapi, sqlalchemy, alembic, psycopg, httpx, bcrypt, scipy, structlog, pytest
-    app/main.py                composition root: config read, deps built, routers mounted
+    pyproject.toml             uv-managed; fastapi, sqlalchemy, alembic, psycopg, httpx, argon2-cffi, scipy, structlog; dev: pytest, ruff, mypy
+    app/main.py                composition root: config read, adapters built, routers mounted — the only place real adapters are named
     app/config.py              pydantic-settings; env validated at startup
     app/logging.py             structlog JSON, correlation-id middleware
     app/db/                    engine, session dep, alembic/
-    app/breaches/              models.py schemas.py repository.py service.py router.py
-    app/feature_flags/         models.py schemas.py repository.py assignment.py (pure hash) router.py
-    app/visitors/              models.py schemas.py router.py
+    app/ports/                 breach_catalog.py, pwned_password_range.py — typing.Protocol interfaces, no I/O
+    app/adapters/hibp/         breach_catalog.py, pwned_password_range.py — httpx, HIBP URLs/headers, wire→model translators
+    app/breaches/              models.py schemas.py repository.py sync.py (uses the port) summary.py (pure) router.py
+    app/feature_flags/         models.py schemas.py repository.py assignment.py (pure) router.py
+    app/visitors/              models.py schemas.py repository.py router.py
     app/funnel_events/         models.py schemas.py repository.py router.py
-    app/signups/               models.py schemas.py router.py password_hash.py
-    app/pwned_passwords/       client.py (httpx adapter) router.py
+    app/signups/               models.py schemas.py repository.py password_hash.py router.py
+    app/pwned_passwords/       router.py (proxies through the port)
     app/experiments/           stats.py (pure) results.py (query + assemble) router.py
+    app/shared/                ids.py (generate_unique_id), html.py (strip tags, stdlib)
     scripts/simulate_traffic.py
-    tests/unit/  tests/integration/  tests/drivers/  tests/fakes/  tests/builders/
+    tests/unit/  tests/integration/  tests/drivers/  tests/fakes/ (port fakes)  tests/builders/
   frontend/
     src/main.tsx               composition root: providers, router
     src/layout/                Box Row Column FullBox FullRow FullColumn
@@ -144,7 +152,21 @@ Copy, weights and enabled-state are edited on `/admin`. The Result page reads th
 
 ---
 
-## E1 — Core funnel, experiment, and read (one working day)
+## E1 — Core funnel, experiment, and read (~9–10h honest estimate; "one working day" stretched by the security and result-screen additions)
+
+Standards checklist this epic is held to (from the global doctrine; N/A items stated so they are
+decisions, not omissions):
+- Boundary validation: Pydantic models on every route signature (the Zod-in-middleware analogue) — the handler never sees raw input.
+- List-endpoint contract on `GET /api/breaches` from the first commit that serves it.
+- Optimistic locking on the only user-editable entity (`feature_flag.updated_at`).
+- Idempotent consumer: `funnel_event` insert is `ON CONFLICT DO NOTHING` on a client-generated id.
+- Outbox / DLQ / stale-update guards: **N/A** — no queue, no event publishing; the only "event" is an HTTP write. Recorded in ADR-0001.
+- Structured logging with correlation ids from S1; function-name-prefixed messages with entity ids.
+- Prefixed sortable ids via `generate_unique_id(prefix)`.
+- Composition root: `main.py` only; ports injected; fakes swapped in tests.
+- Functional core: `assignment.py`, `stats.py`, `summary.py`, `strip_html`, `formatCount`, `buildBreachesQuery` are pure and unit-tested with bare asserts.
+- Never synthetic data: HIBP outage with an empty table is a visible 503.
+- No secrets in code: admin token, DB URL, origins from env; `.env.example` documents them.
 
 ### S1 — scaffold (~1h)
 
@@ -158,31 +180,35 @@ Cases:
 - B4. every response carries `x-correlation-id`; an inbound one is echoed back
 - B5. startup raises a clear error when `DATABASE_URL` is missing
 - B6. integration harness: a test can open a session against the compose Postgres and roll back
+- B7. a request from an origin outside the configured allow-list gets no CORS allow header
+- B8. `generate_unique_id('vis')` returns `vis_` + 26 chars, and 1,000 ids generated in sequence sort lexicographically by creation
 - F1. `App` renders the landing route at `/` (smoke through `renderWithProviders`)
 - F2. layout primitives `Row`/`Column` apply the expected flex direction class (pure render test)
 
 Commits:
 - C1 `[chore]` root `package.json` (workspace `frontend`), `docker-compose.yml` (postgres:16, backend, frontend), `.env.example`, `.gitignore`
-- C2 `[chore]` backend `uv init`, deps, `pytest` unit config, HTTP driver skeleton (`tests/drivers/http.py`: `get.* / post.* / patch.* / assert.status / assert.error`)
+- C2 `[chore]` backend `uv init`, deps, ruff + mypy `--strict` config, `pytest` unit config, HTTP driver skeleton (`tests/drivers/http.py`: `given.* / get.* / post.* / patch.* / assert.status / assert.error`)
 - C3 `[test+impl B1]` FastAPI app factory + `/api/health`
 - C4 `[test+impl B2, B3]` `{ error }` exception handlers for 404 and validation errors, probe route
 - C5 `[test+impl B4]` correlation-id middleware + structlog JSON config
-- C6 `[test+impl B5]` pydantic-settings config validated at startup; composition root in `main.py`
-- C7 `[chore]` Alembic wired, empty initial migration, integration pytest config + `conftest` transaction-rollback fixture
-- C8 `[test+impl B6]` integration harness proves round-trip against compose Postgres
-- C9 `[chore]` Vite + React 19 + TS strict, react-router, axios client, Vitest + testing-library + `setup.ts` + `renderWithProviders`
-- C10 `[test+impl F2]` layout primitives with `.module.scss`
-- C11 `[test+impl F1]` `App` with router and a placeholder landing route
-- C12 `[chore]` `/project-init`: project CLAUDE.md merge, eslint-config-shalev stub, husky commit gate (tsc + vitest + eslint + pytest)
-- C13 `[chore]` Dockerfiles for backend/frontend; `docker compose up` verified manually; ADR-0001 stack
+- C6 `[test+impl B5, B7]` pydantic-settings config validated at startup; CORS allow-list; composition root in `main.py`
+- C7 `[test+impl B8]` `shared/ids.py` prefixed time-sortable ids (ULID body)
+- C8 `[chore]` Alembic wired, empty initial migration, integration pytest config + `conftest` transaction-rollback fixture
+- C9 `[test+impl B6]` integration harness proves round-trip against compose Postgres
+- C10 `[chore]` Vite + React 19 + TS strict, react-router, axios client, Vitest + testing-library + `setup.ts` + `renderWithProviders`
+- C11 `[test+impl F2]` layout primitives with `.module.scss`
+- C12 `[test+impl F1]` `App` with router and a placeholder landing route
+- C13 `[chore]` `/project-init`: project CLAUDE.md merge, eslint-config-shalev stub, husky commit gate running tsc + vitest + eslint **and** ruff + mypy + pytest
+- C14 `[chore]` Dockerfiles (non-root user, pinned base images, `uv.lock` / `package-lock.json` honoured); `docker compose up` verified manually; ADR-0001 stack; `docs/python-primer.md` extended with every construct S1 introduced
 
 ### S2 — breach-catalog (~1.5h)
 
 Objective: HIBP catalog persisted and served through the full list contract plus a summary endpoint.
 
 Cases:
-- B1. `parse_breach` maps a raw HIBP record to the model, stripping description HTML and normalising `null` → `None`
-- B2. sync upserts every record from the fake HIBP port and is idempotent on a second run (same row count, updated `fetched_at`)
+- B1. HIBP adapter translator maps a raw HIBP record to our `Breach` model, stripping description HTML (stdlib `html.parser`) and normalising `null` → `None`; the model has no HIBP-specific field names
+- B1b. `strip_html('<a href="x">Hi</a> there')` → `'Hi there'` (pure, stdlib)
+- B2. sync upserts every record from the fake `BreachCatalogPort` and is idempotent on a second run (same row count, updated `fetched_at`)
 - B3. sync is skipped when `fetched_at` is younger than 24h and runs when older (pure `should_sync` + service test)
 - B4. list defaults: sorted by breachDate desc, 20 per page, `total` reported
 - B5. sort by pwnCount desc returns the largest breach first
@@ -199,10 +225,11 @@ Cases:
 - F2. `useBreaches` hook builds the query string from `{ page, sort, order, q, dataClass, yearFrom, yearTo, verifiedOnly }` (pure `buildBreachesQuery`)
 
 Commits:
-- C1 `[test+impl B1]` `breaches/schemas.py` (HIBP wire schema) + `parse_breach`
-- C2 `[chore]` `breach` table migration + SQLAlchemy model
-- C3 `[test+impl B2]` HIBP port + in-memory fake + httpx adapter; repository `upsert_many`; sync service
-- C4 `[test+impl B3]` `should_sync` pure rule + startup hook
+- C1 `[test+impl B1b]` `shared/html.py` `strip_html`
+- C2 `[test+impl B1]` `ports/breach_catalog.py` Protocol + `Breach` domain model; `adapters/hibp/breach_catalog.py` wire schema + translator (no I/O yet)
+- C3 `[chore]` `breach` table migration + SQLAlchemy model
+- C4 `[test+impl B2]` `tests/fakes/breach_catalog.py`; repository `upsert_many`; `breaches/sync.py` taking the port as a parameter
+- C4b `[test+impl B3]` `should_sync` pure rule + startup hook; httpx adapter completed and wired in `main.py` only
 - C5 `[test+impl B4]` `GET /api/breaches` with defaults and pagination envelope
 - C6 `[test+impl B5, B11]` `sort`/`order` params as enums via Pydantic query model
 - C7 `[test+impl B6, B7, B8]` `q`, `dataClass`, `yearFrom`/`yearTo`
@@ -230,6 +257,8 @@ Cases:
 - B10. `PATCH /api/feature-flags/{key}` with the current `updatedAt` → 200 `{ updatedAt }` and the change persists
 - B11. `PATCH` with a stale `updatedAt` → 409 `{ error }` and nothing changes
 - B12. `PATCH` on an unknown key → 404 `{ error }`
+- B13. `PATCH` without a valid `X-Admin-Token` → 401 `{ error }` and nothing changes
+- B14. visitor cookie is `HttpOnly; SameSite=Lax` and `Secure` when `ENV != dev`
 - F1. `featureFlag.fromDTO` / `toUpdatePayload` round-trip (pure)
 - F2. `VisitorProvider`: with no stored id it creates a visitor and exposes `variantFor('result_screen_tone')` (driver, API mocked)
 - F3. `VisitorProvider`: with a stored id it fetches that visitor and does not create a new one (driver)
@@ -241,10 +270,11 @@ Commits:
 - C1 `[test+impl B1, B2, B3]` `assignment.py` pure hash → bucket → weighted pick
 - C2 `[chore]` migrations for `feature_flag`, `visitor`, `visitor_assignment`; seed migration for `result_screen_tone`
 - C3 `[test+impl B4]` `FeatureFlagVariant` / `FeatureFlagUpdate` Pydantic schemas with weight-sum validator
-- C4 `[test+impl B5, B6]` `POST /api/visitors` (create, assign per enabled flag, cookie); `generate_unique_id(prefix)` util
+- C4 `[test+impl B5, B6, B14]` `POST /api/visitors` (create, assign per enabled flag, hardened cookie)
 - C5 `[test+impl B7, B8]` `GET /api/visitors/{id}`
 - C6 `[test+impl B9]` `GET /api/feature-flags`
-- C7 `[test+impl B10, B11, B12]` `PATCH` with optimistic lock (single write, `WHERE updated_at = :token`)
+- C7 `[test+impl B13]` `require_admin_token` dependency (constant-time compare against config)
+- C7b `[test+impl B10, B11, B12]` `PATCH` with optimistic lock (single write, `WHERE updated_at = :token`)
 - C8 `[refactor]` extract `feature_flags/repository.py`; router is a thin shell
 - C9 `[test+impl F1]` frontend `models/featureFlag`, `models/visitor`
 - C10 `[test+impl F2, F3, F4]` `VisitorProvider` (driver first) + `api/visitors`
@@ -274,9 +304,33 @@ Commits:
 - C5 `[test+impl F1, F3]` `AnalyticsProvider` (driver first) + `api/funnelEvents`
 - C6 `[test+impl F2, F4]` pre-creation queue + stable per-step event id (`useTrackOnce`)
 
-### S5 — funnel-ui (~1.5h)
+### D1 — Claude Design handoff (pause point; no code)
+
+Objective: the funnel screens are designed in Claude Design by Shalev before any UI is built, so
+S5 implements a design rather than inventing one. **I stop here and hand over a prompt.**
+
+Tasks:
+- [ ] I write the Claude Design prompt: product context (Guardio, breach-scan funnel, mobile-web first, 390px primary), the four screens in order, the result screen as the centrepiece with the calm and urgent variants side by side, the summary tiles, the sortable/filterable list with chips and sticky CTA, the sign-up form with the leaked-password warning state, the "you're protected" confirmation, and the constraints the implementation needs (tokens for colour/spacing/type, component inventory, both variants sharing one layout with only copy/tone changing, states: loading skeleton, empty-filter, error)
+- [ ] Shalev runs it in Claude Design and brings back the output (design system tokens, screens, any exported HTML/CSS)
+- [ ] I translate the output into `frontend/src/styles/tokens.scss` and a component inventory that S5's drivers and components are named after; deviations from the design are listed, not silent
+- [ ] Optional in the same round: the dashboard (S7) read, so the PM-facing page shares the system
+
+Cases:
+- none (no code). Exit criterion: tokens file and component inventory agreed in chat.
+
+### S5 — funnel-ui (~2.5h; the result screen is the heart of the exercise and gets the most care; implements D1's design)
 
 Objective: Landing → Scan moment → Result (summary, sortable/filterable list, variant copy) → CTA, mobile-first.
+
+Result-screen product bar (load the `frontend-design` skill before building it):
+- Summary tiles answer "why should I care": breaches in the last 12 months, accounts exposed
+  (humanised: `17.8B`), share that leaked passwords, largest breach by name.
+- The list is scannable on a phone: title, year, humanised count, data-class badges with
+  `Passwords` highlighted, verified mark; skeleton rows while loading.
+- Sort and filter are one thumb away: horizontally scrolling chips, a sort segmented control,
+  "Showing X of Y" feedback, one-tap Clear filters, an explicit empty-filter state.
+- "Protect me" is always reachable: sticky bottom CTA on mobile, variant-driven copy and tone.
+- Nothing is computed in the browser: every sort/filter/summary is a server query.
 
 Cases:
 - F1. Landing renders the scan button and tracks `landing_view` once on mount (driver)
@@ -292,26 +346,33 @@ Cases:
 - F11. `BreachList`: list API error shows an error state, never an empty list (driver)
 - F12. tapping the CTA tracks `cta_click` then navigates to `/signup` (driver)
 - F13. navigating away mid-fetch does not update state after unmount (driver, abort signal)
+- F14. `formatCount(17816217392)` → `17.8B`, `14936670` → `14.9M`, `950` → `950` (pure)
+- F15. `BreachFilters` shows "Showing 20 of 1,036" from the list envelope and "Clear filters" only when a filter is active (driver)
+- F16. `BreachList` with zero results under an active filter shows the empty-filter state with a Clear action, not the error state (driver)
+- F17. `BreachRow` highlights the `Passwords` badge and shows the verified mark only when `isVerified` (driver)
+- F18. `BreachList` shows skeleton rows while the first page loads (driver)
+- F19. the CTA is rendered inside the sticky footer region on the result page (driver asserts the test id is present; visual sticky behaviour is checked manually at 390px)
 
 Commits:
 - C1 `[test+impl F1, F2]` Landing page (driver first)
 - C2 `[test+impl F3, F4]` Scan page (driver first) with `useScanMoment` hook
-- C3 `[test+impl F6]` `Tone` enum + `toneClassMap` in `Result.utils.ts`
+- C3 `[test+impl F6, F14]` `Tone` enum + `toneClassMap` + `formatCount` in `.utils.ts`
 - C4 `[test+impl F5]` Result page shell reading variant config from `VisitorProvider` (driver first)
 - C5 `[test+impl F7]` `BreachSummary` (driver first)
-- C6 `[test+impl F8, F9]` `BreachFilters` (driver first) + `useBreachFilters` state
-- C7 `[test+impl F10, F11, F13]` `BreachList` (driver first) with load-more and abortable fetch
-- C8 `[test+impl F12]` CTA wiring
-- C9 `[refactor]` extract sub-components / move logic to `.utils.ts` where files accumulated logic
-- C10 `[chore]` 390px pass in Chrome; scss polish; ADR-0004 result-screen product decisions
+- C6 `[test+impl F8, F9, F15]` `BreachFilters` (driver first) + `useBreachFilters` state
+- C7 `[test+impl F17]` `BreachRow` (driver first)
+- C8 `[test+impl F10, F11, F13, F16, F18]` `BreachList` (driver first) with load-more, abortable fetch, skeleton and empty states
+- C9 `[test+impl F12, F19]` sticky CTA wiring
+- C10 `[refactor]` extract sub-components / move logic to `.utils.ts` where files accumulated logic
+- C11 `[chore]` `frontend-design` pass and 390px check in Chrome; scss polish; ADR-0004 result-screen product decisions
 
 ### S6 — signup (~1h)
 
 Objective: mock sign-up with plan picker, k-anonymity password warning, bcrypt storage, confirmation.
 
 Cases:
-- B1. `hash_password` / `verify_password` round-trip; stored hash is bcrypt-prefixed and never equals the input
-- B2. valid signup → 201 `{ id, createdAt }`, `id` prefixed `sup_`, row stores bcrypt hash and lower-cased email
+- B1. `hash_password` / `verify_password` round-trip; stored hash is `$argon2id$`-prefixed and never equals the input
+- B2. valid signup → 201 `{ id, createdAt }`, `id` prefixed `sup_`, row stores the Argon2id hash and lower-cased email
 - B3. duplicate email (case-insensitive) → 409 `{ error }`
 - B4. invalid email / password under 8 chars / unknown plan → 400 `{ error }`
 - B5. `passwordWasPwned=true` is persisted as sent
@@ -330,16 +391,16 @@ Cases:
 - F10. Protected page tracks `activation` once on mount (driver)
 
 Commits:
-- C1 `[test+impl B1]` `password_hash.py` (bcrypt)
+- C1 `[test+impl B1]` `password_hash.py` (Argon2id via `argon2-cffi`)
 - C2 `[chore]` `signup` migration + model + `Plan` enum
 - C3 `[test+impl B2, B3, B4, B5]` `POST /api/signups` with Pydantic body schema
-- C4 `[test+impl B6, B7, B8]` Pwned Passwords port + fake + httpx adapter; `GET /api/pwned-passwords/range/{prefix}`
+- C4 `[test+impl B6, B7, B8]` `ports/pwned_password_range.py` Protocol + `tests/fakes/` + `adapters/hibp/pwned_password_range.py`; `GET /api/pwned-passwords/range/{prefix}` wired through the port
 - C5 `[test+impl F1, F2]` `PasswordField.utils.ts` pure helpers
 - C6 `[test+impl F3, F4, F5, F6]` `PasswordField` (driver first) with request-ordering guard
 - C7 `[test+impl F7]` `PlanPicker` (driver first)
 - C8 `[test+impl F8, F9]` Signup page (driver first) + `api/signups`
 - C9 `[test+impl F10]` Protected page (driver first)
-- C10 `[chore]` ADR-0005 bcrypt over SHA-1 reuse
+- C10 `[chore]` ADR-0005 Argon2id over SHA-1 reuse (and over bcrypt)
 
 ### S7 — simulation-and-dashboard (~1.5h)
 
@@ -369,7 +430,7 @@ Commits:
 - C6 `[test+impl B7, B8]` results endpoint assembling the payload
 - C7 `[test+impl B9]` `scripts/simulate_traffic.py` (arg-parsed, httpx against the running API)
 - C8 `[test+impl F1]` `models/experimentResult`
-- C9 `[chore]` load `dataviz` skill; `charts/` adapter over Recharts
+- C9 `[chore]` load `dataviz` skill; apply D1 tokens; `charts/` adapter over Recharts
 - C10 `[test+impl F2, F3, F4]` Dashboard page (driver first): `FunnelChart`, `LiftChart`, recommendation banner
 - C11 `[chore]` run the 4,000-visitor simulation; capture the read for the README; ADR-0006 frequentist read
 
