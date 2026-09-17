@@ -32,14 +32,8 @@ class _SettingsBuilder:
     admin_token: str
     hibp_user_agent: str
 
-    def with_env(self, env: Env) -> _SettingsBuilder:
-        return replace(self, env=env)
-
     def with_frontend_origin(self, frontend_origin: str) -> _SettingsBuilder:
         return replace(self, frontend_origin=frontend_origin)
-
-    def with_admin_token(self, admin_token: str) -> _SettingsBuilder:
-        return replace(self, admin_token=admin_token)
 
     def build(self) -> Settings:
         return Settings(

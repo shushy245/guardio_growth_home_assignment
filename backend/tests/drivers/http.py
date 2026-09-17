@@ -6,7 +6,7 @@ Tests read as Given / When / Then and never touch the client directly:
     driver.then.status(200)
     driver.then.json({"status": "ok"})
 
-`given.*` seeds state, `get/post/patch.*` performs the one request under test, `then.*` holds
+`given.*` seeds state, `get/post.*` performs the one request under test, `then.*` holds
 every assertion (Python reserves `assert`, so the Then namespace is `then`).
 """
 
@@ -39,7 +39,6 @@ class HttpDriver:
         self.given = _Given(self)
         self.get = _Get(self)
         self.post = _Post(self)
-        self.patch = _Patch(self)
         self.then = _Then(self)
 
     def _perform(self, request: Callable[[TestClient], httpx.Response]) -> None:
@@ -65,7 +64,7 @@ class HttpDriver:
     @property
     def _last(self) -> httpx.Response:
         if self._response is None:
-            msg = "HttpDriver: no request performed yet — call get/post/patch before then.*"
+            msg = "HttpDriver: no request performed yet — call get/post before then.*"
             raise AssertionError(msg)
         return self._response
 
@@ -98,16 +97,6 @@ class _Post:
         self, path: str, body: dict[str, Any], *, headers: dict[str, str] | None = None
     ) -> None:
         self._driver._perform(lambda client: client.post(path, json=body, headers=headers))
-
-
-class _Patch:
-    def __init__(self, driver: HttpDriver) -> None:
-        self._driver = driver
-
-    def json(
-        self, path: str, body: dict[str, Any], *, headers: dict[str, str] | None = None
-    ) -> None:
-        self._driver._perform(lambda client: client.patch(path, json=body, headers=headers))
 
 
 class _Then:
