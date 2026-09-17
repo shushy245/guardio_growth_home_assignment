@@ -9,9 +9,9 @@ describe('App', () => {
         driver = makeAppDriver();
     });
 
-    it('shows the landing page at the root route', () => {
+    it('shows the landing page at the root route', async () => {
         driver.given.route('/');
-        driver.when.created();
+        await driver.when.created();
         driver.assert.landingIsShown();
     });
 });

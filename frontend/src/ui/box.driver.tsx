@@ -1,5 +1,5 @@
 import { expect } from 'vitest';
-import { ReactElement } from 'react';
+import { act, ReactElement } from 'react';
 import { screen } from '@testing-library/react';
 
 import { renderWithProviders } from '~/testkit/renderWithProviders';
@@ -28,7 +28,7 @@ const primitiveElementMap: Record<Primitive, ReactElement> = {
 
 export type BoxDriver = {
     given: { primitive: (chosen: Primitive) => void };
-    when: { created: () => void };
+    when: { created: () => Promise<void> };
     assert: {
         hasClass: (className: string) => void;
         hasNoLayoutClass: () => void;
@@ -46,8 +46,10 @@ export const makeBoxDriver = (): BoxDriver => {
             },
         },
         when: {
-            created: (): void => {
-                renderWithProviders(primitiveElementMap[primitive]);
+            created: async (): Promise<void> => {
+                await act(async () => {
+                    renderWithProviders(primitiveElementMap[primitive]);
+                });
             },
         },
         assert: {

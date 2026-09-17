@@ -1,3 +1,4 @@
+import { act } from 'react';
 import { expect } from 'vitest';
 import { screen } from '@testing-library/react';
 
@@ -7,7 +8,7 @@ import { renderWithProviders } from '~/testkit/renderWithProviders';
 
 export type AppDriver = {
     given: { route: (path: string) => void };
-    when: { created: () => void };
+    when: { created: () => Promise<void> };
     assert: { landingIsShown: () => void };
 };
 
@@ -21,8 +22,10 @@ export const makeAppDriver = (): AppDriver => {
             },
         },
         when: {
-            created: (): void => {
-                renderWithProviders(<App />, { route });
+            created: async (): Promise<void> => {
+                await act(async () => {
+                    renderWithProviders(<App />, { route });
+                });
             },
         },
         assert: {

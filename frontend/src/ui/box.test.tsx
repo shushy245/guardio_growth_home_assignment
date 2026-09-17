@@ -9,45 +9,45 @@ describe('layout primitives', () => {
         driver = makeBoxDriver();
     });
 
-    it('Row lays its children out horizontally', () => {
+    it('Row lays its children out horizontally', async () => {
         driver.given.primitive(Primitive.Row);
-        driver.when.created();
+        await driver.when.created();
         driver.assert.hasClass('row');
     });
 
-    it('Column lays its children out vertically', () => {
+    it('Column lays its children out vertically', async () => {
         driver.given.primitive(Primitive.Column);
-        driver.when.created();
+        await driver.when.created();
         driver.assert.hasClass('column');
     });
 
-    it('FullRow is a Row stretched to full width', () => {
+    it('FullRow is a Row stretched to full width', async () => {
         driver.given.primitive(Primitive.FullRow);
-        driver.when.created();
+        await driver.when.created();
         driver.assert.hasClass('fullRow');
     });
 
-    it('FullColumn is a Column stretched to full height', () => {
+    it('FullColumn is a Column stretched to full height', async () => {
         driver.given.primitive(Primitive.FullColumn);
-        driver.when.created();
+        await driver.when.created();
         driver.assert.hasClass('fullColumn');
     });
 
-    it('FullBox fills both dimensions', () => {
+    it('FullBox fills both dimensions', async () => {
         driver.given.primitive(Primitive.FullBox);
-        driver.when.created();
+        await driver.when.created();
         driver.assert.hasClass('fullBox');
     });
 
-    it('Box adds no layout class of its own', () => {
+    it('Box adds no layout class of its own', async () => {
         driver.given.primitive(Primitive.Box);
-        driver.when.created();
+        await driver.when.created();
         driver.assert.hasNoLayoutClass();
     });
 
-    it('every primitive renders its children', () => {
+    it('every primitive renders its children', async () => {
         driver.given.primitive(Primitive.Row);
-        driver.when.created();
+        await driver.when.created();
         driver.assert.rendersChildren();
     });
 });
