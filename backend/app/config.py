@@ -7,8 +7,9 @@ malformed variable fails loudly, naming the variable, before the app serves a re
 
 from collections.abc import Mapping
 from enum import StrEnum
+from urllib.parse import urlsplit
 
-from pydantic import BaseModel, ConfigDict, SecretStr, ValidationError
+from pydantic import BaseModel, ConfigDict, SecretStr, ValidationError, field_validator
 
 
 class Env(StrEnum):
@@ -41,6 +42,31 @@ class Settings(BaseModel):
     @property
     def log_format(self) -> LogFormat:
         return _log_format_map[self.env]
+
+    @field_validator("frontend_origin")
+    @classmethod
+    def _reject_anything_but_a_bare_origin(cls, value: str) -> str:
+        if is_bare_origin(value):
+            return value
+
+        msg = (
+            "must be a bare origin — scheme://host[:port], no path and no trailing slash — "
+            f"because CORS compares the browser's Origin header exactly; found {value!r}"
+        )
+        raise ValueError(msg)
+
+
+def is_bare_origin(value: str) -> bool:
+    """`http://localhost:5173` yes; `https://x.test/`, `https://x.test/app`, `x.test` no."""
+    parsed = urlsplit(value)
+
+    return (
+        parsed.scheme in {"http", "https"}
+        and bool(parsed.netloc)
+        and not parsed.path
+        and not parsed.query
+        and not parsed.fragment
+    )
 
 
 class SettingsError(Exception):

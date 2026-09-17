@@ -160,3 +160,10 @@ You will struggle to validate details, so here is what to look for:
 - **`zip(a, b, strict=True)`**: pairs two sequences and raises if their lengths differ, instead of
   silently truncating like the default. Use `strict=True` every time; the silent truncation is the
   kind of bug that only shows up as missing data.
+- **`@field_validator("name")` + `@classmethod`** (`app/config.py`): Pydantic's per-field check, run
+  when the model is built. Raising a plain `ValueError` inside it is how you fail validation;
+  Pydantic catches it and folds the message into the same `ValidationError` as a missing field, so
+  `load_settings` turns both into one `SettingsError` naming the variable. The Zod `.refine()`
+  analogue. The `@classmethod` line is required and must sit *below* the decorator.
+- **`urllib.parse.urlsplit`** (`app/config.py`): the stdlib URL parser — `scheme`, `netloc`, `path`,
+  `query`, `fragment`. Standard-library-first: no package needed to tell an origin from a URL.

@@ -44,3 +44,24 @@ def test_dev_logs_to_console_and_every_other_env_logs_json() -> None:
     assert load_settings({**COMPLETE_ENVIRON, "ENV": "dev"}).log_format is LogFormat.CONSOLE
     assert load_settings({**COMPLETE_ENVIRON, "ENV": "test"}).log_format is LogFormat.JSON
     assert load_settings({**COMPLETE_ENVIRON, "ENV": "prod"}).log_format is LogFormat.JSON
+
+
+def test_frontend_origin_with_a_trailing_slash_fails_loudly() -> None:
+    environ = {**COMPLETE_ENVIRON, "FRONTEND_ORIGIN": "https://funnel.example/"}
+
+    with pytest.raises(SettingsError, match="FRONTEND_ORIGIN"):
+        load_settings(environ)
+
+
+def test_frontend_origin_with_a_path_fails_loudly() -> None:
+    environ = {**COMPLETE_ENVIRON, "FRONTEND_ORIGIN": "https://funnel.example/app"}
+
+    with pytest.raises(SettingsError, match="FRONTEND_ORIGIN"):
+        load_settings(environ)
+
+
+def test_frontend_origin_without_a_scheme_fails_loudly() -> None:
+    environ = {**COMPLETE_ENVIRON, "FRONTEND_ORIGIN": "funnel.example"}
+
+    with pytest.raises(SettingsError, match="FRONTEND_ORIGIN"):
+        load_settings(environ)
