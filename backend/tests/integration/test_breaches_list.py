@@ -55,7 +55,8 @@ def test_the_api_reads_rows_written_through_the_tests_own_session(
 def test_rows_written_by_the_previous_test_are_not_visible_here(
     breaches: BreachesApiDriver,
 ) -> None:
+    """The savepoint rolled back, so the catalog is empty again — which the API reports as
+    unavailable rather than as an empty list. Either way the rows are gone."""
     breaches.when.listed()
 
-    breaches.then.the_breach_names_are()
-    breaches.then.the_envelope_reports(total=0, page=1, limit=20)
+    breaches.then.the_catalog_was_reported_unavailable()

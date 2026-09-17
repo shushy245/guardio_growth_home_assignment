@@ -6,7 +6,9 @@ repository is left with nothing but `session.execute`, and the docstring on each
 place a reader looks to find out why the list behaves as it does.
 """
 
-from sqlalchemy import ColumnElement, Select, or_, select
+from datetime import date
+
+from sqlalchemy import ColumnElement, Select, exists, or_, select
 from sqlalchemy.orm import InstrumentedAttribute
 from sqlalchemy.sql.elements import UnaryExpression
 
@@ -34,6 +36,31 @@ def build_breach_query(query: BreachListQuery) -> Select[tuple[BreachRow]]:
     return select(BreachRow).where(*_conditions(query))
 
 
+def build_breach_facts_query() -> Select[tuple[str, str, date, int, list[str]]]:
+    """The whole servable catalog, reduced to the five fields the summary works from.
+
+    It shares `servable_conditions` with the list, so the tiles and the rows underneath them can
+    never disagree about which breaches exist. It deliberately ignores the list's filters: the
+    tiles describe the public record, not the visitor's current view of it.
+    """
+    return select(
+        BreachRow.name,
+        BreachRow.title,
+        BreachRow.breach_date,
+        BreachRow.pwn_count,
+        BreachRow.data_classes,
+    ).where(*servable_conditions())
+
+
+def build_catalog_exists_query() -> Select[tuple[bool]]:
+    """Whether the catalog holds anything servable at all.
+
+    This is the difference between "your filter matched nothing" and "we are not holding the
+    public record", which are different facts and must not share a status code.
+    """
+    return select(exists(select(BreachRow.name).where(*servable_conditions())))
+
+
 def build_breach_order(query: BreachListQuery) -> list[UnaryExpression[object]]:
     """`name` always closes the sort, and it is not decoration.
 
@@ -48,7 +75,7 @@ def build_breach_order(query: BreachListQuery) -> list[UnaryExpression[object]]:
 
 
 def _conditions(query: BreachListQuery) -> list[ColumnElement[bool]]:
-    conditions: list[ColumnElement[bool]] = [*_always_excluded()]
+    conditions: list[ColumnElement[bool]] = [*servable_conditions()]
     if query.verified_only:
         conditions.append(BreachRow.is_verified.is_(True))
     if query.q is not None:
@@ -60,7 +87,7 @@ def _conditions(query: BreachListQuery) -> list[ColumnElement[bool]]:
     return conditions
 
 
-def _always_excluded() -> list[ColumnElement[bool]]:
+def servable_conditions() -> list[ColumnElement[bool]]:
     """Retired and fabricated breaches are never served, with no parameter to turn it back on.
 
     They are HIBP's own disclaimers — a breach it withdrew, and one it believes was invented.

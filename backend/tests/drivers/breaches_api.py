@@ -68,6 +68,10 @@ class _Given:
     def breaches(self, *breaches: Breach) -> None:
         self._driver._seed(list(breaches))
 
+    def the_catalog_source_is_unreachable(self) -> None:
+        """HIBP is down. The endpoints never call it, and this test is what says so."""
+        self._driver._http._catalog.becomes_unreachable()
+
     def breaches_all_on_one_day(self, *, count: int) -> None:
         """The pagination trap: every row ties on the sort column, so only a secondary key can
         give LIMIT/OFFSET a deterministic order."""
@@ -90,6 +94,9 @@ class _When:
 
     def listed(self) -> None:
         self._driver._list("")
+
+    def the_summary_was_requested(self) -> None:
+        self._driver._http.get.path("/api/breaches/summary")
 
     def listed_page(self, *, page: int, limit: int) -> None:
         self._driver._list(f"?page={page}&limit={limit}")
@@ -134,6 +141,31 @@ class _Then:
 
     def the_breach_names_are(self, *expected: str) -> None:
         actual = [str(item["name"]) for item in self._driver._items()]
+        assert actual == list(expected), f"expected {list(expected)}, got {actual}"
+
+    def the_catalog_was_reported_unavailable(self) -> None:
+        """503, not an empty 200: a catalog we do not hold is unknown, not "no breaches"."""
+        self._driver._http.then.status(503)
+        self._driver._http.then.error_body()
+
+    def it_answered_normally(self) -> None:
+        self._driver._http.then.status(200)
+
+    def the_summary_reports(self, **expected: object) -> None:
+        body = self._driver._body
+        actual = {key: body.get(key) for key in expected}
+        assert actual == expected, f"expected {expected}, got {actual}"
+
+    def the_summary_highlights(self, *, largest: str, most_recent: str) -> None:
+        body = self._driver._body
+        highlights = (body["largestBreach"], body["mostRecentBreach"])
+        assert isinstance(highlights[0], dict) and isinstance(highlights[1], dict)
+        assert (highlights[0]["name"], highlights[1]["name"]) == (largest, most_recent)
+
+    def the_top_data_classes_are(self, *expected: str) -> None:
+        ranked = self._driver._body["topDataClasses"]
+        assert isinstance(ranked, list)
+        actual = [item["dataClass"] for item in ranked]
         assert actual == list(expected), f"expected {list(expected)}, got {actual}"
 
     def the_request_was_rejected(self) -> None:

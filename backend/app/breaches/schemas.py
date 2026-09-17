@@ -87,3 +87,34 @@ class BreachPage(BaseModel):
     total: int
     page: int
     limit: int
+
+
+class BreachHighlightResponse(BaseModel):
+    model_config = ConfigDict(**_wire, from_attributes=True)
+
+    name: str
+    title: str
+    breach_date: date
+    pwn_count: int
+
+
+class DataClassCountResponse(BaseModel):
+    model_config = ConfigDict(**_wire, from_attributes=True)
+
+    data_class: str
+    breach_count: int
+
+
+class BreachSummaryResponse(BaseModel):
+    """The result screen's tiles. Every field is present or the response does not exist: an
+    absent largest breach would mean an empty catalog, which is a 503, not a summary."""
+
+    model_config = ConfigDict(**_wire, from_attributes=True)
+
+    total_breaches: int
+    total_accounts_exposed: int
+    breaches_last_12_months: int
+    share_exposing_passwords: float
+    top_data_classes: list[DataClassCountResponse]
+    largest_breach: BreachHighlightResponse
+    most_recent_breach: BreachHighlightResponse

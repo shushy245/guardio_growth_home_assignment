@@ -8,8 +8,14 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from app.breaches.models import BreachRow
-from app.breaches.query import build_breach_order, build_breach_query
+from app.breaches.query import (
+    build_breach_facts_query,
+    build_breach_order,
+    build_breach_query,
+    build_catalog_exists_query,
+)
 from app.breaches.schemas import BreachListQuery
+from app.breaches.summary import BreachFacts
 from app.ports.breach_catalog import Breach
 
 _KEY_COLUMNS = frozenset({"name"})
@@ -39,6 +45,32 @@ def list_breaches(*, session: Session, query: BreachListQuery) -> tuple[list[Bre
     ).scalars()
 
     return list(rows), total
+
+
+def has_any_servable_breach(*, session: Session) -> bool:
+    return bool(session.execute(build_catalog_exists_query()).scalar_one())
+
+
+def list_breach_facts(*, session: Session) -> list[BreachFacts]:
+    """Every servable breach, as the five fields the summary needs.
+
+    Loading the catalog to summarise it in Python rather than aggregating in SQL is a deliberate
+    trade at 1,036 rows: the `unnest`-and-group form of the data-class ranking is far harder to
+    read than the pure function, and far harder to test. Revisit it if the catalog grows an
+    order of magnitude.
+    """
+    return [
+        BreachFacts(
+            name=name,
+            title=title,
+            breach_date=breach_date,
+            pwn_count=pwn_count,
+            data_classes=tuple(data_classes),
+        )
+        for name, title, breach_date, pwn_count, data_classes in session.execute(
+            build_breach_facts_query()
+        ).all()
+    ]
 
 
 def upsert_many(*, session: Session, breaches: Sequence[Breach], fetched_at: datetime) -> None:
