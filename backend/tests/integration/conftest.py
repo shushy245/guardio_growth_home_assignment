@@ -18,6 +18,7 @@ from alembic.config import Config
 from sqlalchemy import Engine, create_engine
 from sqlalchemy.orm import Session
 
+from tests.drivers.breach_sync import BreachSyncDriver
 from tests.drivers.db import DbDriver
 from tests.drivers.http import HttpDriver
 
@@ -64,3 +65,8 @@ def driver(db_session: Session) -> HttpDriver:
     http_driver = HttpDriver()
     http_driver.given.database_session(db_session)
     return http_driver
+
+
+@pytest.fixture
+def sync(db_session: Session) -> BreachSyncDriver:
+    return BreachSyncDriver(db_session)

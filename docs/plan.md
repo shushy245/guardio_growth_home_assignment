@@ -306,7 +306,7 @@ Commits:
 - C1 `[test+impl B1b]` `shared/html.py` `strip_html`
 - C2 `[test+impl B1, B1c, B1d]` `ports/breach_catalog.py` `Breach` domain model + `BreachCatalogError`; `adapters/hibp/breach_catalog.py` wire schema + translator (no I/O yet). The `BreachCatalogPort` Protocol moves to C4, where the fake is its first implementor — a Protocol with no implementor has no failing test to demand it.
 - C3 `[chore]` `breach` table migration + SQLAlchemy model
-- C4 `[test+impl B2]` `tests/fakes/breach_catalog.py`; repository `upsert_many`; `breaches/sync.py` taking the port as a parameter
+- C4 `[test+impl B2, B18]` `BreachCatalogPort` Protocol (deferred from C2 to its first implementor); `tests/fakes/breach_catalog.py`; repository `upsert_many`; `breaches/sync.py` taking the port as a parameter. All four tests were green on arrival, so each was proved non-vacuous by mutation: excluding `fetched_at`/`title` from the update set failed two, a prune-before-insert failed the third.
 - C4b `[test+impl B3]` `should_sync` pure rule + startup hook; httpx adapter completed and wired in `main.py` only
 - C5 `[test+impl B4, B15]` `GET /api/breaches` with defaults and pagination envelope; first integration test through the API seam
 - C6 `[test+impl B5, B11]` `sort`/`order` params as enums via Pydantic query model

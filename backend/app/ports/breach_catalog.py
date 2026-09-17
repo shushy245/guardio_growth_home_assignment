@@ -8,6 +8,7 @@ makes "HIBP is replaceable by one adapter file" true rather than aspirational.
 
 from dataclasses import dataclass
 from datetime import date, datetime
+from typing import Protocol
 
 
 @dataclass(frozen=True)
@@ -42,3 +43,11 @@ class BreachCatalogError(Exception):
     One error type for every way a source can fail, so callers decide once — serve what is
     stored, or fail visibly — without knowing which adapter is behind the port.
     """
+
+
+class BreachCatalogPort(Protocol):
+    """A source of breaches. `tests/fakes/breach_catalog.py` is the in-memory implementation."""
+
+    def fetch_all(self) -> list[Breach]:
+        """Every breach the source knows about, or `BreachCatalogError` if it cannot say."""
+        ...
