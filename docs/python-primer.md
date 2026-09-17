@@ -16,13 +16,13 @@ are added as stories introduce new constructs, so this file grows with the code.
 | Zod | **Pydantic** | Runtime validation from a declared schema. The model *is* the type; no `z.infer` step. |
 | Drizzle | **SQLAlchemy 2** | Typed tables and a query builder. Heavier than Drizzle; we use a thin slice. |
 | drizzle-kit | **Alembic** | Migrations: `alembic revision --autogenerate` then `alembic upgrade head`. Forward-only, same as the house rule. |
-| axios | **httpx** | HTTP client with async support. |
+| axios | **httpx2** | HTTP client (successor to httpx; Starlette's test client requires it). Used sync. |
 | pino | **structlog** | Structured JSON logging with bound context. |
 | `interface` | **`typing.Protocol`** | Structural interface: anything with the right method signatures satisfies it, no `implements` keyword. This is how ports are declared. |
 | `readonly` object type | **`@dataclass(frozen=True)`** | Immutable value with named fields. Assigning after construction raises. |
 | `enum` | **`enum.StrEnum`** | String enum whose members compare equal to their string value. |
 | `T \| undefined` | **`T \| None`** | Python's `None` is the one absence value. There is no separate `null`. |
-| `async/await` | **`async def` / `await`** | Same idea. FastAPI runs `async def` routes on an event loop. |
+| `async/await` | **`async def` / `await`** | Same idea, but this backend is sync: plain `def` routes run in FastAPI's threadpool. Only ASGI middleware is `async`. |
 | `try/finally` resource cleanup | **`with ...:` context manager** | The block guarantees cleanup (closing a DB session, an HTTP client). |
 | dependency injection via constructor | **FastAPI `Depends(...)`** | A route parameter whose value is produced by another function. Tests replace it with `app.dependency_overrides[real] = fake`. |
 
@@ -46,18 +46,18 @@ are added as stories introduce new constructs, so this file grows with the code.
 
 ```python
 @router.get("/breaches", response_model=BreachPage)
-async def list_breaches(
+def list_breaches(
     query: Annotated[BreachListQuery, Query()],   # Pydantic validates the query string first
-    repo: Annotated[BreachRepository, Depends(get_breach_repository)],  # injected
+    session: Annotated[Session, Depends(get_session)],  # injected, one transaction per request
 ) -> BreachPage:
-    return await repo.list(query)
+    return list_breaches_page(session, query)
 ```
 
 - `@router.get("/breaches")` registers the function as the handler, like `router.get('/breaches', handler)`.
 - `Annotated[BreachListQuery, Query()]` says "parse the query string into this Pydantic model
   before calling me". Invalid input never reaches the function body; FastAPI returns 422 by
   default, which our exception handler rewrites to `400 { error }` to match the house contract.
-- `Depends(get_breach_repository)` is the seam. In tests we override it with a fake.
+- `Depends(get_session)` is the seam. In tests we override it with a rolled-back session.
 - The return value is serialised through `response_model`, so the wire shape is declared, not implied.
 
 ## How to read a port and adapter
@@ -65,20 +65,20 @@ async def list_breaches(
 ```python
 # app/ports/breach_catalog.py — the interface. No I/O, no HIBP anywhere.
 class BreachCatalogPort(Protocol):
-    async def fetch_all(self) -> list[Breach]: ...
+    def fetch_all(self) -> list[Breach]: ...
 
 # app/adapters/hibp/breach_catalog.py — the only file that knows HIBP exists.
 class HibpBreachCatalog:
-    def __init__(self, *, client: httpx.AsyncClient, user_agent: str) -> None: ...
-    async def fetch_all(self) -> list[Breach]:
-        response = await self._client.get(HIBP_BREACHES_URL, headers={"User-Agent": self._user_agent})
+    def __init__(self, *, client: httpx2.Client, user_agent: str) -> None: ...
+    def fetch_all(self) -> list[Breach]:
+        response = self._client.get(HIBP_BREACHES_URL, headers={"User-Agent": self._user_agent})
         response.raise_for_status()
         return [to_breach(raw) for raw in response.json()]   # wire → our model
 
 # tests/fakes/breach_catalog.py — same shape, in memory.
 class FakeBreachCatalog:
     def __init__(self, breaches: list[Breach]) -> None: ...
-    async def fetch_all(self) -> list[Breach]: return list(self._breaches)
+    def fetch_all(self) -> list[Breach]: return list(self._breaches)
 ```
 
 `HibpBreachCatalog` never says `implements BreachCatalogPort`; mypy checks structurally that it
@@ -98,8 +98,8 @@ def test_same_visitor_and_flag_always_get_the_same_variant() -> None:
 - `assert` is the whole assertion library for pure functions; pytest rewrites it to show both sides on failure.
 - Fixtures (`def db_session(): ...` decorated with `@pytest.fixture`) are pytest's `beforeEach`
   with dependency injection: a test asks for one by naming it as a parameter.
-- HTTP tests go through a driver (`tests/drivers/http.py`) with `given / get / post / assert`
-  namespaces, mirroring the frontend driver convention, so test bodies contain no raw client calls.
+- HTTP tests go through a driver (`tests/drivers/http.py`) with `given / get / post / then`
+  namespaces (`then` for assertions), mirroring the frontend driver convention, so test bodies contain no raw client calls.
 
 ## Things to be suspicious of when reviewing my Python
 
@@ -116,3 +116,30 @@ You will struggle to validate details, so here is what to look for:
 5. **A second write to the same row in one handler** — the single-write-per-flow rule.
 6. **A test that doesn't fail when the implementation is deleted** — ask me to demonstrate red
    before green on anything you doubt.
+
+## Added in S1 — constructs that actually landed
+
+- **Sync, not async.** Routes and ports are plain `def`. Only the ASGI middleware is `async` because the
+  framework requires it. Mental model: like Express handlers before you learned promises.
+- **`@dataclass(frozen=True)` builders** (`tests/builders/settings.py`): `replace(self, env=env)`
+  returns a new object with one field changed, the Python spelling of `{ ...this.state, env }`.
+- **`SecretStr`** (`app/config.py`): a Pydantic wrapper whose `repr` prints `**********`; the
+  real value only comes out of `.get_secret_value()`. Use it for anything that must not leak
+  into logs.
+- **`StrEnum`** (`Env`, `LogFormat`): members compare equal to their string, so `Env("prod")`
+  parses and `Env.PROD == "prod"` is true. The `_log_format_map` dict keyed by the enum is the
+  house `*Map` lookup table.
+- **`contextvars`** (`app/middleware/correlation_id.py`): per-task variables, the analogue of
+  Node's AsyncLocalStorage. structlog binds the correlation id there so every log line in the
+  request carries it without threading a parameter.
+- **`Iterator[Session]` dependency with `yield`** (`app/db/session.py`): code before `yield` runs
+  before the handler, code after runs after it. `with session_factory.begin() as session:`
+  commits on normal exit and rolls back on exception, so one request is one transaction.
+- **`request.app.state`**: FastAPI's bag for objects built once at startup (the session
+  factory). Dependencies read from it; tests override the dependency instead.
+- **`app.dependency_overrides[real] = fake`**: the testing seam; the driver uses it to route
+  requests through the test's rolled-back session.
+- **pytest fixture scopes**: `scope="session"` runs once per test run (migrate the test
+  database), default function scope runs per test (open and roll back a transaction).
+- **`# type: ignore` is a code smell** here as `as any` is there; the one that appeared was
+  removed by using Starlette's decorator form for exception handlers.
