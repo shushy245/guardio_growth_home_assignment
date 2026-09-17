@@ -10,7 +10,7 @@ defect, not a shortcut.**
 **Stop at plan stage D1 (before S5) and hand Shalev a Claude Design prompt; never build funnel UI without it.**
 
 ## Recipes
-- **First run on a clone:** `cp .env.example .env`, then `docker compose up -d --build` (db on host port 5433). `pnpm test` needs `.env` and the db for the backend integration tests.
+- **First run on a clone:** `docker compose up -d --build` works with no `.env` (compose inlines the non-secret defaults). `cp .env.example .env` is still the first step for local work: `pnpm test` needs it (`test:backend` passes `--env-file ../.env`) plus the db on host port 5433 for the integration tests.
 
 ## Project overview
 Guardio take-home: mobile-first Breach Scan funnel on public HIBP data, a DB-backed **feature

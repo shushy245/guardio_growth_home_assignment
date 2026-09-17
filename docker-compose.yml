@@ -19,9 +19,15 @@ services:
 
   backend:
     build: ./backend
-    env_file: .env
+    # Optional so a clean clone runs before `cp .env.example .env`; secrets live there, and the
+    # non-secret defaults below make the compose stack self-contained without it.
+    env_file:
+      - path: .env
+        required: false
     environment:
+      ENV: ${ENV:-dev}
       DATABASE_URL: postgresql+psycopg://breachscan:breachscan@db:5432/breachscan
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:5173}
     ports:
       - "8000:8000"
     depends_on:
