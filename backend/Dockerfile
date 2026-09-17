@@ -17,7 +17,6 @@ RUN uv sync --frozen --no-dev --no-install-project
 COPY app ./app
 COPY migrations ./migrations
 COPY alembic.ini ./
-COPY scripts ./scripts
 RUN uv sync --frozen --no-dev
 
 RUN useradd --create-home --uid 10001 app && chown -R app:app /srv/backend

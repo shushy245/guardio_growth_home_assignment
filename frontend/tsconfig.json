@@ -5,7 +5,6 @@
       "~/*": ["./src/*"]
     },
     "noEmit": true,
-    "allowImportingTsExtensions": true,
     "jsx": "react-jsx",
     "moduleResolution": "bundler",
     "module": "ESNext",
