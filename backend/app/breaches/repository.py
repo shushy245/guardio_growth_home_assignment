@@ -3,6 +3,7 @@
 from collections.abc import Sequence
 from datetime import datetime
 
+from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
@@ -10,6 +11,15 @@ from app.breaches.models import BreachRow
 from app.ports.breach_catalog import Breach
 
 _KEY_COLUMNS = frozenset({"name"})
+
+
+def latest_fetched_at(*, session: Session) -> datetime | None:
+    """When the catalog was last stored, or `None` if it never has been.
+
+    One `max()` over the column rather than a row read: every row in a sync shares one
+    `fetched_at`, so the newest value is the age of the catalog as a whole.
+    """
+    return session.execute(select(func.max(BreachRow.fetched_at))).scalar_one()
 
 
 def upsert_many(*, session: Session, breaches: Sequence[Breach], fetched_at: datetime) -> None:

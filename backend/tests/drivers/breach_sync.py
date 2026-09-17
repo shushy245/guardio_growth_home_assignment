@@ -10,7 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.breaches.models import BreachRow
-from app.breaches.sync import sync_breaches
+from app.breaches.sync import sync_breaches, sync_breaches_if_stale
 from app.ports.breach_catalog import Breach
 from tests.fakes.breach_catalog import FakeBreachCatalog
 
@@ -25,6 +25,9 @@ class BreachSyncDriver:
 
     def _sync(self, at: datetime) -> None:
         sync_breaches(session=self._session, catalog=self._catalog, now=at)
+
+    def _sync_if_stale(self, at: datetime) -> None:
+        sync_breaches_if_stale(session=self._session, catalog=self._catalog, now=at)
 
     def _row(self, name: str) -> BreachRow:
         row = self._session.execute(
@@ -52,6 +55,9 @@ class _When:
 
     def synced(self, *, at: datetime) -> None:
         self._driver._sync(at)
+
+    def synced_if_stale(self, *, at: datetime) -> None:
+        self._driver._sync_if_stale(at)
 
 
 class _Then:
