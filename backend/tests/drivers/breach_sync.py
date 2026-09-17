@@ -7,10 +7,15 @@ select. `then` is the house Assert namespace (`assert` is a Python keyword).
 from datetime import datetime
 
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, sessionmaker
 
 from app.breaches.models import BreachRow
-from app.breaches.sync import sync_breaches, sync_breaches_if_stale, sync_catalog_at_startup
+from app.breaches.sync import (
+    sync_breaches,
+    sync_breaches_if_stale,
+    sync_catalog_at_startup,
+    sync_catalog_on_boot,
+)
 from app.ports.breach_catalog import Breach
 from tests.builders.breach import a_breach
 from tests.fakes.breach_catalog import FakeBreachCatalog
@@ -32,6 +37,16 @@ class BreachSyncDriver:
 
     def _start_up(self, at: datetime) -> None:
         sync_catalog_at_startup(session=self._session, catalog=self._catalog, now=at)
+
+    def _boot(self, at: datetime) -> None:
+        """Through the boot function the lifespan calls, transaction and all."""
+        sync_catalog_on_boot(
+            session_factory=sessionmaker(
+                bind=self._session.connection(), join_transaction_mode="create_savepoint"
+            ),
+            catalog=self._catalog,
+            now=at,
+        )
 
     def _row(self, name: str) -> BreachRow:
         row = self._session.execute(
@@ -70,6 +85,11 @@ class _When:
 
     def synced_if_stale(self, *, at: datetime) -> None:
         self._driver._sync_if_stale(at)
+
+    def the_app_booted(self, *, at: datetime) -> None:
+        """The boot path the lifespan runs, which opens and commits its own transaction —
+        the one piece of `main.py` no other test reaches."""
+        self._driver._boot(at)
 
     def the_app_started_up(self, *, at: datetime) -> None:
         """The startup hook, which must survive an unreachable catalog rather than raise."""

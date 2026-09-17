@@ -8,7 +8,7 @@ from datetime import datetime
 
 import structlog
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, sessionmaker
 
 from app.breaches.repository import latest_fetched_at, upsert_many
 from app.breaches.staleness import should_sync
@@ -61,3 +61,17 @@ def sync_catalog_at_startup(*, session: Session, catalog: BreachCatalogPort, now
         # docstring's promise half-true: a rejected write escaped the lifespan and aborted
         # uvicorn's startup, turning one bad record into the crash loop this exists to avoid.
         log.exception("sync_catalog_at_startup: could not store the catalog, serving what is held")
+
+
+def sync_catalog_on_boot(
+    *, session_factory: sessionmaker[Session], catalog: BreachCatalogPort, now: datetime
+) -> None:
+    """The whole boot-time sync, transaction included.
+
+    It lives here rather than inline in the lifespan so it can be tested: a lifespan body is
+    reachable only by booting an app, and a boot that writes for real cannot run inside the
+    savepoint harness. Opening the transaction here is load-bearing — without the commit the
+    sync runs, appears to succeed, and rolls back.
+    """
+    with session_factory.begin() as session:
+        sync_catalog_at_startup(session=session, catalog=catalog, now=now)

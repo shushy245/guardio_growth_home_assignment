@@ -149,3 +149,16 @@ def test_a_database_failure_during_the_startup_sync_does_not_stop_the_app_starti
     sync.when.the_app_started_up(at=FIRST_SYNC)
 
     sync.then.stored_names_are()
+
+
+def test_booting_persists_the_catalog_rather_than_rolling_it_back(
+    sync: BreachSyncDriver,
+) -> None:
+    """Covers the transaction `main.py`'s lifespan opens. Without this the sync functions were
+    tested and the wiring around them was not: swapping the committing transaction for a
+    non-committing one left every test green and the production catalog permanently empty."""
+    sync.given.catalog_holds(a_breach().with_name("Adobe").build())
+
+    sync.when.the_app_booted(at=FIRST_SYNC)
+
+    sync.then.stored_names_are("Adobe")
