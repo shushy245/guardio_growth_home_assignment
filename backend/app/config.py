@@ -9,7 +9,7 @@ from collections.abc import Mapping
 from enum import StrEnum
 from urllib.parse import urlsplit
 
-from pydantic import BaseModel, ConfigDict, ValidationError, field_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
 
 class Env(StrEnum):
@@ -39,7 +39,7 @@ class Settings(BaseModel):
     database_url: str
     frontend_origin: str
     # HIBP refuses API calls that do not identify their consumer; an unset value is a 403.
-    hibp_user_agent: str
+    hibp_user_agent: str = Field(min_length=1)
 
     @property
     def log_format(self) -> LogFormat:

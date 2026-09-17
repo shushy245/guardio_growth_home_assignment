@@ -34,6 +34,15 @@ def test_missing_hibp_user_agent_fails_loudly_naming_the_variable() -> None:
         load_settings(environ)
 
 
+def test_an_empty_hibp_user_agent_fails_loudly_too() -> None:
+    """An empty value boots cleanly, HIBP answers 403, the sync swallows it, and both catalog
+    endpoints answer 503 forever with a message that blames the sync rather than the config."""
+    environ = {**COMPLETE_ENVIRON, "HIBP_USER_AGENT": ""}
+
+    with pytest.raises(SettingsError, match="HIBP_USER_AGENT"):
+        load_settings(environ)
+
+
 def test_unknown_env_value_fails_loudly_naming_the_variable() -> None:
     environ = {**COMPLETE_ENVIRON, "ENV": "staging"}
 
