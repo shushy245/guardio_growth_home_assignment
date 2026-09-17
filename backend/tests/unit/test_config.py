@@ -31,9 +31,15 @@ def test_unknown_env_value_fails_loudly_naming_the_variable() -> None:
         load_settings(environ)
 
 
-def test_dev_logs_to_console_and_every_other_env_logs_json() -> None:
+def test_dev_logs_to_a_readable_console() -> None:
     assert load_settings({**COMPLETE_ENVIRON, "ENV": "dev"}).log_format is LogFormat.CONSOLE
+
+
+def test_the_test_env_logs_json() -> None:
     assert load_settings({**COMPLETE_ENVIRON, "ENV": "test"}).log_format is LogFormat.JSON
+
+
+def test_prod_logs_json() -> None:
     assert load_settings({**COMPLETE_ENVIRON, "ENV": "prod"}).log_format is LogFormat.JSON
 
 

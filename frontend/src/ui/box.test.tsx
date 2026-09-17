@@ -45,7 +45,7 @@ describe('layout primitives', () => {
         driver.assert.hasNoLayoutClass();
     });
 
-    it('every primitive renders its children', async () => {
+    it('Row renders its children', async () => {
         driver.given.primitive(Primitive.Row);
         await driver.when.created();
         driver.assert.rendersChildren();
