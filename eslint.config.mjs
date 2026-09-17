@@ -27,7 +27,7 @@ export default [
     // ── Boundary files that must speak null: the axios seam normalises JSON null, the composition
     //    root reads the DOM ──
     {
-        files: ['**/api/http-client.ts', '**/main.tsx'],
+        files: ['**/api/http-client.utils.ts', '**/api/http-client.utils.test.ts', '**/main.tsx'],
         rules: { 'no-restricted-syntax': 'off' },
     },
 
