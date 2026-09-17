@@ -1,2 +1,2 @@
 // Barrel for test-data builders: add `export { aFoo } from './foo';` per builder.
-export {};
+export { aBreachDTO, aBreachPageDTO, aBreachSummaryDTO } from '~/testkit/builders/breach';

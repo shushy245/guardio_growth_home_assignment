@@ -296,6 +296,7 @@ Cases:
 - B14. empty table and HIBP port failing → both endpoints return 503 `{ error }`, never an empty 200
 - B15. (forwarded from S1 review) a row written through the API in one integration test is not visible in the next — proves `get_session` and the driver's `dependency_overrides` seam, which had no caller in S1
 - F1. `breach.fromDTO` parses dates and maps data classes (pure)
+- F1b. (added in C12) a January breach keeps its own year west of Greenwich — `new Date('2013-01-01')` is UTC midnight and reads as 31 December locally, so a breach date is built as a local calendar day. Vitest now pins `TZ='America/New_York'`, because the bug is invisible in UTC and in every zone ahead of it, which is every machine this is developed on.
 - F2. `useBreaches` hook builds the query string from `{ page, sort, order, q, dataClass, verifiedOnly }` (pure `buildBreachesQuery`)
 - Pre-mortem (added at /story-start):
   - B16. pagination is deterministic when the sort value ties: with several breaches sharing a `breach_date`, page 1 and page 2 are disjoint and together cover every row (secondary sort key on `name`)
@@ -318,7 +319,7 @@ Commits:
 - C9 `[refactor]` extract `build_breach_query` (pure filter → SQLAlchemy select) so the router is a thin shell
 - C10 `[test+impl B12]` `summarise_breaches` pure function
 - C11 `[test+impl B13, B14]` summary endpoint; 503 paths on both endpoints
-- C12 `[test+impl F1, F2]` frontend `models/breach` (model, translator, selectors), `api/breaches` with `buildBreachesQuery` + `useBreaches`/`useBreachSummary`
+- C12 `[test+impl F1, F1b, F2]` frontend `models/breach` (model, translator, selectors, index), `models/index.ts` namespace barrel, `api/breaches` with `buildBreachesQuery`. **`useBreaches`/`useBreachSummary` deferred to S5**, where their behaviour is specified (F10 load-more, F11 error state, F13 abort-on-unmount, F18 skeleton); no failing test demands a hook here. `fetchBreaches`/`fetchBreachSummary` take a **required** `signal` so the S5 effects cannot forget to abort. eslint gains a consumer-declared structurally-pure glob for `frontend/src/models/**/*.test.ts` (the extension point testing-conventions.md → adr-0004 provides for).
 - C13 `[chore]` delete both S1 probe routes (validation, crash); ADR-0002 persist-not-proxy
 
 ### S3 — feature-flags (~1.5h)

@@ -24,6 +24,16 @@ export default [
         rules: typeAwareRules,
     },
 
+    // ── Consumer-declared structurally-pure glob (testing-conventions.md → pure-function
+    //    exemption, adr-0004). The frontend model layer is pure by construction: `model.ts` is
+    //    types only, `translator.ts` maps wire → model, `selectors.ts` reads properties. There is
+    //    no DOM, no async and no interaction for a driver to absorb, so these assert bare. This
+    //    widens the exemption's reach, not the rule — the rule itself stays on everywhere else. ──
+    {
+        files: ['frontend/src/models/**/*.test.ts'],
+        rules: { 'no-restricted-syntax': 'off' },
+    },
+
     // ── Boundary files that must speak null: the axios seam normalises JSON null, the composition
     //    root reads the DOM ──
     {
