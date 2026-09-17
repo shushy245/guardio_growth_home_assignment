@@ -277,6 +277,8 @@ Objective: HIBP catalog persisted and served through the full list contract plus
 Cases:
 - B1. HIBP adapter translator maps a raw HIBP record to our `Breach` model, stripping description HTML (stdlib `html.parser`) and normalising `null` → `None`; the model has no HIBP-specific field names
 - B1b. `strip_html('<a href="x">Hi</a> there')` → `'Hi there'` (pure, stdlib)
+- B1c. (added in C2, from the real payload) HIBP writes "no domain" as `""` in 54 of 1,036 records; the translator reads it as absent (`None`), never an empty string
+- B1d. (added in C2) a payload that is no longer HIBP's shape raises `BreachCatalogError` naming the offending index and wire field — never a half-populated breach
 - B2. sync upserts every record from the fake `BreachCatalogPort` and is idempotent on a second run (same row count, updated `fetched_at`)
 - B3. sync is skipped when `fetched_at` is younger than 24h and runs when older (pure `should_sync` + service test)
 - B4. list defaults: sorted by breachDate desc, 20 per page, `total` reported
@@ -302,7 +304,7 @@ Cases:
 
 Commits:
 - C1 `[test+impl B1b]` `shared/html.py` `strip_html`
-- C2 `[test+impl B1]` `ports/breach_catalog.py` Protocol + `Breach` domain model; `adapters/hibp/breach_catalog.py` wire schema + translator (no I/O yet)
+- C2 `[test+impl B1, B1c, B1d]` `ports/breach_catalog.py` `Breach` domain model + `BreachCatalogError`; `adapters/hibp/breach_catalog.py` wire schema + translator (no I/O yet). The `BreachCatalogPort` Protocol moves to C4, where the fake is its first implementor — a Protocol with no implementor has no failing test to demand it.
 - C3 `[chore]` `breach` table migration + SQLAlchemy model
 - C4 `[test+impl B2]` `tests/fakes/breach_catalog.py`; repository `upsert_many`; `breaches/sync.py` taking the port as a parameter
 - C4b `[test+impl B3]` `should_sync` pure rule + startup hook; httpx adapter completed and wired in `main.py` only
