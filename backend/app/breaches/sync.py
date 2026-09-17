@@ -7,6 +7,7 @@ an in-memory fake, and this module never learns the difference.
 from datetime import datetime
 
 import structlog
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.breaches.repository import latest_fetched_at, upsert_many
@@ -55,3 +56,8 @@ def sync_catalog_at_startup(*, session: Session, catalog: BreachCatalogPort, now
         sync_breaches_if_stale(session=session, catalog=catalog, now=now)
     except BreachCatalogError:
         log.exception("sync_catalog_at_startup: catalog unavailable, serving what is stored")
+    except SQLAlchemyError:
+        # The database too, not just the source. Catching only `BreachCatalogError` left the
+        # docstring's promise half-true: a rejected write escaped the lifespan and aborted
+        # uvicorn's startup, turning one bad record into the crash loop this exists to avoid.
+        log.exception("sync_catalog_at_startup: could not store the catalog, serving what is held")

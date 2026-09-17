@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from app.breaches.models import BreachRow
 from app.breaches.sync import sync_breaches, sync_breaches_if_stale, sync_catalog_at_startup
 from app.ports.breach_catalog import Breach
+from tests.builders.breach import a_breach
 from tests.fakes.breach_catalog import FakeBreachCatalog
 
 
@@ -53,6 +54,11 @@ class _Given:
 
     def the_catalog_is_unreachable(self) -> None:
         self._driver._catalog.becomes_unreachable()
+
+    def the_catalog_offers_a_record_the_database_will_reject(self) -> None:
+        """A NUL byte in a text value: Postgres rejects it outright, which stands in for any
+        database-level failure during the startup sync."""
+        self._driver._catalog.holds([a_breach().with_name("bad\x00name").build()])
 
 
 class _When:

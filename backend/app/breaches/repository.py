@@ -79,12 +79,11 @@ def upsert_many(*, session: Session, breaches: Sequence[Breach], fetched_at: dat
     Rows absent from `breaches` are left alone: HIBP does not delete breaches, and a sync that
     truncated first would empty the catalog for the length of its own transaction.
     """
-    if not breaches:
+    rows = _one_row_per_name(breaches, fetched_at=fetched_at)
+    if not rows:
         return
 
-    statement = insert(BreachRow).values(
-        [_to_row(breach, fetched_at=fetched_at) for breach in breaches]
-    )
+    statement = insert(BreachRow).values(rows)
     session.execute(
         statement.on_conflict_do_update(
             index_elements=[BreachRow.name],
@@ -96,6 +95,21 @@ def upsert_many(*, session: Session, breaches: Sequence[Breach], fetched_at: dat
                 if column.name not in _KEY_COLUMNS
             },
         )
+    )
+
+
+def _one_row_per_name(
+    breaches: Sequence[Breach], *, fetched_at: datetime
+) -> list[dict[str, object]]:
+    """Last occurrence of each name wins.
+
+    A single `INSERT … ON CONFLICT DO UPDATE` may not touch the same row twice — Postgres raises
+    `CardinalityViolation` — so one duplicated name in the upstream payload would fail the whole
+    sync rather than the one record. A dict keyed on name is the de-duplication and preserves
+    insertion order, so "last wins" is the newest thing the source said.
+    """
+    return list(
+        {breach.name: _to_row(breach, fetched_at=fetched_at) for breach in breaches}.values()
     )
 
 

@@ -122,3 +122,30 @@ def test_a_catalog_that_cannot_be_reached_leaves_what_is_already_stored_alone(
 
     sync.then.stored_names_are("Adobe")
     sync.then.stored_fetched_at_is(name="Adobe", at=FIRST_SYNC)
+
+
+def test_a_catalog_offering_the_same_breach_twice_stores_it_once(sync: BreachSyncDriver) -> None:
+    """One `INSERT … ON CONFLICT DO UPDATE` cannot touch the same row twice — Postgres raises
+    `CardinalityViolation` — so a duplicated name upstream would take the whole sync down."""
+    sync.given.catalog_holds(
+        a_breach().with_name("Adobe").with_title("Adobe").build(),
+        a_breach().with_name("Adobe").with_title("Adobe Systems").build(),
+    )
+
+    sync.when.synced(at=FIRST_SYNC)
+
+    sync.then.stored_names_are("Adobe")
+    sync.then.stored_title_is(name="Adobe", title="Adobe Systems")
+
+
+def test_a_database_failure_during_the_startup_sync_does_not_stop_the_app_starting(
+    sync: BreachSyncDriver,
+) -> None:
+    """The startup sync is best-effort by design: whatever it cannot do, the stored catalog is
+    still serviceable and the endpoints still answer. A crash loop hides that behind a container
+    that never comes up."""
+    sync.given.the_catalog_offers_a_record_the_database_will_reject()
+
+    sync.when.the_app_started_up(at=FIRST_SYNC)
+
+    sync.then.stored_names_are()
