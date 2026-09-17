@@ -206,38 +206,48 @@ Commits:
 - C13 `[chore]` `/project-init`: project CLAUDE.md merge, eslint-config-shalev stub, husky commit gate running tsc + vitest + eslint **and** ruff + mypy + pytest
 - C14 `[chore]` Dockerfiles (non-root user, pinned base images, `uv.lock` / `package-lock.json` honoured); `docker compose up` verified manually; ADR-0001 stack; `docs/python-primer.md` extended with every construct S1 introduced
 
-### S1 — review triage (Opus, 2026-09-17) — open items, fix in a fresh session before `/story-done S1`
+### S1 — review triage (Opus, 2026-09-17) — **all closed 2026-09-17**, one commit per item
 
 Review ran on Opus as a separate agent (never a fork; see memory `no-fable-for-code-reviews`).
-Findings 1 and 2 (unhandled-exception 500 path; inert `integration` marker) are **fixed and
-committed**. Everything below is open. Each BF is one `test+impl` or `chore` commit; keep the
-TDD contract (red first) for every BF that touches behaviour.
+Findings 1 and 2 (unhandled-exception 500 path; inert `integration` marker) were fixed first.
+BF1–BF14 are all fixed and committed (`a8398e5`…`7e6a45a`), one commit each, behaviour changes
+red first. Where a fix covered code that already worked (BF5's null seam, BF7's `joinClassNames`),
+the tests were written first and proven non-vacuous by mutating the implementation and watching
+them fail; BF1's replacement test was proven the same way against a module-global correlation id.
 
 Correctness / robustness (fix before S1 closes):
-- [ ] BF1 `backend/tests/drivers/http.py` `then.no_bound_log_context` is vacuous (TestClient runs the app on another thread, so the test thread never sees the request's contextvars; the assertion held even with `clear_contextvars` neutered). **Delete it** and write the real B4c test: two overlapping requests through `httpx2.AsyncClient(transport=ASGITransport(app))` + `asyncio.gather` (run via `asyncio.run` inside a sync test), asserting each response echoes its own `x-correlation-id` and each captured log line carries its own id. Driver: `when.two_overlapping_requests(ids)`, `then.each_echoed_its_own_id()`, `then.each_log_line_carried_its_own_id()`.
-- [ ] BF2 `docker-compose.yml:22` `env_file: .env` fails `docker compose up` on a clean clone (`.env` is gitignored). Make it optional (`env_file: [{ path: .env, required: false }]`), inline non-secret defaults under `environment:`, and add a CLAUDE.md recipe `cp .env.example .env`. Also `package.json` `test:backend` uses `uv run --env-file ../.env`, which fails without `.env`; the recipe covers it.
-- [ ] BF3 `backend/migrations/versions/` is untracked and there is no initial revision, so a clean clone cannot `alembic revision --autogenerate` and `upgrade head` in the harness is a no-op. Generate the empty initial migration (planned C8) so `versions/` is tracked.
-- [ ] BF4 `backend/app/config.py` `frontend_origin: str` is unvalidated; `FRONTEND_ORIGIN=http://localhost:5173/` (trailing slash) boots cleanly and blocks every browser request silently, because Starlette's CORS compares `Origin` exactly. Validate as an origin (scheme + host[:port], no path, no trailing slash) in `load_settings` so it fails loudly like the other variables. Red test: `test_frontend_origin_with_a_path_or_trailing_slash_fails_loudly`.
-- [ ] BF5 `frontend/src/api/http-client.ts` `normaliseNulls` + `isPlainObject` + interceptor is production logic with no test and no caller (committed as a `[chore]`). Extract to `http-client.utils.ts` and add `http-client.utils.test.ts` (bare `expect`): null → undefined at top level, nested object, array, non-null passthrough. Note for S2: DTO optional fields must be declared `field?: T | undefined` (house style) because `exactOptionalPropertyTypes` rejects `{ a: undefined }` for `{ a?: string }`.
+- [x] BF1 `backend/tests/drivers/http.py` `then.no_bound_log_context` is vacuous (TestClient runs the app on another thread, so the test thread never sees the request's contextvars; the assertion held even with `clear_contextvars` neutered). **Delete it** and write the real B4c test: two overlapping requests through `httpx2.AsyncClient(transport=ASGITransport(app))` + `asyncio.gather` (run via `asyncio.run` inside a sync test), asserting each response echoes its own `x-correlation-id` and each captured log line carries its own id. Driver: `when.two_overlapping_requests(ids)`, `then.each_echoed_its_own_id()`, `then.each_log_line_carried_its_own_id()`.
+- [x] BF2 `docker-compose.yml:22` `env_file: .env` fails `docker compose up` on a clean clone (`.env` is gitignored). Make it optional (`env_file: [{ path: .env, required: false }]`), inline non-secret defaults under `environment:`, and add a CLAUDE.md recipe `cp .env.example .env`. Also `package.json` `test:backend` uses `uv run --env-file ../.env`, which fails without `.env`; the recipe covers it.
+- [x] BF3 `backend/migrations/versions/` is untracked and there is no initial revision, so a clean clone cannot `alembic revision --autogenerate` and `upgrade head` in the harness is a no-op. Generate the empty initial migration (planned C8) so `versions/` is tracked.
+- [x] BF4 `backend/app/config.py` `frontend_origin: str` is unvalidated; `FRONTEND_ORIGIN=http://localhost:5173/` (trailing slash) boots cleanly and blocks every browser request silently, because Starlette's CORS compares `Origin` exactly. Validate as an origin (scheme + host[:port], no path, no trailing slash) in `load_settings` so it fails loudly like the other variables. Red test: `test_frontend_origin_with_a_path_or_trailing_slash_fails_loudly`.
+- [x] BF5 `frontend/src/api/http-client.ts` `normaliseNulls` + `isPlainObject` + interceptor is production logic with no test and no caller (committed as a `[chore]`). Extract to `http-client.utils.ts` and add `http-client.utils.test.ts` (bare `expect`): null → undefined at top level, nested object, array, non-null passthrough. Note for S2: DTO optional fields must be declared `field?: T | undefined` (house style) because `exactOptionalPropertyTypes` rejects `{ a: undefined }` for `{ a?: string }`.
 
 YAGNI (delete; fix now, each trivial):
-- [ ] BF6 `backend/app/config.py` `admin_token` and `hibp_user_agent` are required settings with no consumer until S3 and S6; remove them (and from `.env.example`, `tests/builders/settings.py`) so the app boots with `env`, `database_url`, `frontend_origin` only. S2 C4b re-adds `hibp_user_agent`; S3 C7 re-adds `admin_token`, each red-first. Keep the CORS `X-Admin-Token`/`PATCH` entries (config a planned story depends on; a missing entry surfaces only in a browser).
-- [ ] BF7 `frontend/src/ui/box.utils.ts` drop `style?: CSSProperties` from `BoxProps` and the six spreads in `box.tsx` (inline styles are banned; the prop invites them). Move the `Primitive` enum into `box.driver.tsx` (its only consumers are the driver and test). Give `joinClassNames` a `box.utils.test.ts` (bare `expect`) covering undefined and empty-string inputs, or drop the `''` branch.
-- [ ] BF8 delete `frontend/.dockerignore` (no build uses `frontend/` as context; the root one applies), `allowImportingTsExtensions` from `frontend/tsconfig.json` (unused), and `backend/scripts/` plus the `COPY scripts ./scripts` Dockerfile line (S7 re-adds them).
+- [x] BF6 `backend/app/config.py` `admin_token` and `hibp_user_agent` are required settings with no consumer until S3 and S6; remove them (and from `.env.example`, `tests/builders/settings.py`) so the app boots with `env`, `database_url`, `frontend_origin` only. S2 C4b re-adds `hibp_user_agent`; S3 C7 re-adds `admin_token`, each red-first. Keep the CORS `X-Admin-Token`/`PATCH` entries (config a planned story depends on; a missing entry surfaces only in a browser).
+- [x] BF7 `frontend/src/ui/box.utils.ts` drop `style?: CSSProperties` from `BoxProps` and the six spreads in `box.tsx` (inline styles are banned; the prop invites them). Move the `Primitive` enum into `box.driver.tsx` (its only consumers are the driver and test). Give `joinClassNames` a `box.utils.test.ts` (bare `expect`) covering undefined and empty-string inputs, or drop the `''` branch.
+- [x] BF8 delete `frontend/.dockerignore` (no build uses `frontend/` as context; the root one applies), `allowImportingTsExtensions` from `frontend/tsconfig.json` (unused), and `backend/scripts/` plus the `COPY scripts ./scripts` Dockerfile line (S7 re-adds them).
 
 Conventions (fix now, each trivial):
-- [ ] BF9 test ids follow the access-path invariant: `LandingTestIds.Page = 'LandingTestIds.Page'` (`docs/testing-conventions.md` §test ids); same for any id S5 adds.
-- [ ] BF10 `when.created()` is always `async` and awaited (`App.driver.tsx`, `box.driver.tsx`, both test files); `renderWithProviders` returns `void`.
-- [ ] BF11 `backend/app/shared/ids.py` `generate_unique_id_at(prefix, *, timestamp_ms)` → keyword-only `prefix` too. Add to its docstring: python-ulid's `from_timestamp` treats a float as seconds and an int as milliseconds, so `timestamp_ms / 1_000` must stay a float division.
-- [ ] BF12 `backend/app/config.py` `extra="forbid"` is unreachable (`load_settings` filters to `model_fields` first); remove it.
-- [ ] BF13 rename overclaiming tests: split `test_dev_logs_to_console_and_every_other_env_logs_json` into one test per env (or name the map under test); rename `'every primitive renders its children'` to `'Row renders its children'`.
-- [ ] BF14 `docs/python-conventions.md` "Real store only in integration tests" row: enforcement is now the path-based marker hook in `tests/conftest.py`; update the row.
+- [x] BF9 test ids follow the access-path invariant: `LandingTestIds.Page = 'LandingTestIds.Page'` (`docs/testing-conventions.md` §test ids); same for any id S5 adds.
+- [x] BF10 `when.created()` is always `async` and awaited (`App.driver.tsx`, `box.driver.tsx`, both test files); `renderWithProviders` returns `void`.
+- [x] BF11 `backend/app/shared/ids.py` `generate_unique_id_at(prefix, *, timestamp_ms)` → keyword-only `prefix` too. Add to its docstring: python-ulid's `from_timestamp` treats a float as seconds and an int as milliseconds, so `timestamp_ms / 1_000` must stay a float division.
+- [x] BF12 `backend/app/config.py` `extra="forbid"` is unreachable (`load_settings` filters to `model_fields` first); remove it.
+- [x] BF13 rename overclaiming tests: split `test_dev_logs_to_console_and_every_other_env_logs_json` into one test per env (or name the map under test); rename `'every primitive renders its children'` to `'Row renders its children'`.
+- [x] BF14 `docs/python-conventions.md` "Real store only in integration tests" row: enforcement is now the path-based marker hook in `tests/conftest.py`; update the row.
 
 Forwarded cases (not S1 work):
 - S2: first case **"a row written through the API in one integration test is not visible in the next"** — the `get_session` dependency and the driver's `dependency_overrides` seam have zero callers in S1; S2 C5 (`GET /api/breaches`) is the first consumer and must prove the seam. Also delete both probe routes in S2 C13.
 - S3: nginx must forward `X-Forwarded-For` / `X-Forwarded-Proto` before the `Secure` cookie logic (B14) can be trusted behind the proxy; add as an S3 case.
 
 RF-backlog additions (batched, not now):
+- `box.driver.tsx` `TEST_ID = 'primitive-under-test'` is a raw string, not access-path form. The
+  invariant is about ids in production markup and this one never reaches it, so it was left —
+  decide once whether driver-rendered fixtures are in scope for the rule, and apply the answer
+  everywhere at once.
+- Pre-mortem case B5b (`create_app(settings)` takes settings; tests never rely on process env) has
+  no named test. It is covered structurally — every unit test builds the app from `a_settings()`,
+  and `pytest -m "not integration"` is green with no environment at all — but a reader has to infer
+  that. Decide whether the structural proof is enough or whether it earns an explicit test.
 - Collapse the two order-dependent harness tests (`tests/integration/test_harness.py`) into one that writes through the fixture session and asserts absence over a separate connection from `engine`.
 - Consider pure-ASGI middleware over `BaseHTTPMiddleware` for the correlation id (structlog's own FastAPI example); only if a concrete problem appears.
 - Commit `9fec898` merged a `[chore]` (Alembic wiring) with a `[test+impl]` (harness); keep kinds pure going forward.

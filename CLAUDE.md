@@ -41,7 +41,18 @@ in-app statistical dashboard.
 
 ## What's done
 Full history: `docs/changelog.md`; commit-level record: `git log`.
-(S1 in progress)
+
+- **S1 — scaffold (closed 2026-09-17).** The stack starts from a clean clone with no setup step and
+  serves a landing page plus `/api/health`; request tracing, the error contract and both test
+  harnesses are proven rather than assumed. Technically: FastAPI app factory with `create_app(settings)`,
+  `{ error }` on every non-2xx including unhandled exceptions, correlation id per request in
+  structlog contextvars (proved with two concurrent requests), settings validated at startup
+  (including the CORS origin), prefixed time-sortable ids, Alembic baseline migration, savepoint
+  integration harness, Vite/React/Vitest with drivers and layout primitives, husky gate over
+  tsc + eslint + vitest + ruff + mypy + pytest. 45 tests green.
 
 ## What's next
-S1 is open with its review triaged: fix BF1–BF14 under `docs/plan.md` → "S1 — review triage" (red-first), then run `/story-done S1` Steps 3–7. Then `/story-start S2`.
+`/story-start S2` (breach-catalog). Carry into it: the forwarded S1 cases in `docs/plan.md` →
+"S1 — review triage" (prove the `get_session` override seam in an integration test; delete both
+probe routes in C13) and the note that DTO optional fields must be `field?: T | undefined` under
+`exactOptionalPropertyTypes`.
