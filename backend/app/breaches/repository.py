@@ -3,7 +3,7 @@
 from collections.abc import Sequence
 from datetime import datetime
 
-from sqlalchemy import func, select
+from sqlalchemy import ColumnElement, func, or_, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import InstrumentedAttribute, Session
 from sqlalchemy.sql.elements import UnaryExpression
@@ -41,7 +41,7 @@ def list_breaches(*, session: Session, query: BreachListQuery) -> tuple[list[Bre
     The count and the page are built from one `select` so a filter can only ever apply to both —
     a `total` that disagrees with `items` is a number the screen states and cannot back up.
     """
-    filtered = select(BreachRow)
+    filtered = select(BreachRow).where(*_conditions(query))
     total = session.execute(select(func.count()).select_from(filtered.subquery())).scalar_one()
     rows = session.execute(
         filtered.order_by(*_order_by(sort=query.sort, order=query.order))
@@ -50,6 +50,37 @@ def list_breaches(*, session: Session, query: BreachListQuery) -> tuple[list[Bre
     ).scalars()
 
     return list(rows), total
+
+
+def _conditions(query: BreachListQuery) -> list[ColumnElement[bool]]:
+    """Every filter in one place, so the count and the page can only ever share them.
+
+    Two query builders is how `total` drifts from `items` and the screen ends up stating a
+    number it cannot back up.
+    """
+    conditions: list[ColumnElement[bool]] = []
+    if query.q is not None:
+        conditions.append(_matches_text(query.q))
+    if query.data_class is not None:
+        # `@>` on the text[] column, which is what the GIN index can answer.
+        conditions.append(BreachRow.data_classes.contains([query.data_class]))
+
+    return conditions
+
+
+def _matches_text(q: str) -> ColumnElement[bool]:
+    """The three strings a visitor can see or type. `title` is not redundant with `name`: HIBP
+    shows `AcneOrg` as `Acne.org`, and they differ in 461 of 1,036 records.
+
+    A NULL `domain` (54 records) yields NULL rather than false, which `OR` absorbs — so a
+    domainless breach is still found by its name."""
+    pattern = f"%{q}%"
+
+    return or_(
+        BreachRow.name.ilike(pattern),
+        BreachRow.title.ilike(pattern),
+        BreachRow.domain.ilike(pattern),
+    )
 
 
 def _order_by(*, sort: BreachSort, order: SortOrder) -> list[UnaryExpression[object]]:

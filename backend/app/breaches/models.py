@@ -10,7 +10,8 @@ rows under SQL's three-valued logic — the default exclusions would quietly shr
 
 from datetime import date, datetime
 
-from sqlalchemy import ARRAY, BigInteger, Date, DateTime, Index, Text
+from sqlalchemy import BigInteger, Date, DateTime, Index, Text
+from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -34,6 +35,8 @@ class BreachRow(Base):
     pwn_count: Mapped[int] = mapped_column(BigInteger, index=True)
     description: Mapped[str] = mapped_column(Text)
     logo_path: Mapped[str] = mapped_column(Text)
+    # The dialect ARRAY, not the generic one: only this type knows `@>` containment, which is
+    # the operator the GIN index answers and the only way to filter by data class in SQL.
     data_classes: Mapped[list[str]] = mapped_column(ARRAY(Text))
     is_verified: Mapped[bool]
     is_fabricated: Mapped[bool]

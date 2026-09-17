@@ -39,12 +39,19 @@ class SortOrder(StrEnum):
 
 
 class BreachListQuery(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    """No `populate_by_name`: the wire spelling is the only accepted spelling, so there is one
+    contract to document rather than two that drift."""
+
+    model_config = ConfigDict(alias_generator=to_camel, extra="forbid")
 
     page: int = Field(default=DEFAULT_PAGE, ge=1)
     limit: int = Field(default=DEFAULT_LIMIT, ge=1, le=MAX_LIMIT)
     sort: BreachSort = BreachSort.BREACH_DATE
     order: SortOrder = SortOrder.DESC
+    # Free text over the three strings a visitor can see or type; `data_class` is one of the
+    # values the list itself hands back, so it is matched exactly.
+    q: str | None = Field(default=None, min_length=1, max_length=100)
+    data_class: str | None = Field(default=None, min_length=1, max_length=100)
 
 
 class BreachResponse(BaseModel):

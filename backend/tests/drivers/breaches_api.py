@@ -9,6 +9,7 @@ through HTTP is also proving the `get_session` override seam.
 """
 
 from datetime import UTC, date, datetime
+from urllib.parse import quote
 
 from sqlalchemy.orm import Session
 
@@ -72,7 +73,12 @@ class _Given:
         give LIMIT/OFFSET a deterministic order."""
         self._driver._seed(
             [
-                a_breach().with_name(f"breach-{index:03d}").with_breach_date(ONE_DAY).build()
+                a_breach()
+                .with_name(f"breach-{index:03d}")
+                .with_title(f"Breach {index:03d}")
+                .with_domain(f"breach-{index:03d}.test")
+                .with_breach_date(ONE_DAY)
+                .build()
                 for index in range(count)
             ]
         )
@@ -87,6 +93,12 @@ class _When:
 
     def listed_page(self, *, page: int, limit: int) -> None:
         self._driver._list(f"?page={page}&limit={limit}")
+
+    def listed_matching(self, q: str) -> None:
+        self._driver._list(f"?q={quote(q)}")
+
+    def listed_with_data_class(self, data_class: str) -> None:
+        self._driver._list(f"?dataClass={quote(data_class)}")
 
     def listed_sorted_by(self, *, sort: str, order: str) -> None:
         """`sort` and `order` are strings, not enums, so a test can send a value that is not one."""

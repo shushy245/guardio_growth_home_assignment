@@ -286,7 +286,7 @@ Cases:
 - B3d. (added in C4b) `HIBP_USER_AGENT` is a required setting; missing → `SettingsError` naming the variable
 - B4. list defaults: sorted by breachDate desc, 20 per page, `total` reported
 - B5. sort by pwnCount desc returns the largest breach first
-- B6. `q` matches name or domain case-insensitively
+- B6. `q` matches name, **title** or domain case-insensitively (widened in C7: HIBP's title differs from its name in 461 of 1,036 records — `AcneOrg` is shown as `Acne.org` — so matching only `name` fails the visitor searching for what is on the screen); a breach with no domain is still found by name
 - B7. `dataClass` filter returns only breaches containing that class
 - B9. retired and fabricated breaches are excluded by default
 - B10. `verifiedOnly=true` excludes unverified breaches
@@ -313,7 +313,7 @@ Commits:
 - C4b `[test+impl B3, B3b, B3c, B3d, B20, B21]` `staleness.py` `should_sync` pure rule; `sync_breaches_if_stale`; `sync_catalog_at_startup` (swallows `BreachCatalogError` so the boot survives); `HibpBreachCatalog` over httpx2 with an injected transport. **Deviation from the layout above:** `create_app(settings, *, catalog)` now receives the catalog and `app/asgi.py` is the one place a real adapter is named. The startup sync runs in the lifespan, where no `dependency_overrides` seam exists, so the only way a unit test can be sure it never reaches the network is to inject the port. The database stays in `create_app` because it is reached per request through the overridable `get_session`.
 - C5 `[test+impl B4, B15]` `GET /api/breaches` with defaults and pagination envelope; first integration test through the API seam
 - C6 `[test+impl B5, B11]` `sort`/`order` params as enums via Pydantic query model
-- C7 `[test+impl B6, B7]` `q`, `dataClass`
+- C7 `[test+impl B6, B7, B17]` `q`, `dataClass`; one `_conditions()` builder feeding both the count and the page. The `breach.data_classes` column moved to the postgresql dialect `ARRAY` — the generic one raises `NotImplementedError` on `.contains()`, and `@>` is what the GIN index answers. Same DDL, so no migration (`alembic check` clean).
 - C8 `[test+impl B9, B10]` default exclusions and `verifiedOnly`
 - C9 `[refactor]` extract `build_breach_query` (pure filter → SQLAlchemy select) so the router is a thin shell
 - C10 `[test+impl B12]` `summarise_breaches` pure function

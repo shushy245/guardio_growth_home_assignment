@@ -45,6 +45,12 @@ class _BreachBuilder:
     def with_title(self, title: str) -> _BreachBuilder:
         return replace(self, title=title)
 
+    def with_domain(self, domain: str | None) -> _BreachBuilder:
+        return replace(self, domain=domain)
+
+    def with_data_classes(self, *data_classes: str) -> _BreachBuilder:
+        return replace(self, data_classes=data_classes)
+
     def with_breach_date(self, breach_date: date) -> _BreachBuilder:
         return replace(self, breach_date=breach_date)
 
