@@ -3,27 +3,16 @@
 from collections.abc import Sequence
 from datetime import datetime
 
-from sqlalchemy import ColumnElement, func, or_, select
+from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.orm import InstrumentedAttribute, Session
-from sqlalchemy.sql.elements import UnaryExpression
+from sqlalchemy.orm import Session
 
 from app.breaches.models import BreachRow
-from app.breaches.schemas import BreachListQuery, BreachSort, SortOrder
+from app.breaches.query import build_breach_order, build_breach_query
+from app.breaches.schemas import BreachListQuery
 from app.ports.breach_catalog import Breach
 
 _KEY_COLUMNS = frozenset({"name"})
-
-# A lookup, not an if-chain: a new sortable column is one row here and one enum member, and
-# mypy proves the map covers the enum.
-_sort_column_map: dict[BreachSort, InstrumentedAttribute[object]] = {
-    BreachSort.BREACH_DATE: BreachRow.breach_date,
-    BreachSort.PWN_COUNT: BreachRow.pwn_count,
-    BreachSort.NAME: BreachRow.name,
-}
-
-# The primary key, so appending it makes any sort total.
-_TIEBREAKER: InstrumentedAttribute[object] = BreachRow.name
 
 
 def latest_fetched_at(*, session: Session) -> datetime | None:
@@ -38,75 +27,18 @@ def latest_fetched_at(*, session: Session) -> datetime | None:
 def list_breaches(*, session: Session, query: BreachListQuery) -> tuple[list[BreachRow], int]:
     """One page of breaches plus the total behind it.
 
-    The count and the page are built from one `select` so a filter can only ever apply to both —
-    a `total` that disagrees with `items` is a number the screen states and cannot back up.
+    Which breaches are servable, and in what order, is `query.py`'s business; this function
+    executes what it builds and counts the same statement it pages.
     """
-    filtered = select(BreachRow).where(*_conditions(query))
+    filtered = build_breach_query(query)
     total = session.execute(select(func.count()).select_from(filtered.subquery())).scalar_one()
     rows = session.execute(
-        filtered.order_by(*_order_by(sort=query.sort, order=query.order))
+        filtered.order_by(*build_breach_order(query))
         .limit(query.limit)
         .offset((query.page - 1) * query.limit)
     ).scalars()
 
     return list(rows), total
-
-
-def _conditions(query: BreachListQuery) -> list[ColumnElement[bool]]:
-    """Every filter in one place, so the count and the page can only ever share them.
-
-    Two query builders is how `total` drifts from `items` and the screen ends up stating a
-    number it cannot back up.
-    """
-    conditions: list[ColumnElement[bool]] = [*_always_excluded()]
-    if query.verified_only:
-        conditions.append(BreachRow.is_verified.is_(True))
-    if query.q is not None:
-        conditions.append(_matches_text(query.q))
-    if query.data_class is not None:
-        # `@>` on the text[] column, which is what the GIN index can answer.
-        conditions.append(BreachRow.data_classes.contains([query.data_class]))
-
-    return conditions
-
-
-def _always_excluded() -> list[ColumnElement[bool]]:
-    """Retired and fabricated breaches are never served, with no parameter to turn it back on.
-
-    They are HIBP's own disclaimers — a breach it withdrew, and one it believes was invented.
-    A screen whose whole job is to be believed cannot repeat a claim its source has retracted,
-    and there is no visitor for whom the answer is different. Both columns are NOT NULL, so
-    `NOT` cannot silently drop rows through three-valued logic.
-    """
-    return [~BreachRow.is_retired, ~BreachRow.is_fabricated]
-
-
-def _matches_text(q: str) -> ColumnElement[bool]:
-    """The three strings a visitor can see or type. `title` is not redundant with `name`: HIBP
-    shows `AcneOrg` as `Acne.org`, and they differ in 461 of 1,036 records.
-
-    A NULL `domain` (54 records) yields NULL rather than false, which `OR` absorbs — so a
-    domainless breach is still found by its name."""
-    pattern = f"%{q}%"
-
-    return or_(
-        BreachRow.name.ilike(pattern),
-        BreachRow.title.ilike(pattern),
-        BreachRow.domain.ilike(pattern),
-    )
-
-
-def _order_by(*, sort: BreachSort, order: SortOrder) -> list[UnaryExpression[object]]:
-    """`name` always closes the sort, and it is not decoration.
-
-    LIMIT/OFFSET over a tied `breach_date` has no defined order in Postgres, so page 2 can repeat
-    or skip rows page 1 already showed. `name` is the primary key, so appending it makes every
-    sort total; when it *is* the sort key the second clause simply never decides anything.
-    """
-    column = _sort_column_map[sort]
-    leading = column.desc() if order is SortOrder.DESC else column.asc()
-
-    return [leading, _TIEBREAKER.asc()]
 
 
 def upsert_many(*, session: Session, breaches: Sequence[Breach], fetched_at: datetime) -> None:
