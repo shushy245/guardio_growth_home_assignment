@@ -1,0 +1,8 @@
+packages:
+  - 'frontend'
+allowBuilds:
+  unrs-resolver: true
+  esbuild: true
+  '@parcel/watcher': false
+minimumReleaseAgeExclude:
+  - jsdom@30.1.0

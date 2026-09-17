@@ -2,7 +2,9 @@
   "name": "breach-scan-funnel",
   "private": true,
   "version": "0.1.0",
-  "workspaces": [
-    "frontend"
-  ]
+  "packageManager": "pnpm@11.3.0",
+  "scripts": {
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test"
+  }
 }
