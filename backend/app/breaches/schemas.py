@@ -52,6 +52,7 @@ class BreachListQuery(BaseModel):
     # values the list itself hands back, so it is matched exactly.
     q: str | None = Field(default=None, min_length=1, max_length=100)
     data_class: str | None = Field(default=None, min_length=1, max_length=100)
+    verified_only: bool = False
 
 
 class BreachResponse(BaseModel):

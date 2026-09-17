@@ -45,6 +45,16 @@ class _BreachBuilder:
     def with_title(self, title: str) -> _BreachBuilder:
         return replace(self, title=title)
 
+    def retired(self) -> _BreachBuilder:
+        """Named, not `with_retired(True)`: a bare boolean at a call site says nothing."""
+        return replace(self, is_retired=True)
+
+    def fabricated(self) -> _BreachBuilder:
+        return replace(self, is_fabricated=True)
+
+    def unverified(self) -> _BreachBuilder:
+        return replace(self, is_verified=False)
+
     def with_domain(self, domain: str | None) -> _BreachBuilder:
         return replace(self, domain=domain)
 

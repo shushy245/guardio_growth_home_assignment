@@ -58,7 +58,9 @@ def _conditions(query: BreachListQuery) -> list[ColumnElement[bool]]:
     Two query builders is how `total` drifts from `items` and the screen ends up stating a
     number it cannot back up.
     """
-    conditions: list[ColumnElement[bool]] = []
+    conditions: list[ColumnElement[bool]] = [*_always_excluded()]
+    if query.verified_only:
+        conditions.append(BreachRow.is_verified.is_(True))
     if query.q is not None:
         conditions.append(_matches_text(query.q))
     if query.data_class is not None:
@@ -66,6 +68,17 @@ def _conditions(query: BreachListQuery) -> list[ColumnElement[bool]]:
         conditions.append(BreachRow.data_classes.contains([query.data_class]))
 
     return conditions
+
+
+def _always_excluded() -> list[ColumnElement[bool]]:
+    """Retired and fabricated breaches are never served, with no parameter to turn it back on.
+
+    They are HIBP's own disclaimers — a breach it withdrew, and one it believes was invented.
+    A screen whose whole job is to be believed cannot repeat a claim its source has retracted,
+    and there is no visitor for whom the answer is different. Both columns are NOT NULL, so
+    `NOT` cannot silently drop rows through three-valued logic.
+    """
+    return [~BreachRow.is_retired, ~BreachRow.is_fabricated]
 
 
 def _matches_text(q: str) -> ColumnElement[bool]:

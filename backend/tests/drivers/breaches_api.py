@@ -100,6 +100,9 @@ class _When:
     def listed_with_data_class(self, data_class: str) -> None:
         self._driver._list(f"?dataClass={quote(data_class)}")
 
+    def listed_verified_only(self) -> None:
+        self._driver._list("?verifiedOnly=true")
+
     def listed_sorted_by(self, *, sort: str, order: str) -> None:
         """`sort` and `order` are strings, not enums, so a test can send a value that is not one."""
         self._driver._list(f"?sort={sort}&order={order}")
