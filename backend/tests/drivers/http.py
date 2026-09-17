@@ -12,24 +12,36 @@ every assertion (Python reserves `assert`, so the Then namespace is `then`).
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any
 
 import httpx2 as httpx
+import structlog
 from fastapi.testclient import TestClient
+from structlog.testing import capture_logs
+from structlog.typing import EventDict
 
 
 class HttpDriver:
     def __init__(self, client: TestClient) -> None:
         self._client = client
         self._response: httpx.Response | None = None
+        self._logs: list[EventDict] = []
         self.given = _Given()
         self.get = _Get(self)
         self.post = _Post(self)
         self.patch = _Patch(self)
         self.then = _Then(self)
 
-    def _record(self, response: httpx.Response) -> None:
-        self._response = response
+    def _perform(self, request: Callable[[], httpx.Response]) -> None:
+        """Every request runs under log capture so `then.logged(...)` can assert on it.
+
+        `capture_logs` replaces the processor chain, so the contextvars merge step from
+        production logging is re-added or bound fields (correlation id) would not be captured.
+        """
+        with capture_logs(processors=[structlog.contextvars.merge_contextvars]) as logs:
+            self._response = request()
+        self._logs = logs
 
     @property
     def _last(self) -> httpx.Response:
@@ -48,7 +60,7 @@ class _Get:
         self._driver = driver
 
     def path(self, path: str, *, headers: dict[str, str] | None = None) -> None:
-        self._driver._record(self._driver._client.get(path, headers=headers))
+        self._driver._perform(lambda: self._driver._client.get(path, headers=headers))
 
 
 class _Post:
@@ -58,7 +70,7 @@ class _Post:
     def json(
         self, path: str, body: dict[str, Any], *, headers: dict[str, str] | None = None
     ) -> None:
-        self._driver._record(self._driver._client.post(path, json=body, headers=headers))
+        self._driver._perform(lambda: self._driver._client.post(path, json=body, headers=headers))
 
 
 class _Patch:
@@ -68,7 +80,7 @@ class _Patch:
     def json(
         self, path: str, body: dict[str, Any], *, headers: dict[str, str] | None = None
     ) -> None:
-        self._driver._record(self._driver._client.patch(path, json=body, headers=headers))
+        self._driver._perform(lambda: self._driver._client.patch(path, json=body, headers=headers))
 
 
 class _Then:
@@ -98,3 +110,15 @@ class _Then:
 
     def lacks_header(self, name: str) -> None:
         assert name not in self._driver._last.headers, f"unexpected response header {name}"
+
+    def logged(self, event: str, **fields: str | int) -> None:
+        """A log line with this event name was emitted during the request and carries `fields`."""
+        matching = [log for log in self._driver._logs if log.get("event") == event]
+        assert matching, f"no log line with event={event!r}; got {self._driver._logs}"
+        assert any(all(log.get(k) == v for k, v in fields.items()) for log in matching), (
+            f"no {event!r} log line carried {fields}; got {matching}"
+        )
+
+    def no_bound_log_context(self) -> None:
+        """Per-request context must not leak into the next request (contextvars cleared)."""
+        assert structlog.contextvars.get_contextvars() == {}
