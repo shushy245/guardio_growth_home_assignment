@@ -31,7 +31,9 @@ _log_format_map: dict[Env, LogFormat] = {
 
 
 class Settings(BaseModel):
-    model_config = ConfigDict(frozen=True, extra="forbid")
+    # No `extra="forbid"`: `load_settings` only ever passes known fields, and direct construction
+    # is checked at type-check time by the pydantic mypy plugin (`init_forbid_extra`).
+    model_config = ConfigDict(frozen=True)
 
     env: Env
     database_url: str
