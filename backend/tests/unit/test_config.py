@@ -6,8 +6,6 @@ COMPLETE_ENVIRON = {
     "ENV": "prod",
     "DATABASE_URL": "postgresql+psycopg://u:p@db:5432/breachscan",
     "FRONTEND_ORIGIN": "https://funnel.example",
-    "ADMIN_TOKEN": "s3cret",
-    "HIBP_USER_AGENT": "breach-scan",
 }
 
 
@@ -17,7 +15,6 @@ def test_complete_environment_loads_typed_settings() -> None:
     assert settings.env is Env.PROD
     assert settings.database_url == COMPLETE_ENVIRON["DATABASE_URL"]
     assert settings.frontend_origin == COMPLETE_ENVIRON["FRONTEND_ORIGIN"]
-    assert settings.admin_token.get_secret_value() == "s3cret"
 
 
 def test_missing_database_url_fails_loudly_naming_the_variable() -> None:
@@ -32,12 +29,6 @@ def test_unknown_env_value_fails_loudly_naming_the_variable() -> None:
 
     with pytest.raises(SettingsError, match="ENV"):
         load_settings(environ)
-
-
-def test_admin_token_is_not_revealed_when_settings_are_printed() -> None:
-    settings = load_settings(COMPLETE_ENVIRON)
-
-    assert "s3cret" not in repr(settings)
 
 
 def test_dev_logs_to_console_and_every_other_env_logs_json() -> None:

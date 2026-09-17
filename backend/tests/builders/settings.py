@@ -9,8 +9,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, replace
 
-from pydantic import SecretStr
-
 from app.config import Env, Settings
 
 
@@ -19,8 +17,6 @@ def a_settings() -> _SettingsBuilder:
         env=Env.TEST,
         database_url="postgresql+psycopg://breachscan:breachscan@localhost:5433/breachscan_test",
         frontend_origin="http://frontend.test",
-        admin_token="test-admin-token",
-        hibp_user_agent="breach-scan-tests",
     )
 
 
@@ -29,8 +25,6 @@ class _SettingsBuilder:
     env: Env
     database_url: str
     frontend_origin: str
-    admin_token: str
-    hibp_user_agent: str
 
     def with_frontend_origin(self, frontend_origin: str) -> _SettingsBuilder:
         return replace(self, frontend_origin=frontend_origin)
@@ -40,6 +34,4 @@ class _SettingsBuilder:
             env=self.env,
             database_url=self.database_url,
             frontend_origin=self.frontend_origin,
-            admin_token=SecretStr(self.admin_token),
-            hibp_user_agent=self.hibp_user_agent,
         )

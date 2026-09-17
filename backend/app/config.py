@@ -9,7 +9,7 @@ from collections.abc import Mapping
 from enum import StrEnum
 from urllib.parse import urlsplit
 
-from pydantic import BaseModel, ConfigDict, SecretStr, ValidationError, field_validator
+from pydantic import BaseModel, ConfigDict, ValidationError, field_validator
 
 
 class Env(StrEnum):
@@ -36,8 +36,6 @@ class Settings(BaseModel):
     env: Env
     database_url: str
     frontend_origin: str
-    admin_token: SecretStr
-    hibp_user_agent: str
 
     @property
     def log_format(self) -> LogFormat:
