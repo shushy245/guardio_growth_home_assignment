@@ -1,7 +1,6 @@
 import { beforeEach, describe, it } from 'vitest';
 
-import { Primitive } from '~/ui/box.utils';
-import { BoxDriver, makeBoxDriver } from '~/ui/box.driver';
+import { BoxDriver, makeBoxDriver, Primitive } from '~/ui/box.driver';
 
 describe('layout primitives', () => {
     let driver: BoxDriver;

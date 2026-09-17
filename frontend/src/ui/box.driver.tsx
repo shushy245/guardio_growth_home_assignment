@@ -2,9 +2,18 @@ import { expect } from 'vitest';
 import { ReactElement } from 'react';
 import { screen } from '@testing-library/react';
 
-import { Primitive } from '~/ui/box.utils';
 import { renderWithProviders } from '~/testkit/renderWithProviders';
 import { Box, Column, FullBox, FullColumn, FullRow, Row } from '~/ui/box';
+
+// The primitive under test is a test concern only: production code imports the components.
+export enum Primitive {
+    Box = 'box',
+    Row = 'row',
+    Column = 'column',
+    FullRow = 'fullRow',
+    FullColumn = 'fullColumn',
+    FullBox = 'fullBox',
+}
 
 const TEST_ID = 'primitive-under-test';
 
