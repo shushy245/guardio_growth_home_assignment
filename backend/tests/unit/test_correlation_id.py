@@ -37,7 +37,8 @@ def test_log_lines_emitted_during_a_request_carry_its_correlation_id(driver: Htt
     driver.then.logged("request: completed", correlation_id="corr-log", status_code=200)
 
 
-def test_request_log_context_is_cleared_after_the_response(driver: HttpDriver) -> None:
-    driver.get.path("/api/health", headers={CORRELATION_HEADER: "corr-cleared"})
+def test_two_overlapping_requests_each_get_their_own_correlation_id(driver: HttpDriver) -> None:
+    driver.when.two_overlapping_requests(("corr-first", "corr-second"))
 
-    driver.then.no_bound_log_context()
+    driver.then.each_overlapping_request_echoed_its_own_id()
+    driver.then.each_overlapping_request_logged_its_own_id()

@@ -12,11 +12,13 @@ every assertion (Python reserves `assert`, so the Then namespace is `then`).
 
 from __future__ import annotations
 
-from collections.abc import Callable
+import asyncio
+from collections.abc import Callable, Coroutine
 from typing import Any
 
 import httpx2 as httpx
 import structlog
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 from structlog.testing import capture_logs
@@ -24,6 +26,7 @@ from structlog.typing import EventDict
 
 from app.db.session import get_session
 from app.main import create_app
+from app.middleware.correlation_id import CORRELATION_ID_HEADER
 from tests.builders.settings import a_settings
 
 
@@ -33,12 +36,15 @@ class HttpDriver:
     def __init__(self) -> None:
         self._settings = a_settings()
         self._session_override: Session | None = None
+        self._built_app: FastAPI | None = None
         self._client: TestClient | None = None
         self._response: httpx.Response | None = None
+        self._overlapping: dict[str, httpx.Response] = {}
         self._logs: list[EventDict] = []
         self.given = _Given(self)
         self.get = _Get(self)
         self.post = _Post(self)
+        self.when = _When(self)
         self.then = _Then(self)
 
     def _perform(self, request: Callable[[TestClient], httpx.Response]) -> None:
@@ -52,14 +58,33 @@ class HttpDriver:
             self._response = request(client)
         self._logs = logs
 
+    def _perform_concurrently(self, correlation_ids: tuple[str, ...]) -> None:
+        """Drive several requests through one event loop so they genuinely interleave.
+
+        `TestClient` runs the app on a worker thread, so a test thread cannot observe a
+        request's contextvars. Driving the ASGI app directly from the test's own event loop
+        puts each request in its own asyncio task — the scope a contextvar is isolated to —
+        which is what makes per-request correlation ids provable.
+        """
+        app = self._app()  # create_app configures logging; must precede the capture
+        with capture_logs(processors=[structlog.contextvars.merge_contextvars]) as logs:
+            responses = asyncio.run(_get_health_concurrently(app, correlation_ids))
+        self._logs = logs
+        self._overlapping = dict(zip(correlation_ids, responses, strict=True))
+
     def _app_client(self) -> TestClient:
         if self._client is None:
+            self._client = TestClient(self._app())
+        return self._client
+
+    def _app(self) -> FastAPI:
+        if self._built_app is None:
             app = create_app(self._settings.build())
             if self._session_override is not None:
                 session = self._session_override
                 app.dependency_overrides[get_session] = lambda: session
-            self._client = TestClient(app)
-        return self._client
+            self._built_app = app
+        return self._built_app
 
     @property
     def _last(self) -> httpx.Response:
@@ -97,6 +122,14 @@ class _Post:
         self, path: str, body: dict[str, Any], *, headers: dict[str, str] | None = None
     ) -> None:
         self._driver._perform(lambda client: client.post(path, json=body, headers=headers))
+
+
+class _When:
+    def __init__(self, driver: HttpDriver) -> None:
+        self._driver = driver
+
+    def two_overlapping_requests(self, correlation_ids: tuple[str, str]) -> None:
+        self._driver._perform_concurrently(correlation_ids)
 
 
 class _Then:
@@ -138,6 +171,34 @@ class _Then:
             f"no {event!r} log line carried {fields}; got {matching}"
         )
 
-    def no_bound_log_context(self) -> None:
-        """Per-request context must not leak into the next request (contextvars cleared)."""
-        assert structlog.contextvars.get_contextvars() == {}
+    def each_overlapping_request_echoed_its_own_id(self) -> None:
+        for correlation_id, response in self._driver._overlapping.items():
+            actual = response.headers.get(CORRELATION_ID_HEADER)
+            assert actual == correlation_id, (
+                f"request sent {correlation_id!r} but got {actual!r} back"
+            )
+
+    def each_overlapping_request_logged_its_own_id(self) -> None:
+        logged = [
+            log.get("correlation_id")
+            for log in self._driver._logs
+            if log.get("event") == "request: completed"
+        ]
+        expected = list(self._driver._overlapping)
+        assert sorted(str(item) for item in logged) == sorted(expected), (
+            f"expected one completed log line per request carrying its own id {expected}, "
+            f"got {logged}"
+        )
+
+
+async def _get_health_concurrently(
+    app: FastAPI, correlation_ids: tuple[str, ...]
+) -> list[httpx.Response]:
+    transport = httpx.ASGITransport(app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://driver.test") as client:
+        requests: list[Coroutine[Any, Any, httpx.Response]] = [
+            client.get("/api/health", headers={CORRELATION_ID_HEADER: correlation_id})
+            for correlation_id in correlation_ids
+        ]
+
+        return list(await asyncio.gather(*requests))

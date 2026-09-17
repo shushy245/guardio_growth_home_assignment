@@ -143,3 +143,20 @@ You will struggle to validate details, so here is what to look for:
   database), default function scope runs per test (open and roll back a transaction).
 - **`# type: ignore` is a code smell** here as `as any` is there; the one that appeared was
   removed by using Starlette's decorator form for exception handlers.
+
+## Added in the S1 review-fix pass
+
+- **`asyncio.run(coro)`** (`tests/drivers/http.py`): starts an event loop, runs one coroutine to
+  completion, closes the loop. It is how a *sync* test body drives async code — the analogue of
+  calling `await` at the top level of a Node script. A coroutine that is never awaited never runs.
+- **`asyncio.gather(*coros)`**: starts every coroutine as its own task and waits for all of them,
+  returning results in argument order — `Promise.all`. Two HTTP requests gathered this way
+  interleave inside one loop, which is exactly the condition a per-request correlation id has to
+  survive; a module-level variable fails it (proved by mutating the middleware before the fix).
+- **`httpx2.ASGITransport(app)` + `AsyncClient`**: calls the ASGI app in-process, no socket and no
+  worker thread, so the requests share the test's event loop. `TestClient` (Starlette's sync
+  client) instead runs the app on *another thread*, which is why a test thread can never observe a
+  request's contextvars — the reason the old "context was cleared" assertion was vacuous.
+- **`zip(a, b, strict=True)`**: pairs two sequences and raises if their lengths differ, instead of
+  silently truncating like the default. Use `strict=True` every time; the silent truncation is the
+  kind of bug that only shows up as missing data.
