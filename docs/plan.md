@@ -43,7 +43,7 @@ structured logging, functional core, TDD) carries over unchanged.
 | Python tooling | none / flake8+black / ruff+mypy | **ruff (lint + format) + mypy `--strict` + pytest**, wired into the same husky commit gate as the frontend. mypy strict is the `tsc --strict` analogue and the reason untyped Python cannot land. |
 | Backend shape | Domain Model / Transaction Script | **Transaction Script (Fowler, PoEAA)**, deliberately: simple domain, no invariants that earn a class. Each entity = `schemas.py` (Pydantic boundary), `models.py` (SQLAlchemy), `repository.py` (thin DB functions), `router.py` (thin shell), plus a pure `*.py` when there is logic. No service layer. |
 | External APIs | Call HIBP inline / ports & adapters | **Ports & Adapters.** `app/ports/` holds two `typing.Protocol` interfaces: `BreachCatalogPort.fetch_all()` and `PwnedPasswordRangePort.fetch_range(prefix)`. `app/adapters/hibp/` is the only place that knows HIBP URLs, headers or wire shape and translates into our model. `tests/fakes/` implements the same Protocols in memory. The composition root wires real adapters; tests swap fakes via FastAPI `dependency_overrides`. Replacing HIBP = one adapter file + one line in `main.py`. |
-| Admin protection | none / env token / full auth | **Env-configured admin token** (`X-Admin-Token`) required on flag PATCH → 401 otherwise. Full auth is out of scope; an open write endpoint is not acceptable for a security company's take-home. |
+| Admin protection | none / env token / full auth | **Env-configured admin token** (`X-Admin-Token`) required on flag PATCH → 401 otherwise. Full auth is out of scope; an open write endpoint is not acceptable for a security company's take-home. **Delivery:** `/admin` has no login screen — the operator pastes the token into a field on the page and it lives in React state for that session only. Never in the Vite build (`VITE_*` ships it to every visitor) and never in `localStorage`. Reads (`GET /api/feature-flags`) stay open; only the write is gated, so an unauthenticated page is a harmless one. |
 | Cookies & CORS | defaults / explicit | Visitor cookie `HttpOnly; SameSite=Lax; Secure` outside dev. CORS allow-list = configured frontend origin only. |
 | DB / runtime | Postgres in docker-compose / SQLite | **Postgres 16 via docker-compose.** One `docker compose up` runs db + backend + frontend. |
 | Breach data | Proxy per request / in-memory cache / persist | **Persist to a `breach` table** with `fetched_at`, synced on startup and on a 24h TTL. Enables server-side sort/filter/summary and keeps the funnel alive if HIBP is slow. If HIBP fails *and* the table is empty, the scan fails visibly (`503 { error }`), never fake data. |
@@ -108,7 +108,7 @@ structured logging, functional core, TDD) carries over unchanged.
 |---|---|---|
 | POST | `/api/visitors` | `201 { id, assignments: { flagKey: variantKey } }`; sets `visitor_id` cookie |
 | GET | `/api/visitors/{id}` | assignments for an existing visitor (refresh path) |
-| GET | `/api/breaches` | `page`, `limit`, `sort` (`breachDate\|pwnCount\|name`), `order`, `q`, `dataClass`, `yearFrom`, `yearTo`, `verifiedOnly` → `{ items, total, page, limit }` |
+| GET | `/api/breaches` | `page`, `limit`, `sort` (`breachDate\|pwnCount\|name`), `order`, `q`, `dataClass`, `verifiedOnly` → `{ items, total, page, limit }` |
 | GET | `/api/breaches/summary` | total breaches, total pwned accounts, breaches last 12 months, largest breach, most recent breach, top data classes, share exposing passwords |
 | POST | `/api/funnel-events` | `201 {}`; body `{ id, visitorId, name, occurredAt, metadata }`; server stamps flag/variant from stored assignment |
 | GET | `/api/pwned-passwords/range/{prefix5}` | proxies HIBP, `text/plain`; `503 { error }` on upstream failure |
@@ -128,8 +128,26 @@ Copy, weights and enabled-state are edited on `/admin`. The Result page reads th
 
 - **Summary highlights**: breaches in the last 12 months, total accounts exposed, share of breaches that leaked passwords, the single largest breach. Each maps to a reason to buy protection.
 - **Default sort**: breach date, newest first. Alternatives: most accounts, name.
-- **Filters**: text search on name/domain, data-class chip, year range, verified-only toggle. Hide `IsRetired`/`IsFabricated` by default.
+- **Filters**: text search on name/domain, data-class chip, verified-only toggle. Hide `IsRetired`/`IsFabricated` by default. A year range was considered and cut: it is the worst of the four on a 390px thumb and the breachDate sort already answers "what is recent". Recorded as a decision, not an omission.
 - **Pagination**: 20 per page, "load more" on mobile.
+
+## Responsive contract (the brief says "mobile-web first **and responsive**")
+
+- **Breakpoints named once** in `frontend/src/styles/tokens.scss`: `sm` 390 (primary, the design
+  target), `md` 768, `lg` 1280. Every screen is built at 390 and must hold at 768 and 1280 — the
+  reviewer opens the repo on a laptop before they ever open it on a phone.
+- **Responsiveness is CSS-only.** No width branch in JSX, no `matchMedia` in a component, no
+  `isMobile` prop or state. One DOM tree serves every width; the layout primitives (`Row`/`Column`)
+  and `.module.scss` media queries do the work. This is load-bearing for the tests: a width branch in
+  JS would mean every S5 driver test silently covers one viewport and quietly ignores the other two.
+- **What reflows** (decided in D1, implemented in S5): the sticky bottom CTA becomes an inline CTA in
+  the header region at `md`+; summary tiles go 2×2 → one row of four; the list gets a max content
+  width and centres instead of stretching to 1920px; filter chips stop scrolling horizontally once
+  they fit.
+- **Verified, not assumed.** jsdom has no layout engine, so no Vitest test can prove any of this. S5
+  C11 is a manual Chrome pass at 390 / 768 / 1280 over Landing, Scan, Result (both variants), Signup,
+  Protected and the Dashboard, recorded in `docs/changelog.md` with what was wrong and what was fixed.
+  "Responsive" with no observed check is a claim, not a result.
 
 ## Experiment design
 
@@ -265,7 +283,6 @@ Cases:
 - B5. sort by pwnCount desc returns the largest breach first
 - B6. `q` matches name or domain case-insensitively
 - B7. `dataClass` filter returns only breaches containing that class
-- B8. `yearFrom`/`yearTo` bound breach_date inclusively
 - B9. retired and fabricated breaches are excluded by default
 - B10. `verifiedOnly=true` excludes unverified breaches
 - B11. invalid `sort` value → 400 `{ error }`
@@ -274,7 +291,7 @@ Cases:
 - B14. empty table and HIBP port failing → both endpoints return 503 `{ error }`, never an empty 200
 - B15. (forwarded from S1 review) a row written through the API in one integration test is not visible in the next — proves `get_session` and the driver's `dependency_overrides` seam, which had no caller in S1
 - F1. `breach.fromDTO` parses dates and maps data classes (pure)
-- F2. `useBreaches` hook builds the query string from `{ page, sort, order, q, dataClass, yearFrom, yearTo, verifiedOnly }` (pure `buildBreachesQuery`)
+- F2. `useBreaches` hook builds the query string from `{ page, sort, order, q, dataClass, verifiedOnly }` (pure `buildBreachesQuery`)
 
 Commits:
 - C1 `[test+impl B1b]` `shared/html.py` `strip_html`
@@ -284,7 +301,7 @@ Commits:
 - C4b `[test+impl B3]` `should_sync` pure rule + startup hook; httpx adapter completed and wired in `main.py` only
 - C5 `[test+impl B4, B15]` `GET /api/breaches` with defaults and pagination envelope; first integration test through the API seam
 - C6 `[test+impl B5, B11]` `sort`/`order` params as enums via Pydantic query model
-- C7 `[test+impl B6, B7, B8]` `q`, `dataClass`, `yearFrom`/`yearTo`
+- C7 `[test+impl B6, B7]` `q`, `dataClass`
 - C8 `[test+impl B9, B10]` default exclusions and `verifiedOnly`
 - C9 `[refactor]` extract `build_breach_query` (pure filter → SQLAlchemy select) so the router is a thin shell
 - C10 `[test+impl B12]` `summarise_breaches` pure function
@@ -363,17 +380,20 @@ Objective: the funnel screens are designed in Claude Design by Shalev before any
 S5 implements a design rather than inventing one. **I stop here and hand over a prompt.**
 
 Tasks:
-- [ ] I write the Claude Design prompt: product context (Guardio, breach-scan funnel, mobile-web first, 390px primary), the four screens in order, the result screen as the centrepiece with the calm and urgent variants side by side, the summary tiles, the sortable/filterable list with chips and sticky CTA, the sign-up form with the leaked-password warning state, the "you're protected" confirmation, and the constraints the implementation needs (tokens for colour/spacing/type, component inventory, both variants sharing one layout with only copy/tone changing, states: loading skeleton, empty-filter, error)
+- [ ] I write the Claude Design prompt: product context (Guardio, breach-scan funnel, mobile-web first at 390px **and responsive up to desktop**), the four screens in order, the result screen as the centrepiece with the calm and urgent variants side by side, the summary tiles, the sortable/filterable list with chips and sticky CTA, the sign-up form with the leaked-password warning state, the "you're protected" confirmation, and the constraints the implementation needs (tokens for colour/spacing/type, component inventory, both variants sharing one layout with only copy/tone changing, states: loading skeleton, empty-filter, error)
+- [ ] The same prompt asks for every screen at all three widths, not only 390, and names what reflows at each (see "Responsive contract") — so the desktop layout is designed rather than improvised in S5
 - [ ] Shalev runs it in Claude Design and brings back the output (design system tokens, screens, any exported HTML/CSS)
 - [ ] I translate the output into `frontend/src/styles/tokens.scss` and a component inventory that S5's drivers and components are named after; deviations from the design are listed, not silent
 - [ ] Optional in the same round: the dashboard (S7) read, so the PM-facing page shares the system
 
 Cases:
-- none (no code). Exit criterion: tokens file and component inventory agreed in chat.
+- none (no code). Exit criterion: tokens file (including the three breakpoints), the desktop reflow
+  decisions, and the component inventory agreed in chat.
 
 ### S5 — funnel-ui (~2.5h; the result screen is the heart of the exercise and gets the most care; implements D1's design)
 
-Objective: Landing → Scan moment → Result (summary, sortable/filterable list, variant copy) → CTA, mobile-first.
+Objective: Landing → Scan moment → Result (summary, sortable/filterable list, variant copy) → CTA,
+mobile-first at 390px and holding to desktop per the Responsive contract.
 
 Result-screen product bar (load the `frontend-design` skill before building it):
 - Summary tiles answer "why should I care": breaches in the last 12 months, accounts exposed
@@ -384,6 +404,7 @@ Result-screen product bar (load the `frontend-design` skill before building it):
   "Showing X of Y" feedback, one-tap Clear filters, an explicit empty-filter state.
 - "Protect me" is always reachable: sticky bottom CTA on mobile, variant-driven copy and tone.
 - Nothing is computed in the browser: every sort/filter/summary is a server query.
+- The same screen survives a laptop: one DOM tree, CSS-only reflow, checked at 390 / 768 / 1280.
 
 Cases:
 - F1. Landing renders the scan button and tracks `landing_view` once on mount (driver)
@@ -405,6 +426,7 @@ Cases:
 - F17. `BreachRow` highlights the `Passwords` badge and shows the verified mark only when `isVerified` (driver)
 - F18. `BreachList` shows skeleton rows while the first page loads (driver)
 - F19. the CTA is rendered inside the sticky footer region on the result page (driver asserts the test id is present; visual sticky behaviour is checked manually at 390px)
+- F20. the result page renders exactly one CTA node at any width — the mobile/desktop switch is CSS, never a second element or a width branch (driver: one match for the CTA test id)
 
 Commits:
 - C1 `[test+impl F1, F2]` Landing page (driver first)
@@ -415,9 +437,9 @@ Commits:
 - C6 `[test+impl F8, F9, F15]` `BreachFilters` (driver first) + `useBreachFilters` state
 - C7 `[test+impl F17]` `BreachRow` (driver first)
 - C8 `[test+impl F10, F11, F13, F16, F18]` `BreachList` (driver first) with load-more, abortable fetch, skeleton and empty states
-- C9 `[test+impl F12, F19]` sticky CTA wiring
+- C9 `[test+impl F12, F19, F20]` sticky CTA wiring — one node, position and placement driven by the breakpoint in `.module.scss`
 - C10 `[refactor]` extract sub-components / move logic to `.utils.ts` where files accumulated logic
-- C11 `[chore]` `frontend-design` pass and 390px check in Chrome; scss polish; ADR-0004 result-screen product decisions
+- C11 `[chore]` `frontend-design` pass; **manual Chrome pass at 390 / 768 / 1280 over every funnel screen and both variants**, findings and fixes recorded in `docs/changelog.md`; scss polish; ADR-0004 result-screen product decisions and the CSS-only responsive rule
 
 ### S6 — signup (~1h)
 
@@ -517,7 +539,7 @@ Each stretch story gets its own Cases/Commits block when opened; the TDD contrac
 
 - Two plans, `Basic` and `Family`, mock prices, no payment step.
 - Visitor identity: first-party cookie plus localStorage mirror; no fingerprinting.
-- Admin page unauthenticated; noted in README as a known gap.
+- `/admin` is unlisted and has no login; the write behind it needs the admin token, pasted per session (see Decisions → Admin protection). README records this as the deliberate stopping point short of real auth.
 - Breach descriptions carry HTML from HIBP; stripped server-side, rendered as text.
 
 ## RF-backlog
