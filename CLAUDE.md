@@ -10,7 +10,7 @@ defect, not a shortcut.**
 **Stop at plan stage D1 (before S5) and hand Shalev a Claude Design prompt; never build funnel UI without it.**
 
 ## Recipes
-(added as patterns recur)
+- **First run on a clone:** `cp .env.example .env`, then `docker compose up -d --build` (db on host port 5433). `pnpm test` needs `.env` and the db for the backend integration tests.
 
 ## Project overview
 Guardio take-home: mobile-first Breach Scan funnel on public HIBP data, a DB-backed **feature
@@ -44,4 +44,4 @@ Full history: `docs/changelog.md`; commit-level record: `git log`.
 (S1 in progress)
 
 ## What's next
-Finish `S1` (C13 `/project-init` verification, C14 Dockerfiles + ADR-0001), then `/story-start S2`.
+S1 is open with its review triaged: fix BF1–BF14 under `docs/plan.md` → "S1 — review triage" (red-first), then run `/story-done S1` Steps 3–7. Then `/story-start S2`.
