@@ -1,0 +1,21 @@
+# secrets
+.env
+
+# node
+node_modules/
+dist/
+coverage/
+
+# python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# editors / os
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/settings.json

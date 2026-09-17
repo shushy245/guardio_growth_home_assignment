@@ -181,9 +181,14 @@ Cases:
 - B5. startup raises a clear error when `DATABASE_URL` is missing
 - B6. integration harness: a test can open a session against the compose Postgres and roll back
 - B7. a request from an origin outside the configured allow-list gets no CORS allow header
-- B8. `generate_unique_id('vis')` returns `vis_` + 26 chars, and 1,000 ids generated in sequence sort lexicographically by creation
+- B8. `generate_unique_id('vis')` returns `vis_` + 26 chars; ids created at increasing milliseconds (injected clock) sort lexicographically by creation; 1,000 same-millisecond ids are unique
 - F1. `App` renders the landing route at `/` (smoke through `renderWithProviders`)
 - F2. layout primitives `Row`/`Column` apply the expected flex direction class (pure render test)
+- Pre-mortem (added at /story-start):
+  - B4b. a 404 and a 400 response also carry `x-correlation-id`
+  - B4c. two overlapping requests with different inbound correlation ids each receive their own back (contextvar, not a module global)
+  - B5b. `create_app(settings)` takes settings as a parameter; tests never rely on process env
+  - B6b. a row written through the API in one integration test is not visible in the next (savepoint rollback)
 
 Commits:
 - C1 `[chore]` root `package.json` (workspace `frontend`), `docker-compose.yml` (postgres:16, backend, frontend), `.env.example`, `.gitignore`
