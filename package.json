@@ -4,7 +4,20 @@
   "version": "0.1.0",
   "packageManager": "pnpm@11.3.0",
   "scripts": {
-    "typecheck": "pnpm -r typecheck",
-    "test": "pnpm -r test"
+    "lint": "eslint . --max-warnings 0 && pnpm lint:backend",
+    "lint:fix": "eslint . --fix && pnpm lint:backend:fix",
+    "typecheck": "pnpm -r typecheck && pnpm typecheck:backend",
+    "test": "pnpm -r test && pnpm test:backend",
+    "lint:backend": "cd backend && uv run ruff check . && uv run ruff format --check .",
+    "lint:backend:fix": "cd backend && uv run ruff check --fix . && uv run ruff format .",
+    "typecheck:backend": "cd backend && uv run mypy",
+    "test:backend": "cd backend && uv run --env-file ../.env pytest",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "eslint": "^9.39.5",
+    "eslint-config-shalev": "^2.0.0",
+    "husky": "^9.1.7",
+    "typescript": "~6.0.3"
   }
 }

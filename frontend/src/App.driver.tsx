@@ -1,11 +1,17 @@
-import { screen } from '@testing-library/react';
 import { expect } from 'vitest';
+import { screen } from '@testing-library/react';
 
 import { App } from '~/App';
 import { LandingTestIds } from '~/pages/Landing.utils';
 import { renderWithProviders } from '~/testkit/renderWithProviders';
 
-export const makeAppDriver = () => {
+export type AppDriver = {
+    given: { route: (path: string) => void };
+    when: { created: () => void };
+    assert: { landingIsShown: () => void };
+};
+
+export const makeAppDriver = (): AppDriver => {
     let route = '/';
 
     return {

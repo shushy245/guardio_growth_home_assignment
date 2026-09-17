@@ -1,10 +1,10 @@
 import { beforeEach, describe, it } from 'vitest';
 
-import { makeBoxDriver } from '~/ui/box.driver';
 import { Primitive } from '~/ui/box.utils';
+import { BoxDriver, makeBoxDriver } from '~/ui/box.driver';
 
 describe('layout primitives', () => {
-    let driver: ReturnType<typeof makeBoxDriver>;
+    let driver: BoxDriver;
 
     beforeEach(() => {
         driver = makeBoxDriver();

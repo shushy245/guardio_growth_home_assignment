@@ -1,23 +1,33 @@
+import { expect } from 'vitest';
 import { ReactElement } from 'react';
 import { screen } from '@testing-library/react';
-import { expect } from 'vitest';
 
+import { Primitive } from '~/ui/box.utils';
 import { renderWithProviders } from '~/testkit/renderWithProviders';
 import { Box, Column, FullBox, FullColumn, FullRow, Row } from '~/ui/box';
-import { Primitive } from '~/ui/box.utils';
 
 const TEST_ID = 'primitive-under-test';
 
 const primitiveElementMap: Record<Primitive, ReactElement> = {
-    [Primitive.Box]: <Box data-testid={TEST_ID}>child</Box>,
-    [Primitive.Row]: <Row data-testid={TEST_ID}>child</Row>,
-    [Primitive.Column]: <Column data-testid={TEST_ID}>child</Column>,
-    [Primitive.FullRow]: <FullRow data-testid={TEST_ID}>child</FullRow>,
-    [Primitive.FullColumn]: <FullColumn data-testid={TEST_ID}>child</FullColumn>,
-    [Primitive.FullBox]: <FullBox data-testid={TEST_ID}>child</FullBox>,
+    [Primitive.Box]: <Box data-testid={TEST_ID}>{`child`}</Box>,
+    [Primitive.Row]: <Row data-testid={TEST_ID}>{`child`}</Row>,
+    [Primitive.Column]: <Column data-testid={TEST_ID}>{`child`}</Column>,
+    [Primitive.FullRow]: <FullRow data-testid={TEST_ID}>{`child`}</FullRow>,
+    [Primitive.FullColumn]: <FullColumn data-testid={TEST_ID}>{`child`}</FullColumn>,
+    [Primitive.FullBox]: <FullBox data-testid={TEST_ID}>{`child`}</FullBox>,
 };
 
-export const makeBoxDriver = () => {
+export type BoxDriver = {
+    given: { primitive: (chosen: Primitive) => void };
+    when: { created: () => void };
+    assert: {
+        hasClass: (className: string) => void;
+        hasNoLayoutClass: () => void;
+        rendersChildren: () => void;
+    };
+};
+
+export const makeBoxDriver = (): BoxDriver => {
     let primitive: Primitive = Primitive.Box;
 
     return {

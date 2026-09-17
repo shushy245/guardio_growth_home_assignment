@@ -1,6 +1,7 @@
 import { ReactElement } from 'react';
 
 import { BoxProps, joinClassNames } from '~/ui/box.utils';
+
 import styles from '~/ui/primitives.module.scss';
 
 export const Box = ({ children, className, style, 'data-testid': testId }: BoxProps): ReactElement => (

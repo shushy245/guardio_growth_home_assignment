@@ -16,8 +16,7 @@ const isPlainObject = (value: unknown): value is Record<string, unknown> =>
 const normaliseNulls = (value: unknown): unknown => {
     if (value === null) return undefined;
     if (Array.isArray(value)) return value.map(normaliseNulls);
-    if (isPlainObject(value))
-        return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, normaliseNulls(v)]));
+    if (isPlainObject(value)) return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, normaliseNulls(v)]));
 
     return value;
 };

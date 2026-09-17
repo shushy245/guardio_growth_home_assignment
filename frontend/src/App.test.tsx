@@ -1,9 +1,9 @@
 import { beforeEach, describe, it } from 'vitest';
 
-import { makeAppDriver } from '~/App.driver';
+import { AppDriver, makeAppDriver } from '~/App.driver';
 
 describe('App', () => {
-    let driver: ReturnType<typeof makeAppDriver>;
+    let driver: AppDriver;
 
     beforeEach(() => {
         driver = makeAppDriver();
