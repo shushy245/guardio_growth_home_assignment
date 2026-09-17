@@ -30,6 +30,9 @@ from app.middleware.correlation_id import CORRELATION_ID_HEADER
 from tests.builders.settings import a_settings
 from tests.fakes.breach_catalog import FakeBreachCatalog
 
+CRASHING_ROUTE = "/api/_test/crash"
+CRASH_DETAIL = "secret detail that must never reach the client"
+
 
 class HttpDriver:
     """Builds the app lazily on the first request, so `given.*` can shape settings first."""
@@ -37,6 +40,7 @@ class HttpDriver:
     def __init__(self) -> None:
         self._settings = a_settings()
         self._catalog = FakeBreachCatalog()
+        self._crashing_route = False
         self._session_override: Session | None = None
         self._built_app: FastAPI | None = None
         self._client: TestClient | None = None
@@ -82,6 +86,8 @@ class HttpDriver:
     def _app(self) -> FastAPI:
         if self._built_app is None:
             app = create_app(self._settings.build(), catalog=self._catalog)
+            if self._crashing_route:
+                _mount_crashing_route(app)
             if self._session_override is not None:
                 session = self._session_override
                 app.dependency_overrides[get_session] = lambda: session
@@ -102,6 +108,14 @@ class _Given:
 
     def frontend_origin(self, origin: str) -> None:
         self._driver._settings = self._driver._settings.with_frontend_origin(origin)
+
+    def a_route_that_raises(self) -> None:
+        """Mounted by the test, never by the app.
+
+        The unhandled-500 path still has to be proved, but a route that exists only to crash has
+        no business in production code — S1 shipped one as a probe and this replaces it.
+        """
+        self._driver._crashing_route = True
 
     def database_session(self, session: Session) -> None:
         """Integration tests: route every request's DB work through the test's session."""
@@ -191,6 +205,12 @@ class _Then:
             f"expected one completed log line per request carrying its own id {expected}, "
             f"got {logged}"
         )
+
+
+def _mount_crashing_route(app: FastAPI) -> None:
+    @app.get(CRASHING_ROUTE)
+    def _raise() -> None:
+        raise RuntimeError(CRASH_DETAIL)
 
 
 async def _get_health_concurrently(

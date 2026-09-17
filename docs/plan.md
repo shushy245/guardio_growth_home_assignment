@@ -320,7 +320,7 @@ Commits:
 - C10 `[test+impl B12]` `summarise_breaches` pure function
 - C11 `[test+impl B13, B14]` summary endpoint; 503 paths on both endpoints
 - C12 `[test+impl F1, F1b, F2]` frontend `models/breach` (model, translator, selectors, index), `models/index.ts` namespace barrel, `api/breaches` with `buildBreachesQuery`. **`useBreaches`/`useBreachSummary` deferred to S5**, where their behaviour is specified (F10 load-more, F11 error state, F13 abort-on-unmount, F18 skeleton); no failing test demands a hook here. `fetchBreaches`/`fetchBreachSummary` take a **required** `signal` so the S5 effects cannot forget to abort. eslint gains a consumer-declared structurally-pure glob for `frontend/src/models/**/*.test.ts` (the extension point testing-conventions.md → adr-0004 provides for).
-- C13 `[chore]` delete both S1 probe routes (validation, crash); ADR-0002 persist-not-proxy
+- C13 `[chore]` delete both S1 probe routes; the validation case moves to the real `GET /api/breaches?page=0` (verified to reject with a 400 even against an unreachable database, so it stays a unit test) and the unhandled-500 case to a route the driver mounts — a route whose only job is to crash does not belong in the application. ADR-0002 persist-not-proxy.
 
 ### S3 — feature-flags (~1.5h)
 

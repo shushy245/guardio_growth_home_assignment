@@ -23,9 +23,7 @@ def test_a_404_response_also_carries_the_correlation_id(driver: HttpDriver) -> N
 
 
 def test_a_400_response_also_carries_the_correlation_id(driver: HttpDriver) -> None:
-    driver.post.json(
-        "/api/_probe/validation", {"count": "nope"}, headers={CORRELATION_HEADER: "corr-400"}
-    )
+    driver.get.path("/api/breaches?page=0", headers={CORRELATION_HEADER: "corr-400"})
 
     driver.then.status(400)
     driver.then.header(CORRELATION_HEADER, "corr-400")
