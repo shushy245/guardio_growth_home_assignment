@@ -14,6 +14,7 @@ from datetime import UTC, datetime
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.breaches.router import router as breaches_router
 from app.breaches.sync import sync_catalog_at_startup
 from app.config import Settings
 from app.db.engine import build_engine, build_session_factory
@@ -49,5 +50,6 @@ def create_app(settings: Settings, *, catalog: BreachCatalogPort) -> FastAPI:
     )
     register_exception_handlers(app)
     app.include_router(health_router, prefix="/api")
+    app.include_router(breaches_router, prefix="/api")
     app.include_router(probe_router, prefix="/api")
     return app

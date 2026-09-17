@@ -45,6 +45,12 @@ class _BreachBuilder:
     def with_title(self, title: str) -> _BreachBuilder:
         return replace(self, title=title)
 
+    def with_breach_date(self, breach_date: date) -> _BreachBuilder:
+        return replace(self, breach_date=breach_date)
+
+    def with_pwn_count(self, pwn_count: int) -> _BreachBuilder:
+        return replace(self, pwn_count=pwn_count)
+
     def build(self) -> Breach:
         return Breach(
             name=self.name,
