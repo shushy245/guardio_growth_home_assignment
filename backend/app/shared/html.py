@@ -14,6 +14,11 @@ _BREAK_TAGS = frozenset({"br"})
 def strip_html(markup: str) -> str:
     collector = _TextCollector()
     collector.feed(markup)
+    # `close()` is not tidy-up, it is the last of the output. `HTMLParser` holds trailing text
+    # back while it could still turn out to be a character reference or a tag, and a description
+    # ending in a bare `&` is one buffered chunk — dropping it returns an empty string, not a
+    # truncated one, and `description` is NOT NULL so the blank would be stored without an error.
+    collector.close()
 
     return collector.text()
 
