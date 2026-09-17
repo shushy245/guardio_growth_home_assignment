@@ -99,3 +99,32 @@ def test_a_search_that_matches_nothing_is_an_empty_page_not_an_error(
 
     breaches.then.the_breach_names_are()
     breaches.then.the_envelope_reports(total=0, page=1, limit=20)
+
+
+def test_a_percent_in_the_search_is_looked_for_literally_not_as_a_wildcard(
+    breaches: BreachesApiDriver,
+) -> None:
+    """`%` and `_` are LIKE wildcards. Unescaped, `?q=%` returns the whole catalog while the
+    "Showing X of Y" tile reports it as a search result — the search silently stops being one."""
+    breaches.given.breaches(
+        a_breach().with_name("Adobe").with_title("Adobe").build(),
+        a_breach().with_name("Discount50").with_title("50% off").with_domain(None).build(),
+    )
+
+    breaches.when.listed_matching("%")
+
+    breaches.then.the_breach_names_are("Discount50")
+    breaches.then.the_envelope_reports(total=1, page=1, limit=20)
+
+
+def test_an_underscore_in_the_search_is_looked_for_literally(
+    breaches: BreachesApiDriver,
+) -> None:
+    breaches.given.breaches(
+        a_breach().with_name("Adobe").with_title("Adobe").with_domain(None).build(),
+        a_breach().with_name("A_obe").with_title("A_obe").with_domain(None).build(),
+    )
+
+    breaches.when.listed_matching("A_obe")
+
+    breaches.then.the_breach_names_are("A_obe")

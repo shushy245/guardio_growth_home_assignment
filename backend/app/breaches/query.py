@@ -23,6 +23,9 @@ _sort_column_map: dict[BreachSort, InstrumentedAttribute[object]] = {
     BreachSort.NAME: BreachRow.name,
 }
 
+# Postgres has no default LIKE escape character; one has to be named on every call.
+LIKE_ESCAPE = "\\"
+
 # The primary key, so appending it makes any sort total.
 _TIEBREAKER: InstrumentedAttribute[object] = BreachRow.name
 
@@ -104,10 +107,22 @@ def _matches_text(q: str) -> ColumnElement[bool]:
 
     A NULL `domain` (54 records) yields NULL rather than false, which `OR` absorbs — so a
     domainless breach is still found by its name."""
-    pattern = f"%{q}%"
+    pattern = f"%{_escape_wildcards(q)}%"
 
     return or_(
-        BreachRow.name.ilike(pattern),
-        BreachRow.title.ilike(pattern),
-        BreachRow.domain.ilike(pattern),
+        BreachRow.name.ilike(pattern, escape=LIKE_ESCAPE),
+        BreachRow.title.ilike(pattern, escape=LIKE_ESCAPE),
+        BreachRow.domain.ilike(pattern, escape=LIKE_ESCAPE),
     )
+
+
+def _escape_wildcards(q: str) -> str:
+    """`%` and `_` are LIKE wildcards, and a visitor typing them means the characters.
+
+    Unescaped, `?q=%` matches every row while the "Showing X of Y" tile presents it as a search
+    result — the search quietly stops being the substring match it is documented to be. The
+    escape character itself goes first, or escaping would corrupt a literal backslash.
+    """
+    escaped = q.replace(LIKE_ESCAPE, LIKE_ESCAPE * 2)
+
+    return escaped.replace("%", f"{LIKE_ESCAPE}%").replace("_", f"{LIKE_ESCAPE}_")
