@@ -270,7 +270,7 @@ RF-backlog additions (batched, not now):
 - Consider pure-ASGI middleware over `BaseHTTPMiddleware` for the correlation id (structlog's own FastAPI example); only if a concrete problem appears.
 - Commit `9fec898` merged a `[chore]` (Alembic wiring) with a `[test+impl]` (harness); keep kinds pure going forward.
 
-### S2 — breach-catalog (~1.5h)
+### S2 — breach-catalog (~1.5h) — **closed 2026-09-18**
 
 Objective: HIBP catalog persisted and served through the full list contract plus a summary endpoint.
 
@@ -321,6 +321,60 @@ Commits:
 - C11 `[test+impl B13, B14]` summary endpoint; 503 paths on both endpoints
 - C12 `[test+impl F1, F1b, F2]` frontend `models/breach` (model, translator, selectors, index), `models/index.ts` namespace barrel, `api/breaches` with `buildBreachesQuery`. **The whole `api/breaches` layer is deferred to S5** — hooks *and* `fetchBreaches`/`fetchBreachSummary`. The hooks were deferred because their behaviour is specified there (F10 load-more, F11 error state, F13 abort-on-unmount, F18 skeleton); the fetch functions were written anyway and the S2 review caught the inconsistency (BF20) — untested production code under a strict-TDD contract. S5 writes them red-first, with a **required** `AbortSignal` so an effect cannot forget to abort. C12 keeps the model layer and `buildBreachesQuery`, which are tested. eslint gains a consumer-declared structurally-pure glob for `frontend/src/models/**/*.test.ts` (the extension point testing-conventions.md → adr-0004 provides for).
 - C13 `[chore]` delete both S1 probe routes; the validation case moves to the real `GET /api/breaches?page=0` (verified to reject with a 400 even against an unreachable database, so it stays a unit test) and the unhandled-500 case to a route the driver mounts — a route whose only job is to crash does not belong in the application. ADR-0002 persist-not-proxy.
+
+### S2 — review triage (Opus, 2026-09-18) — **all closed 2026-09-18**, one commit per item
+
+Review ran as a separate agent on Opus. Eight findings, every one reproduced before it was fixed
+— two were overstated and one was worse than reported, which is why the reproduction step is not
+optional. BF15–BF21 are fixed and committed, behaviour changes red first.
+
+Correctness (fixed):
+- [x] BF15 `strip_html` called `feed()` without `close()`, so `HTMLParser`'s trailing buffer was
+  discarded. The review's own example was wrong (`&amp;` is complete and flushes); the real case is
+  worse than it reported — a description ending in a bare `&` or a half-written entity came back as
+  the **empty string**, not a truncated one, because the whole description is one data chunk.
+  `description` is NOT NULL, so the blank would have been stored without an error and rendered as
+  an empty row.
+- [x] BF16 a duplicated `Name` in the HIBP payload raised `CardinalityViolation` (one
+  `INSERT … ON CONFLICT DO UPDATE` may not touch a row twice) and, because
+  `sync_catalog_at_startup` caught only `BreachCatalogError`, that escaped the lifespan and
+  aborted uvicorn — one bad record became the crash loop the function exists to prevent.
+  `upsert_many` now keeps the last row per name; the startup hook also catches `SQLAlchemyError`.
+- [x] BF17 `_matches_text` did not escape LIKE metacharacters: `?q=%` returned all 1,031 breaches
+  while the "Showing X of Y" tile presented it as a search result, and `?q=A_obe` matched `Adobe`.
+  Parameterised throughout, so never injection — just a wrong answer stated confidently.
+
+Robustness (fixed):
+- [x] BF18 `hibp_user_agent` was required but accepted `""`: the app booted "healthy", HIBP
+  answered 403, the sync swallowed it, and both endpoints served 503 forever behind a message
+  blaming the sync rather than the config. Now `Field(min_length=1)`.
+- [x] BF21 the lifespan body had **zero coverage** — `TestClient` runs a lifespan only when entered
+  as a context manager, and the integration tests call the sync functions directly. Swapping its
+  committing transaction for a non-committing one left all 103 tests green and the production
+  catalog permanently empty. The transaction moved into `sync_catalog_on_boot`, which a test drives
+  against a savepoint-bound factory and which now fails under exactly that mutation. (First attempt
+  ran the real lifespan through `TestClient`; its threaded commit escaped the savepoint and leaked a
+  row into the test database — reverted, row deleted, minimal fix taken instead.)
+
+Hygiene (fixed):
+- [x] BF19 `frontend/src/probe-visual-review.scss`, a "delete me" scratch file with no importer,
+  rode along inside the commit whose subject was deleting the S1 probe routes.
+- [x] BF20 `api/breaches.ts` (`fetchBreaches`, `fetchBreachSummary`), `aBreachPageDTO` and
+  `isSensitive` had no test and no caller — untested production code under the strict-TDD contract.
+  The hooks were already deferred to S5 for that exact reason; the fetch functions they would call
+  were written anyway. All deferred to S5, to be written red-first.
+
+Deferred with its precondition recorded (RF-backlog):
+- The boot-time HIBP call happens inside the transaction that reads `fetched_at`, so the connection
+  is idle-in-transaction for up to `HIBP_TIMEOUT_SECONDS` — the doctrine's "never hold locks across
+  business logic". Harmless while compose runs one worker and this is the only boot-time writer.
+  The precondition is recorded in `sync_catalog_on_boot`'s docstring so that adding a worker
+  resurfaces it rather than silently voiding the dismissal.
+
+Case coverage: every planned case (B1–B21, F1, F2, plus B1c/B1d/B3b–B3d/F1b added mid-story) has a
+named test. Two deliberate notes, not gaps: B14's conjunction "empty table **and** HIBP failing" is
+behaviourally identical to "empty table", because the endpoints never consult HIBP; and C12's hooks
+plus the API layer are explicitly deferred to S5 rather than dropped.
 
 ### S3 — feature-flags (~1.5h)
 
@@ -556,6 +610,12 @@ Each stretch story gets its own Cases/Commits block when opened; the TDD contrac
 - Breach descriptions carry HTML from HIBP; stripped server-side, rendered as text.
 
 ## RF-backlog
+
+- (S2 review) `sync_catalog_on_boot` holds its transaction across the HIBP HTTP call. Split the
+  staleness read and the write into two transactions when a second worker or a second boot-time
+  writer appears; the precondition is recorded in the function's docstring.
+- (S2) `app/adapters/hibp/breach_catalog.py` reads fetch-first, wire-model-second. Consider
+  reordering to wire model → translator → adapter if a reader trips on it.
 
 - (S1 review) collapse `tests/integration/test_harness.py` into one order-independent test asserting over a separate connection.
 - (S1 review) pure-ASGI correlation middleware instead of `BaseHTTPMiddleware`, only on a concrete problem.

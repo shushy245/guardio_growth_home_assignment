@@ -72,6 +72,12 @@ def sync_catalog_on_boot(
     reachable only by booting an app, and a boot that writes for real cannot run inside the
     savepoint harness. Opening the transaction here is load-bearing — without the commit the
     sync runs, appears to succeed, and rolls back.
+
+    **Known, accepted:** the HIBP call happens *inside* this transaction, so the connection sits
+    idle-in-transaction for up to `HIBP_TIMEOUT_SECONDS`. That is tolerable only while compose
+    runs a single worker and this is the only boot-time writer — the S2 review flagged it and it
+    is deferred in the plan's RF-backlog. **Adding a worker, or a second boot-time sync, is what
+    makes it a real problem; split the read and the write into two transactions then.**
     """
     with session_factory.begin() as session:
         sync_catalog_at_startup(session=session, catalog=catalog, now=now)

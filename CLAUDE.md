@@ -42,6 +42,20 @@ in-app statistical dashboard.
 ## What's done
 Full history: `docs/changelog.md`; commit-level record: `git log`.
 
+- **S2 — breach-catalog (closed 2026-09-18).** The funnel had nothing to show: the breach data
+  lived at HIBP, which can be slow or down, and sorting or filtering it would have meant pulling
+  all 1,036 records into the browser. We now keep our own copy of the public record, refreshed
+  daily, and answer every search, sort and page from it in one query — 1,031 servable breaches,
+  17.7B exposed accounts, 65% of them leaking passwords. It keeps serving while HIBP is down, and
+  an empty catalog is a visible error rather than a reassuring empty list.
+  Technically: `breach` table + Alembic migration; `BreachCatalogPort` with an httpx2 HIBP adapter
+  and an in-memory fake; idempotent `upsert_many` (last row per name, update set derived from the
+  table); 24h TTL in a pure `should_sync`; boot-time sync that cannot fail the boot;
+  `GET /api/breaches` with the full list contract (page/limit/sort/order/q/dataClass/verifiedOnly),
+  `name` closing every sort so LIMIT/OFFSET is total, and one filter builder feeding both the count
+  and the page; `GET /api/breaches/summary` over pure maths; 503 on an empty catalog, 200 on an
+  empty filter result; frontend model layer with a calendar-day date parse. 136 tests green.
+
 - **S1 — scaffold (closed 2026-09-17).** The stack starts from a clean clone with no setup step and
   serves a landing page plus `/api/health`; request tracing, the error contract and both test
   harnesses are proven rather than assumed. Technically: FastAPI app factory with `create_app(settings)`,
@@ -52,7 +66,12 @@ Full history: `docs/changelog.md`; commit-level record: `git log`.
   tsc + eslint + vitest + ruff + mypy + pytest. 45 tests green.
 
 ## What's next
-`/story-start S2` (breach-catalog). Carry into it: the forwarded S1 cases in `docs/plan.md` →
-"S1 — review triage" (prove the `get_session` override seam in an integration test; delete both
-probe routes in C13) and the note that DTO optional fields must be `field?: T | undefined` under
-`exactOptionalPropertyTypes`.
+`/story-start S3` (feature-flags). Carry into it: the forwarded S1 case that nginx must pass
+`X-Forwarded-For`/`X-Forwarded-Proto` before the `Secure` cookie logic (B14) can be trusted behind
+the proxy, and the S2 note that the `/admin` token is pasted into the page and held in React state
+only — never `VITE_*`, never localStorage.
+
+Before S5, two carried items: the urgent variant's copy says "17.8B accounts have leaked" but the
+servable total the API reports is **17.7B** (17,713,315,945) — match the copy to the number the
+summary actually returns; and `api/breaches` (hooks *and* `fetchBreaches`/`fetchBreachSummary`) is
+deferred there to be written red-first.

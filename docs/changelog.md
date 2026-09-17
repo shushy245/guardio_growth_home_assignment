@@ -3,6 +3,21 @@
 The product diary: one entry per story, newest first, in the words of someone who never saw the
 code. Commit-level detail lives in `git log`; the plan holds what is still ahead.
 
+## S2 — breach-catalog (closed 2026-09-18)
+
+- **Pain** — The funnel had nothing to show a visitor: the breach data lived at HIBP, a third
+  party that can be slow or unreachable, and searching or sorting it would have meant pulling all
+  1,036 records into the browser and hoping the phone coped.
+- **Fix** — We keep our own copy of the public breach record, refreshed once a day, and answer
+  every search, sort and page from it in a single query *(instead of calling HIBP on each request
+  and sorting the answer in memory)*.
+- **Trade-off** — The copy can be up to a day old and there is now a schema to keep in step with
+  HIBP's payload; calling through on every request would have stayed current to the minute but
+  made the result screen exactly as fast and as available as someone else's API.
+- **Result** — The screen's numbers are real and live: 1,031 breaches, 17.7 billion exposed
+  accounts, and 65% of those breaches leaked passwords — and when HIBP is down the funnel keeps
+  serving, while an empty catalog returns a visible error rather than a reassuring empty list.
+
 ## S1 — scaffold (closed 2026-09-17)
 
 - **Pain** — A take-home is judged first on whether it runs, and this scaffold only looked
