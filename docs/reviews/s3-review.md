@@ -20,14 +20,13 @@ session costs the triage and not the review. Triage decisions follow in `docs/pl
 
 ## Status
 
-- [ ] backend
-- [ ] frontend
-- [ ] conventions
+- [x] backend — arrived, pasted verbatim below
+- [x] frontend — arrived, pasted verbatim below
+- [x] conventions — arrived, pasted verbatim below
 - [x] visual — arrived, pasted verbatim below
 
-**If this file still shows unchecked boxes and no session is running, the review did not finish.**
-Re-run it from the tag: the diff is `story/S3..HEAD` and nothing about it is lost. An unfinished
-review is not a clean one.
+All four arrived in full and are recorded below. Each agent handed back its complete report and
+only then hit the account's session rate limit, so nothing was cut short and nothing needs re-running.
 
 ---
 
@@ -185,4 +184,363 @@ There is therefore **no running animation on a page whose CSS contains no reduce
 - **The rest of the funnel.** `/` renders a bare `h1` — there is no funnel UI on it to review, and no other route was given to me.
 - **`/admin` mobile Lighthouse ran at the tool's own emulation**, not at my 390x844x3 emulation; the reported audit numbers are the tool's, the pass A numbers are mine, and they should not be read as measurements of the same viewport.
 - **Real-device behaviour** on iOS Safari.
+
+
+---
+
+## 1. backend — correctness + backend conventions (verbatim)
+
+## Backend review — S3 (feature flags, visitors, admin gate, forwarded headers)
+
+Suite state: `uv run --env-file ../.env pytest -q` → **146 passed**. Live compose stack probed throughout; the seeded flag's content was left exactly as found (only `updatedAt` advanced, plus a few throwaway `visitor` rows).
+
+---
+
+### 1. `docker-compose.yml:34-36` — the only auth gate on the flag write ships with a committed default token on a LAN-reachable port, and the comment justifying it is factually wrong. **CONFIRMED**
+
+`ADMIN_TOKEN: ${ADMIN_TOKEN:-dev-admin-token}` with the comment *"the compose stack binds to localhost and is not a deployment."* It does not bind to localhost:
+
+```
+$ docker compose ps --format '{{.Service}}  {{.Ports}}'
+backend   0.0.0.0:8000->8000/tcp, [::]:8000->8000/tcp
+frontend  0.0.0.0:5173->8080/tcp, [::]:5173->8080/tcp
+```
+
+Failure scenario (executed against this machine, not hypothetical): from any host on the same Wi-Fi,
+```
+$ curl -X PATCH http://192.168.1.177:8000/api/feature-flags/result_screen_tone \
+    -H 'X-Admin-Token: <token>' -d @payload.json
+{"updatedAt":"2026-09-18T17:00:18.905829Z"}   → 200
+```
+On a clean clone with no `.env` that token is `dev-admin-token`, which is in the repo. An attacker on the network rewrites the headline/subheadline/CTA of a security product's result screen, or disables the experiment. CORS does not help — it is browser-only and `curl` ignores it.
+
+This collides with the global HARD RULE *"Hardcoded credentials are forbidden. Always. No exceptions."* The comment's "same footing as the db password above" is not equivalent: the db password gates a port nothing routes to, the admin token *is* the authorization boundary.
+
+Minimal fix: bind the published ports to the loopback (`"127.0.0.1:8000:8000"`, `"127.0.0.1:5173:8080"`) so the comment becomes true, and drop the `:-dev-admin-token` default so a missing `ADMIN_TOKEN` fails the boot loudly (`Settings` already enforces `min_length=1`). Correct the comment either way.
+
+---
+
+### 2. `frontend/nginx.conf:21` + `backend/Dockerfile:33` — `client_ip` in every log line is fully attacker-controlled *through nginx*, so the new forwarded-header wiring logs the forged value and discards the trustworthy one. **CONFIRMED**
+
+nginx sends `X-Forwarded-For $proxy_add_x_forwarded_for`, which **appends** the real peer to whatever the client sent. uvicorn 0.53's `ProxyHeadersMiddleware` takes the **leftmost** entry — the client-supplied part.
+
+```
+$ curl -H 'X-Forwarded-For: 1.2.3.4, 5.6.7.8' http://localhost:5173/api/health
+→ log: request: completed  client_ip=1.2.3.4  path=/api/health
+$ curl http://localhost:5173/api/health          # no header
+→ log: request: completed  client_ip=192.168.65.1
+```
+
+The Dockerfile comment scopes the risk to the published port 8000 (*"a deployment narrows it to the proxy's address, because port 8000 published to the host is reachable without going through nginx at all"*). The reproduction above went through nginx on 5173. So an attacker brute-forcing `X-Admin-Token` can attribute every attempt to an arbitrary IP, and `require_admin_token`'s refusal lines (which carry no path/method of their own) become unusable for incident response — the exact job the story added these fields for.
+
+nginx already sets `X-Real-IP $remote_addr`, which is correct and unforgeable here, and nothing reads it.
+
+Minimal fix: at the edge, overwrite rather than append — `proxy_set_header X-Forwarded-For $remote_addr;`. (`X-Forwarded-Proto` is already safe: nginx overwrites it with `$scheme`, verified — a forged `X-Forwarded-Proto: https` still logged `scheme=http`.)
+
+---
+
+### 3. `backend/app/visitors/router.py:29-54` — `POST /api/visitors` sets a `visitor_id` cookie and then ignores it on every subsequent request, so the endpoint is not idempotent and one human can be counted twice under *two different variants*. **CONFIRMED**
+
+Nothing in `app/` ever reads `VISITOR_COOKIE` (grep: the only references are the three lines that write it in `router.py` and its definition in `cookie.py`), and it is `httponly=True`, so the page cannot read it either. `frontend/src/storage/visitor-id.ts` (localStorage) is the real identity; the cookie is write-only decoration.
+
+```
+$ curl -c jar -X POST /api/visitors
+{"id":"vis_01M2TQCY9Y8QTZR74YY2APPHR3","assignments":{"result_screen_tone":"calm"}}
+$ curl -b jar -X POST /api/visitors          # browser presents the cookie it was just given
+{"id":"vis_01M2TQCYB272X0XN0VAMBW3HHN","assignments":{"result_screen_tone":"urgent"}}
+```
+
+Two visitor rows, two assignments, **different variants**, one person — which is precisely what `cookie.py:10-12` claims the max-age is there to prevent (*"a session cookie would re-bucket every returning visitor and double-count them in the funnel"*). Real trigger, not just a curl artifact: `loadVisitorSession` reads localStorage synchronously at effect time and the `inFlight` ref only dedupes within one component instance, so two tabs opened together both find nothing stored and both POST. Also a private window, cleared site data, or any retry of a POST whose response was lost. Every such duplicate contaminates the A/B numbers S6 will compute.
+
+This also misses the `docs/python-conventions.md` HTTP row *"Idempotent consumer: `INSERT … ON CONFLICT DO NOTHING`"* — there is no server-side dedupe of any kind.
+
+Minimal fix: read the `visitor_id` cookie at the top of `create_visitor`; if it names a visitor that exists, return that visitor's stored assignments with `200` instead of minting a new identity. That makes the cookie load-bearing and the endpoint idempotent in one move. If the cookie is not going to be read, delete it (*delete aggressively*) rather than leave a security-shaped no-op with a docstring claiming a property it does not have.
+
+---
+
+### 4. `backend/app/visitors/models.py:29` — a PATCH that renames a variant key orphans every stored `visitor_assignment`, and nothing detects it. **CONFIRMED**
+
+`variant_key` is bare `Text` with no FK and no reconciliation (`\d visitor_assignment` confirms: FKs on `visitor_id` and `flag_key` only). `FeatureFlagUpdate` freely accepts a changed set of variant keys.
+
+```
+visitor before:                    {"result_screen_tone":"urgent"}
+PATCH renames urgent → alarm  →    200
+flag variant keys now:             ['calm', 'alarm']
+visitor after:                     {"result_screen_tone":"urgent"}   ← names a variant that no longer exists
+```
+
+Consequence is graceful rather than crashing — `variantFor` in `VisitorProvider.utils.ts:44-52` returns `undefined` for an unfindable key — so the visitor **silently falls out of the experiment** and, in S6, contributes events under a variant label the flag no longer defines. No log, no error, no 409.
+
+The existing test `test_a_visitor_keeps_the_assignment_made_at_creation_after_the_weights_change` covers only a *weight* change (0/100), not a key change, so this path is untested.
+
+Minimal fix: reject a `FeatureFlagUpdate` whose variant keys are not a superset of the keys already assigned for that flag (one `SELECT DISTINCT variant_key` in the handler, `409`/`400` with the orphan keys named) — or accept it deliberately and record the decision, since renames are otherwise a silent data-integrity event.
+
+---
+
+### 5. `backend/app/visitors/router.py:29,57` + `feature_flags/router.py:22` — logging-convention gaps in three of the four new handlers. **CONFIRMED (by reading; `update_feature_flag` is the one that gets it right)**
+
+- `list_feature_flags` — **no log at all**. No entry line.
+- `get_visitor` — logs only the 404 branch. No entry line, and the success branch is silent, so the refresh path leaves no trace. Violates *"Log at every branch — which path and why."*
+- `create_visitor` — logs `"create_visitor: assigned"` before the write (correct instinct), but has no entry line carrying the identifiers, and nothing after the write.
+- `update_feature_flag` — has entry + all three branches, but re-spreads `key=key, token=token` across four separate `log.info` calls. *"Context established once, reused"* — the structlog form is `log = log.bind(key=key, token=token)` once at the top.
+
+Minimal fix: an entry line per handler with its identifiers, a line on the success branch of `get_visitor` and after `create_visitor`'s write, and one `bind` in `update_feature_flag`.
+
+---
+
+### 6. `backend/migrations/versions/75463482a98c_*.py:61-81` — no index on `visitor_assignment.flag_key`. **CONFIRMED**
+
+The PK is `btree (visitor_id, flag_key)`, which serves `find_assignments` but not any lookup keyed on the flag. S6's per-variant funnel aggregation (`GROUP BY flag_key, variant_key`) and every FK check against `feature_flag` will seq-scan. Forward-looking, not a current defect. Minimal fix: a forward migration adding `ix_visitor_assignment_flag_key`, when S6 needs it.
+
+---
+
+### 7. Test-side DRY — three production constants re-declared as literals in drivers. **CONFIRMED**
+
+- `tests/drivers/visitors_api.py:19` `VISITOR_COOKIE = "visitor_id"` duplicates `app/visitors/cookie.py:9`.
+- `tests/drivers/feature_flags_api.py:18` `ADMIN_TOKEN_HEADER = "X-Admin-Token"` duplicates `app/feature_flags/admin.py:19` `ADMIN_HEADER_NAME`.
+- `RESULT_SCREEN_TONE = "result_screen_tone"` declared independently in both drivers.
+
+Same principle as the `noRawTestId` lint rule — Hunt & Thomas, DRY: one authoritative representation, and the grep invariant (constant name === access path) breaks when the string is re-typed. These fail loudly rather than silently, so it is low severity. Minimal fix: import from `app.visitors.cookie` / `app.feature_flags.admin`.
+
+---
+
+### 8. `backend/app/feature_flags/schemas.py:65` — a timezone-**naive** `updatedAt` token is accepted and silently interpreted in the database session's timezone. **PLAUSIBLE (latent; not currently wrong)**
+
+What I tried: sent the current token with the offset stripped → `200`; sent the same instant spelled `+02:00` → `200`; sent a naive value shifted 3h → `409`. `SHOW timezone` on the container is `UTC`, so today naive == UTC and the behaviour is correct. The dependency is unstated: on a Postgres whose session `TimeZone` is not UTC, a naive token from a client that drops the offset would name a different instant. **I could not produce a wrong outcome** and will not claim one.
+
+Minimal fix if you want the dependency gone: `AwareDatetime` instead of `datetime` on the field, so a naive token is a `400` rather than a silent reinterpretation.
+
+---
+
+### Lower-priority notes (no reproduction attempted, stated as such)
+
+- `schemas.py:22` — `_wire` carries no `extra="forbid"`, so `FeatureFlagVariant`/`VariantConfig` silently drop unknown nested fields while the top-level `FeatureFlagUpdate` rejects them. Inconsistent boundary strictness; harmless today because every nested field is required.
+- `admin.py:31,35` — `401` without a `WWW-Authenticate` header (RFC 7235 says MUST). Given it is not a standard auth scheme, `403` may be the more honest code.
+- `visitors/repository.py:10` — `user_agent` is stored unbounded from a client-controlled header into a `Text` column.
+
+---
+
+### Categories where I found nothing
+
+- **Optimistic locking**: no holes. Five concurrent PATCHes carrying the same token → exactly one `200`, four `409`; a stale token changes nothing (verified by re-reading the flag after); `404` vs `409` are discriminated correctly; the `Z` / `+00:00` round-trip is accepted; `clock_timestamp()` vs `now()` is the right call and is covered by a test that explains why.
+- **Admin-gate ordering**: `require_admin_token` runs *before* body validation — `PATCH` with no token and `{"garbage":1}` returns `401`, not `400`, so an unauthenticated caller learns nothing about the schema. Constant-time compare via `hmac.compare_digest`, `SecretStr` on the setting, and no presented value in any log line.
+- **Transactions**: a 4xx rolls back cleanly (confirmed live — the flag was byte-identical after a 409). One transaction per request, no handler commits.
+- **SQL correctness**: `find_assignments`' outer join does what its name and docstring say (an existing visitor with zero assignments is `{}`, not `None`); `list_enabled_splits` orders by key so assignments are deterministic; everything is parameterized — no injection surface.
+- **The pure assignment rule**: deterministic, `sha256` not salted `hash()` (with a pinned-bucket test that would catch the swap), modulo bias is ~1 part in 2^63 and not worth reporting, weights/duplicate-keys validated at the boundary before anything is written.
+- **Type discipline**: zero `cast(` / `: Any` / `type: ignore` anywhere in `app/`.
+- **Migrations**: forward-only with empty `downgrade`, one logical change each, and the seed is `ON CONFLICT DO NOTHING` so a re-run never resets product's copy.
+- **Module DAG**: `visitors → feature_flags` only; `assignment.py` imports nothing from `app`. Functional core intact, no cycle.
+
+---
+
+## 2. frontend — frontend + testing conventions + correctness (verbatim)
+
+FRONTEND / TESTING / CORRECTNESS review of `git diff story/S3..HEAD -- frontend/`.
+
+Baseline: `pnpm vitest run` 59/59 green, `eslint . --max-warnings 0` exit 0, `pnpm -r typecheck` clean. I ran 6 implementation mutations and 4 ad-hoc repro tests (all temp files deleted; `git status` clean).
+
+---
+
+### 1. CONFIRMED — `frontend/src/pages/Admin.tsx:161` — a save silently discards every edit typed while it was in flight
+`onChange(setLockToken(flag, lockToken))` closes over the `flag` prop captured at click time and hands the *whole snapshot* back to `replaceFlag`, so anything typed between click and response is overwritten by the pre-save value.
+
+Scenario: operator pastes the token, edits the CTA to "SAVED VALUE", clicks Save, keeps typing "TYPED DURING FLIGHT" while the PATCH is in the air. On resolve the field reverts to "SAVED VALUE" — and the console says "Saved.", so the operator believes the newer text persisted.
+
+Evidence: repro test gating the PATCH adapter behind a manual promise —
+```
+Expected the element to have value:  TYPED DURING FLIGHT
+Received:                            SAVED VALUE
+```
+Minimal fix: the success path must apply only the token to *current* state, not replay a snapshot — e.g. give `FlagEditor` an `onSaved(flagKey, lockToken)` that the parent applies inside the functional `setState` (`replaceFlag(current.flags, setLockToken(findFlag(current.flags, key), token))`), instead of `onChange(setLockToken(flag, …))`.
+
+### 2. CONFIRMED — `frontend/src/pages/Admin.tsx:162` — "Saved." persists over later, unsaved edits
+`setSave({ status: SaveStatus.Saved })` is never reset when the flag changes, so the confirmation sits next to dirty fields.
+
+Scenario: save succeeds, operator edits the headline, walks away reading "Saved." — the edit is not on the server.
+
+Evidence: repro test typed into the CTA after a successful save and asserted the message no longer contains "Saved" — failed, element still read `Saved.`.
+Minimal fix: `FlagEditor` resets `save` to `SaveStatus.Idle` whenever `flag` changes (reset in the change handlers, or key the save state off the lock token).
+
+### 3. CONFIRMED — `frontend/src/main.tsx:17` — opening the flag console enrols the operator in the experiment, and double-fetches the flags
+`VisitorProvider` wraps the whole `BrowserRouter`, so `/admin` runs the visitor session too.
+
+Scenario: operator opens `/admin` in a private window → `POST /visitors` creates a real visitor with a real `result_screen_tone` assignment. Once S4 stores funnel events, operator traffic is inside the A/B numbers the dashboard reports. Separately the flag list is fetched twice per Admin render (provider + `Admin`'s own effect), i.e. two independent owners of the same list in one tree.
+
+Evidence: rendering `<Admin/>` through `renderWithProviders` records 1 × `POST /visitors` and **2** × `GET /feature-flags` (asserted `toHaveLength(0)` on each, got 1 and 2).
+Minimal fix: scope `VisitorProvider` to the funnel routes rather than the router root (the doc's "feature-level providers live closer to the features that need them"), and let `/admin` read the flag list once.
+
+### 4. CONFIRMED — `frontend/src/pages/Admin.module.scss:125` — the mobile-first reflow is inverted; the md media query is dead
+`.variants` has **no base rule at all** — it exists only inside `@media (min-width: 768px)`. The element is a `<Row>`, and `.row` is already `flex-direction: row`, so the md override is a no-op and there is no base `gap`.
+
+Scenario: at 390 px the two variant editors sit side by side, ~half of a 358 px content box each, holding 44 px-tall inputs inside 12 px-padded cards, with the cards touching (gap only arrives at 768). The intent was clearly column→row.
+Evidence: read `Admin.module.scss` (no `.variants` outside the query) against `ui/primitives.module.scss` (`.row { display:flex; flex-direction:row }`).
+Minimal fix: make the base a `<Column>` (or add `.variants { flex-direction: column; gap: 12px }` outside the query) and keep the md override as the actual change.
+Note: this is a code-level proof only — HARD RULE 5 still requires the independent `visual-reviewer` pass at 390/768/1280 before sign-off; I did not run it and nothing here substitutes for it.
+
+### 5. CONFIRMED — `frontend/src/pages/Admin.tsx:104, 248, 297` — raw `<label>` used as a layout container, and its `gap` is inert
+`.field { gap: 6px }` is applied to a bare `<label>`, which is `display: inline` — `gap` applies only to flex/grid, so the label/input spacing silently does nothing. This is also the layout-primitive ban (frontend-conventions §Layout primitives: never raw elements with layout styles).
+Minimal fix: `<Column as/inside label>` or add `display:flex; flex-direction:column` to `.field`; prefer the primitive.
+
+### 6. CONFIRMED — `frontend/src/testkit/builders/featureFlag.ts:9-38`, `visitor.ts:5-8` — builder defaults are hardcoded, and tests depend on the literals
+testing-conventions §Builders: "Every field has a realistic random default via `Chance` — never hardcoded, **so tests can't accidentally depend on a specific value**." Both builders use fixed constants and eight assertions read them straight through:
+`featureFlag.test.ts:25` (`'2026-09-18T08:00:00.123456Z'` with no `withUpdatedAt`), `:52` `'Protect me now'`, `:73` `'Protect me'`, `:83` `"You're exposed!"`, `:92` weight `50`, `:121` `100`; `VisitorProvider.test.tsx:19,84` `"You're exposed!"`.
+Consequence: retuning the seeded copy — exactly what this story exists to enable — breaks unrelated tests, and no test states the value it actually depends on.
+Minimal fix: `chance`-random defaults plus explicit `with*` in the tests that care (`withUrgentHeadline(…)`, `withUpdatedAt(…)`), and drop the literals from the assertions.
+
+### 7. CONFIRMED — `frontend/src/pages/Admin.tsx:196-204, 236-239` — an invalid split is warned about but still sendable, and the weight input accepts out-of-range values
+`disabled={isSaving(save)}` is the only guard; `hasCompleteSplit` drives copy only. `min={0} max={100}` on a controlled `<input type=number>` are not enforced on change.
+Scenario: type `999` into the urgent weight → state takes 999, `SplitNote` warns, Save still fires, backend 400, the raw backend message surfaces as the operator-facing error. Clearing the field writes `0` (`Number.isNaN(weight) ? 0 : weight`) with no signal.
+Evidence: repro asserted the weight field still held `50` after typing `999` — failed, value was `999`.
+Minimal fix: `disabled={isSaving(save) || !hasCompleteSplit(flag)}` via a named predicate in `Admin.utils.ts` (`canSave({ save, flag })`), and clamp in `handleWeightChange`.
+
+### 8. CONFIRMED — dead code and duplicated knowledge (Delete aggressively / DRY)
+Verified by grep across `frontend/src`:
+- `Admin.driver.tsx:36,48,30` — `type.urgentWeight`, `assert.weightsAre`, `given.theSaveFails` are declared, typed and implemented but **called by no test** (~30 lines of driver surface). The save-failure path (non-409) is consequently untested.
+- `models/featureFlag/model.ts:34` `RESULT_SCREEN_TONE_FLAG` — exported, used nowhere, while the same literal `'result_screen_tone'` is hardcoded in `Admin.driver.tsx:15`, `VisitorProvider.driver.tsx:20` and `testkit/builders/featureFlag.ts:32`. The canonical home is the one copy nobody uses.
+- `Admin.utils.ts:76,78` `CONFLICT_MESSAGE` / `SAVED_MESSAGE` — exported but used only in the same file; the driver instead asserts the literal substrings `'Saved'` (`Admin.driver.tsx:176`) and `'Reload the page'` (`:181`), so the operator copy has two homes.
+
+### 9. CONFIRMED — `eslint.config.mjs:38-47` — this story added a lint exemption that is not needed (HARD RULE 3)
+`'**/storage/visitor-id.ts'` was added to a block that sets `'no-restricted-syntax': 'off'` — turning off the whole composed rule (`noOptionalChaining`, `noNullLiteral`, `noRawTestId`, `jsxTextBackticks`, `noInlineJsxLambda`, `noBooleanParam`) for that file. The stated reason is "`getItem` returns null", but the file never writes a `null` literal (`?? undefined` handles it).
+Evidence: I removed the entry and ran `pnpm exec eslint frontend/src/storage/visitor-id.ts --max-warnings 0` → **exit 0**. (Config restored; `git diff` clean.)
+Minimal fix: delete the entry.
+Adjacent, pre-existing (not this diff, flagging not fixing): the `frontend/src/models/**/*.test.ts` block at `:27-37` also uses `'off'` where `lint-index.md` says "Compose consumer globs from the exported `pureFunctionTestSyntaxSelectors`". I verified the sanctioned composition keeps those files green, so it is a free tightening.
+
+### 10. CONFIRMED — `frontend/src/pages/Admin.tsx:56-71` — the unmount guard is untested production code
+Mutation: deleted both `if (!cancelled)` checks → **59/59 still pass**. Five lines exist that no failing test justified (TDD contract). Note the inconsistency: the load effect guards against unmount, `handleSave`'s `.then` (`:158-171`) does not.
+Minimal fix: either a test that unmounts mid-flight, or delete the guard and rely on React 19's no-op setState — but pick one and apply it to both async paths.
+
+### 11. CONFIRMED — `frontend/src/models/featureFlag/featureFlag.test.ts:114-115` — the test body re-implements a production selector
+`replaced.find((flag) => flag.key === 'b')` and `replaced.map((flag) => flag.key)`. The pure-function exemption explicitly says "Derived/computed assertions go through named functions, **production selectors first**" — `findFlag(flags, key)` exists in `selectors.ts:9` and is not used here.
+Minimal fix: `expect(findFlag(replaced, 'b')?.isEnabled).toBe(false)`.
+
+### 12. CONFIRMED (latent) — `testkit/builders/featureFlag.ts:41` — `{ ...RESULT_SCREEN_TONE }` is a shallow copy
+Every default-built DTO across the whole run shares one `variants` array and the same nested `config` objects. Nothing mutates them today (the axios interceptor's `normaliseNulls` rebuilds every response body), so it is latent rather than live — but it is the same class of cross-test corruption the `with*`-reassigns rule exists to prevent, and the builder's own header comment claims immunity it does not have for nested fields.
+Minimal fix: deep-copy the seed in the field initialiser, or build the default from a `make*`-style function.
+
+### 13. Given/When/Then phase ordering — minor
+- `Admin.test.tsx:46` — `await driver.assert.savedConfirmationIsShown()` is used as a synchronisation barrier before two more Whens (`type`, `click`). A Then mid-body doing double duty as a wait; better as a `driver.when.saveSettles()`.
+- `VisitorProvider.test.tsx` — four `describe` blocks each repeating the identical `let driver / beforeEach`; one `describe` with the scenario stated in the `it` name reads the same and drops 18 lines.
+
+### 14. Component-TDD trigger — `FlagEditor` (`Admin.tsx:131-213`) is not tested as a unit
+It owns its own state (`SaveState`), the whole async save coordination and the optimistic-lock round trip — the substance of the story — yet it lives inline in `Admin.tsx` with no file, driver or test of its own. testing-conventions: "any component with meaningful logic (own state, effects, interaction-driven transitions, async coordination) gets a Vitest component test written *before* it"; frontend-conventions: "the moment a sub-component needs its own test, it becomes its own unit — extract to its own file." Findings 1, 2 and 7 all live in this untested component. `SplitNote` and `VariantEditor`'s weight parsing are likewise uncovered.
+
+### 15. `frontend/src/testkit/setup.ts:15-21` — global default routes make Givens implicit — minor
+Every test in the repo starts with a working `POST /visitors` and `GET /feature-flags`. `VisitorProvider.test.tsx:44` ("starts a new visitor…") never declares a flag route and passes on the global default, so the test's precondition is not readable from the test. Prefer declaring the routes the scenario needs and letting an undeclared route fail loudly (which `fake-http` already does well).
+
+---
+
+**Vacuous tests: none found.** 6 mutations, 5 killed by the suite: StrictMode single-flight ref (kills `VisitorProvider under StrictMode`), `setLockToken` round trip (kills `carries the token the previous save returned`), 404→create recovery, `storeVisitorId`, `toUpdatePayload` sending server-owned fields. The sixth (the `cancelled` unmount guard) survived — that is untested code, not a vacuous test, and is finding 10.
+
+**Clean categories, explicitly:** the `.tsx`/`.utils.ts` boundary (`Admin.tsx` exports only the component; tests import the driver and builders, never the `.tsx`); the model-layer decomposition (`model`/`translator`/`selectors`/`setters`/`index`, namespace barrel, API layer typed with the wire DTO and mapped through `fromDTO`); discriminated unions over optional fields, with `is*` predicates in the right place; no prop drilling (every forwarded prop is used by its recipient); named `handle*` handlers with no inline JSX lambdas; optimistic update / don't-read-after-write on save (the mechanism is right — finding 1 is the snapshot, not the pattern); no `?.` anywhere in production code; fakes over mocks (`fake-http` is a genuine in-memory transport behind the axios seam, not a mock); every render through `renderWithProviders`; test names read as behaviour sentences; no `expect()`, DOM query or logic in any `.test.tsx` body.
+
+**One naming defect worth a line:** `Admin.tsx:146` — `handleVariantChange = (variant: FeatureFlagModel) => onChange(variant)` is a no-op pass-through whose parameter is a `FeatureFlagModel` named `variant`. Delete the indirection and pass `onChange` down.
+
+---
+
+## 3. conventions — named principles + comment/doc accuracy + git history (verbatim)
+
+Review of `story/S3..HEAD` (14 commits, 79 files) — named principles, comment/doc accuracy, git history. I did not run the app or the suites; every claim below is from reading the files at HEAD plus targeted greps.
+
+Note: the working tree is dirty — `frontend/src/providers/VisitorProvider.tsx` was modified by something else *during* this review. All findings are against HEAD.
+
+---
+
+## ANGLE 1 — NAMED PRINCIPLES
+
+**1. Stale closure: an edit made while a save is in flight is silently reverted.** `frontend/src/pages/Admin.tsx:150-172` (the discard is line 161).
+`handleSave` closes over the render's `flag`; when the PATCH resolves, `onChange(setLockToken(flag, lockToken))` writes that *captured* flag back to the parent. The Save button is disabled during the save (line 200) but the inputs are not — so if the operator keeps typing, their edits vanish when the response lands, with a green "Saved." beside them. This is the Race Family's **stale closure** shape (`intellectual-references.md` → Concurrency & Interleaving), the one the pre-mortem is supposed to catch; F9's test only exercises two *sequential* saves, so nothing covers it.
+*Fix:* don't echo the whole flag back. `onSaved(flag.key, lockToken)`, and let the parent apply it to its current copy with the same functional-updater form already used at line 78.
+
+**2. A lint rule switched off where the documented mechanism exists to narrow it.** `eslint.config.mjs:32-35`.
+`rules: { 'no-restricted-syntax': 'off' }` for `frontend/src/models/**/*.test.ts` disables the **whole** rule, not the `noRawExpect` selector the comment is about — it also lifts `noNullLiteral`, `noRawTestId`, `jsxTextBackticks` and `noInlineTestFactories` (the DRY rule against inline test factories). `lint-index.md` → noRawExpect, scope (adr-0004) says verbatim: "Compose consumer globs from the exported `pureFunctionTestSyntaxSelectors`", and the package does export it (verified: `['default','pureFunctionTestSyntaxSelectors','typeAwareRules']`); upstream `index.mjs:325` uses exactly that form. HARD RULE 3 territory — the rule was weakened rather than composed.
+Worth stressing: the narrow form would have passed anyway. I checked both files in the glob — no inline factories, no `null` literal, no raw test id, no JSX; the `?.` at `featureFlag.test.ts:52,58,72,73,83,91,92,115` is fine because `noOptionalChaining` is *not* in the pure-function set. Nothing required the blanket off.
+*Fix:* `rules: { 'no-restricted-syntax': ['error', ...pureFunctionTestSyntaxSelectors] }`, re-importing the named export.
+*Same pattern, smaller:* `eslint.config.mjs:39-47` adds `**/storage/visitor-id.ts` to another blanket `'off'`. Its stated trigger ("getItem returns null") isn't in the file — `visitor-id.ts` has no `null` literal and no `?.`; `?? undefined` is not restricted syntax. Verify by removing the glob and running lint; it looks like an exemption for a violation that isn't there.
+
+**3. DRY-as-knowledge: the flag key has three literals and the model's home has no consumer.** `frontend/src/models/featureFlag/model.ts:34` exports `RESULT_SCREEN_TONE_FLAG = 'result_screen_tone'` — grep finds **zero** references anywhere in `frontend/src`. Meanwhile `VisitorProvider.driver.tsx:20` and `Admin.driver.tsx:15` each declare their own `const RESULT_SCREEN_TONE = 'result_screen_tone'`. One piece of knowledge, three copies, and the one that was meant to be authoritative is dead.
+*Fix:* delete the model constant, or import it in both drivers.
+
+**4. A runtime guard for a case the table's own indexing rules out.** `frontend/src/pages/Admin.utils.ts:88`.
+`[SaveStatus.Failed]: (state) => (state.status === SaveStatus.Failed ? state.error : undefined)` — line 91 indexes the map *by* `state.status`, so this entry only ever sees the Failed variant. The false branch is unreachable and silently yields no message, which is precisely the failure the comment at line 82 claims the table prevents ("a new SaveStatus member is a compile error here instead of a silently blank message"). Trust the Type System: the constraint belongs in the type.
+*Fix:* type the map per-variant — `{ [S in SaveStatus]: (state: Extract<SaveState, { status: S }>) => string | undefined }` — and the ternary disappears.
+
+**5. Middle Man, with a misleading parameter name.** `frontend/src/pages/Admin.tsx:146-148`. `handleVariantChange` forwards its argument to `onChange` unchanged, and names the parameter `variant` when its type is `FeatureFlagModel` — a whole flag, not a variant. A reader tracing the callback is told the wrong thing.
+*Fix:* pass `onChange` directly to `VariantEditor`; if `jsx-handler-names` needs the `handle*` const, at least rename the parameter to `flag`.
+
+**6. Production code with no test demanding it, and no reachable caller.** `backend/app/feature_flags/assignment.py:54-58`. The `ValueError` for uncovered buckets has no test — `grep -rn "unassigned\|weights of flag" backend/tests` returns nothing — and `FeatureFlagUpdate`'s validator makes it unreachable through every supported write path. Under the project's TDD contract it's either a deliberate fail-loud for hand-edited rows (which deserves a test) or Speculative Generality.
+
+**7. Pure lookup data living in the `.tsx`.** `frontend/src/pages/Admin.tsx:44-50` — `HTTP_CONFLICT` and `copyLabelMap` are exactly what `Admin.utils.ts` exists for; `saveMessageMap` is already there. Consistency nit, but the boundary rule is explicit about pure logic and constants.
+
+**8. Tokens named for no consumer.** `frontend/src/styles/tokens.scss:7,9` — `$breakpoint-sm` and `$breakpoint-lg` have no usage anywhere (`grep`); only `$breakpoint-md` is referenced, at `Admin.module.scss:119`. Beck Rule 4.
+
+**9. Builder defaults are shared by reference across the process.** `frontend/src/testkit/builders/featureFlag.ts:41` — `private state: FeatureFlagDTO = { ...RESULT_SCREEN_TONE }` is a *shallow* copy, so every builder's `build()` hands back the same `variants` array and the same `CALM`/`URGENT` objects. The file's header comment carefully covers the `with*`/`build()` aliasing but not this deeper one. Nothing mutates them today; it's a tripwire of exactly the class the comment is warning about.
+
+Clean on: enums over string literals, data-table lookups over branch chains (`copyLabelMap`, `saveMessageMap`, `_log_format_map`), discriminated unions with `is*` predicates (`AdminState`, `SaveState`, `VisitorState`), no boolean parameters (`toggleEnabled`'s comment at `setters.ts:35` explicitly reasons about it), no `as` casts anywhere in the diff (`Admin.driver.tsx:67` uses a type predicate and says why), immutable setters, keyword-only args throughout the backend.
+
+---
+
+## ANGLE 2 — COMMENTS AND DOCS
+
+**1. Two documents cite a README paragraph that does not exist.** `docs/adr/adr-0003…md:79-82` — "This is deliberately short of authentication and **the README says so**"; `docs/changelog.md`, S3 → Trade-off — "a deliberate stopping point, **recorded in the README**, not an oversight."
+`README.md` is **one line**. `grep -ci "admin"` → 0; no "token", "auth", "secret" either. The one claim that matters most for an evaluator — the security scope of the admin gate — is asserted as documented in the place an evaluator would actually look, and isn't there.
+*Fix:* write the paragraph into `README.md`, or delete the claim from both docs.
+
+**2. A mechanism the ADR describes cannot happen: nothing ever reads the visitor cookie.** `adr-0003…md:34-39` — "The cookie is the belt: it cannot be read by script, so it survives a hostile page."
+`grep -rn "cookies" backend/app` finds nothing. `VISITOR_COOKIE` appears only in the `set_cookie` call at `backend/app/visitors/router.py:45-52`; `GET /api/visitors/{id}` takes the id from the path, and the page sources it from `localStorage`. A visitor whose localStorage is cleared gets a brand-new id and a fresh assignment while the cookie still names the old one. The belt is written and never worn. This is the same class as the impossible-mechanism comment a previous review found.
+*Fix:* read the cookie as the fallback in the visitor handlers, or say in the ADR that it is written now and read in a later story.
+
+**3. A docstring contradicted by the test three lines away.** `backend/app/middleware/correlation_id.py:70-72` — "`request.client` is None when the transport does not report a peer (**an in-process ASGI call**)". `backend/tests/unit/test_correlation_id.py:51` asserts `client_ip="testclient"` from exactly an in-process ASGI call. The example given for the None branch is the one case the suite proves is *not* None.
+*Fix:* name the real condition (a scope with no `client` key) or drop the parenthetical.
+
+**4. A test whose docstring describes a mechanism the test cannot reach.** `backend/tests/unit/test_correlation_id.py:45-53` — "The client and scheme are only true if uvicorn rewrote them from `X-Forwarded-For` / `X-Forwarded-Proto`". There is no uvicorn, no nginx and no forwarded header anywhere in this test; it pins `testclient`/`http`, which is what the harness reports with the proxy wiring entirely absent. Delete `--proxy-headers` from the Dockerfile and all three `proxy_set_header` lines from `nginx.conf` and this test still passes. The wiring is backed only by the manual run described in the commit body.
+*Fix:* say the test pins the fields' *presence*, and that the rewrite is verified on the running stack — which is what `docs/plan.md`'s own "(recorded)" note already says correctly.
+
+**5. A docstring that is true of one half of what it claims.** `backend/app/feature_flags/assignment.py:62-63` — "anything but 100 leaves buckets unassigned or double-assigned, and `assign_variant` would raise on the first visitor to land there." For weights summing **above** 100 nothing raises: the cumulative walk returns at the first variant whose upper bound exceeds the bucket, so buckets ≥ 100 are never reached and the trailing variants' share is silently truncated. Only the under-100 case raises.
+*Fix:* "under 100 leaves buckets unassigned and `assign_variant` raises; over 100 silently truncates the later variants."
+
+**6. "First-seen order" is not the order produced.** `backend/app/feature_flags/assignment.py:68` — `duplicated_variant_keys` appends a key when its *second* occurrence is seen, so the result is in first-*detection* order. For `["b","a","a","b"]` it returns `["a","b"]`; first-seen order of those keys is `b, a`. Untested either way (see Angle 3 #5).
+*Fix:* "in the order each duplicate is first detected."
+
+**7. A comment names the wrong narrowing point.** `backend/app/feature_flags/models.py:26-27` — "the repository narrows it through the variant schema, so nothing past the boundary ever works with an unvalidated dict." True of `list_enabled_splits` (`repository.py:27`), false of `list_flags` (`repository.py:33-34`), which returns raw rows; on the `/feature-flags` path the narrowing is the router's `FeatureFlagResponse.model_validate` (`router.py:27`). The invariant holds — the attribution doesn't.
+
+**8. `nginx.conf` credits uvicorn with reading a header it ignores.** `frontend/nginx.conf:17-23` — "uvicorn reads **them** back into `request.client` and `request.url.scheme`" sits under three `proxy_set_header` lines, but uvicorn's `ProxyHeadersMiddleware` reads only `X-Forwarded-For` and `X-Forwarded-Proto`. The newly added `X-Real-IP` has no consumer in this stack.
+*Fix:* drop `X-Real-IP`, or say it's set for a log/proxy consumer that doesn't exist yet.
+
+**9. `Admin.tsx:159-161` states a property the code doesn't hold.** "Don't read after write: … the values on screen are the ones we just sent" — true only if nothing was typed during the round trip, which is exactly the bug in Angle 1 #1. The comment is what makes the stale-closure write read as deliberate.
+
+**10. The plan's S3 commit list was reconciled everywhere except C8.** `docs/plan.md` — C1, C3, C7, C7b, C10, C11 and C12 were all rewritten to match what shipped, but `C8 [refactor] extract feature_flags/repository.py; router is a thin shell` never happened: no `refactor` commit exists in the range, and the repository was introduced inside `3fe3698` (a `test+impl`). The plan now reads as if that commit is in history. Separately, C7b lists `B10, B11, B12, B18, B19` while the commit closing it also claims `B4` — which C3's own note says belongs there.
+*Fix:* strike C8 or mark it absorbed; add B4 to C7b's ids.
+
+**11. Minor — the primer overstates a Pydantic failure mode.** `docs/python-primer.md`, "Added in S3": "a validator that falls off the end returns `None` and silently **empties** the field." An after-validator returning `None` sets the field *to* `None`, not to an empty list — for `list[FeatureFlagVariant]` the model then holds `None` where the declared type says list, which is worse than empty.
+
+*Verified accurate, for the record:* the ADR's claim that only the pinned-bucket test catches a `hash()` substitution (the other three in `test_assignment.py` are same-process determinism, a distribution band and a single-100 variant — all pass under a salted hash); the `clock_timestamp()` reasoning and its harness precondition; the `17.7B` figure, which is now consistent across the seed migration, both test builders and the ADR — the carried item in the project CLAUDE.md's "What's next" is resolved.
+
+---
+
+## ANGLE 3 — GIT HISTORY
+
+Trailers are clean: 14/14 commits carry `Story: S3`. Distribution: 2 `chore`, 11 `test+impl`, 1 hybrid, 0 `refactor`.
+
+**1. `d466631` — a hybrid subject the contract does not allow, over three unrelated changes.** "test+impl B15 **+ chore**: forwarded headers, ADR-0003, primer and changelog" is both kinds at once and bundles a middleware/log change with its test, deployment wiring (`backend/Dockerfile` CMD, `frontend/nginx.conf`), and 152 lines of documentation. Worse, `docs/plan.md` — updated in this same story — explicitly classifies B15 as "a `[chore]`, verified on the running stack, **not a unit test**", so the commit's own `test+impl B15` label contradicts the plan shipping beside it, and the 9-line test it added cannot exercise B15's mechanism (Angle 2 #4).
+*Fix:* three commits — `test+impl B15` (middleware + test), `chore` (Dockerfile + nginx), `chore` (ADR + primer + changelog).
+
+**2. `31067e0 chore` carries product behaviour.** "chore: feature_flag, visitor and visitor_assignment tables **with the seeded flag**" — the seed migration writes the live experiment's copy, weights and enabled state: the text every visitor reads, and the data every later test's "seeded world" assumes. "No behaviour" is not true of it, and nothing in the range asserts the seeded flag's shape.
+*Fix:* keep the DDL as `chore`, land the seed as `test+impl` with a test that reads it back through `GET /api/feature-flags` — or argue the exemption in the body.
+
+**3. `21f0cc0 test+impl B20` carries config no test demands.** `.env.example` and the `docker-compose.yml` `ADMIN_TOKEN` default ride along with the settings test. Defensible (the stack won't boot without them, and the body says so) but it is chore content inside a `test+impl`.
+
+**4. `29f6540 test+impl F5, F6, F9` introduces shared infrastructure no listed case needs.** `frontend/src/styles/tokens.scss` is a new design-token file whose own comment says D1 will fill it in, and two of its three tokens have no consumer (Angle 1 #8). The `/admin` route in `App.tsx` is load-bearing for the cases; the tokens file is chore/infra.
+
+**5. `88c7aec test+impl B4, B17` adds two pure functions to `assignment.py` without extending `test_assignment.py`.** `weights_cover_every_bucket` and `duplicated_variant_keys` are covered only indirectly through the schema tests in the same commit — which is how the false ordering docstring (Angle 2 #6) and the overstated raise docstring (Angle 2 #5) both got in unchallenged.
+
+**6. No `refactor` commit in the range at all**, against a plan that lists one (Angle 2 #10). Not a violation on its own — worth naming only because the plan was left claiming it.
+
+**7. Cosmetic:** co-author trailers switch mid-story — `Claude Fable 5.1` on the first twelve commits, `Claude Opus 5` on the last two — so one story's history reads as two authors.
+
+---
+
+### Most severe, if only three get fixed
+1. Angle 1 #1 — the stale-closure save silently discards an operator's work (and Angle 2 #9 is its comment).
+2. Angle 2 #1 — two docs cite a README security note that doesn't exist.
+3. Angle 1 #2 — a lint rule blanket-disabled where the documented narrow composition would have passed unchanged.
 
