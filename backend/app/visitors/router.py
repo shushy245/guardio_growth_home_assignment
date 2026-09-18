@@ -8,7 +8,7 @@ without the assignments the response reports.
 from typing import Annotated
 
 import structlog
-from fastapi import APIRouter, Depends, Request, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Path, Request, Response, status
 from sqlalchemy.orm import Session
 
 from app.config import Settings
@@ -50,5 +50,22 @@ def create_visitor(
         samesite="lax",
         secure=is_secure_cookie_env(settings.env),
     )
+
+    return VisitorResponse(id=visitor_id, assignments=assignments)
+
+
+@router.get("/visitors/{visitor_id}", response_model=VisitorResponse)
+def get_visitor(
+    visitor_id: Annotated[str, Path(min_length=1, max_length=64)],
+    session: Annotated[Session, Depends(get_session)],
+) -> VisitorResponse:
+    """The refresh path: what this visitor was assigned, as stored — never recomputed."""
+    assignments = repository.find_assignments(session=session, visitor_id=visitor_id)
+    if assignments is None:
+        log.info("get_visitor: unknown visitor", visitor_id=visitor_id)
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"get_visitor: no visitor with id {visitor_id!r}",
+        )
 
     return VisitorResponse(id=visitor_id, assignments=assignments)
