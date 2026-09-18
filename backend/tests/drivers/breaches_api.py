@@ -8,7 +8,7 @@ Rows are seeded through the same session the app is wired to, so a test that rea
 through HTTP is also proving the `get_session` override seam.
 """
 
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from urllib.parse import quote
 
 from sqlalchemy.orm import Session
@@ -18,8 +18,10 @@ from app.ports.breach_catalog import Breach
 from tests.builders.breach import a_breach
 from tests.drivers.http import HttpDriver
 
-SEEDED_AT = datetime(2026, 9, 18, 8, 0, tzinfo=UTC)
-RE_SYNCED_AT = datetime(2026, 9, 19, 8, 0, tzinfo=UTC)
+# Ages, not instants: a seed stamped with a fixed date silently crosses the sync TTL the day
+# after it is written, and every list test would start behaving as if the catalog were stale.
+SEEDED_AGE = timedelta(hours=1)
+RE_SYNCED_AGE = timedelta(minutes=30)
 ONE_DAY = date(2024, 1, 1)
 
 
@@ -27,6 +29,7 @@ class BreachesApiDriver:
     def __init__(self, http: HttpDriver, session: Session) -> None:
         self._http = http
         self._session = session
+        self._now = datetime.now(UTC)
         self._seeded: list[str] = []
         self._held: list[Breach] = []
         self._listed_names: list[str] = []
@@ -35,13 +38,15 @@ class BreachesApiDriver:
         self.then = _Then(self)
 
     def _seed(self, breaches: list[Breach]) -> None:
-        upsert_many(session=self._session, breaches=breaches, fetched_at=SEEDED_AT)
+        upsert_many(session=self._session, breaches=breaches, fetched_at=self._now - SEEDED_AGE)
         self._session.flush()
         self._held = list(breaches)
         self._seeded.extend(breach.name for breach in breaches)
 
     def _re_sync(self) -> None:
-        upsert_many(session=self._session, breaches=self._held, fetched_at=RE_SYNCED_AT)
+        upsert_many(
+            session=self._session, breaches=self._held, fetched_at=self._now - RE_SYNCED_AGE
+        )
         self._session.flush()
 
     def _list(self, query: str) -> None:
