@@ -39,6 +39,15 @@
     margin: 0;
 }
 
+.body {
+    gap: tokens.$sp-5;
+    padding: tokens.$gutter-sm;
+    width: 100%;
+    max-width: tokens.$content-max;
+    margin: 0 auto;
+    box-sizing: border-box;
+}
+
 .stickyBar {
     position: sticky;
     bottom: 0;

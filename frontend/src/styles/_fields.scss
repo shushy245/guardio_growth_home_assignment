@@ -95,3 +95,28 @@
     background: tokens.$color-surface;
     color: var(--tone-accent-strong, #{tokens.$tone-calm-accent-strong});
 }
+
+// A block that stands in for text or a number until it arrives. The shimmer is an opacity pulse,
+// and under `prefers-reduced-motion` it stands still — a static placeholder is still a placeholder.
+@keyframes skeleton-shimmer {
+    0%,
+    100% {
+        opacity: 0.6;
+    }
+
+    50% {
+        opacity: 1;
+    }
+}
+
+@mixin skeleton-block {
+    display: block;
+    border-radius: tokens.$radius-sm * 0.5;
+    background: tokens.$color-skeleton;
+    animation: skeleton-shimmer 1.4s ease-in-out infinite;
+
+    @media (prefers-reduced-motion: reduce) {
+        animation: none;
+        opacity: 1;
+    }
+}

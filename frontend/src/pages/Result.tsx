@@ -7,6 +7,7 @@ import type { ReactElement } from 'react';
 import { Column, MainColumn } from '~/ui/box';
 import { joinClassNames } from '~/ui/box.utils';
 import { useVisitor } from '~/providers/VisitorProvider';
+import { BreachSummary } from '~/components/BreachSummary';
 import { resolveResultCopy, ResultTestIds, toneClassMap } from '~/pages/Result.utils';
 
 import styles from '~/pages/Result.module.scss';
@@ -23,6 +24,9 @@ export const Result = (): ReactElement => {
                 <p className={styles.subheadline} data-testid={ResultTestIds.Subheadline}>
                     {copy.subheadline}
                 </p>
+            </Column>
+            <Column className={styles.body}>
+                <BreachSummary />
             </Column>
             <Column className={styles.stickyBar} data-testid={ResultTestIds.StickyBar}>
                 <button className={styles.cta} type="button" data-testid={ResultTestIds.Cta}>

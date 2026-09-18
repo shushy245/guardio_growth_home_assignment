@@ -1,0 +1,57 @@
+@use '~/styles/tokens' as tokens;
+@use '~/styles/fields' as fields;
+
+// Mobile first: two tiles per row, so `calc(50% - half the gap)`; at md+ every tile takes an
+// equal share of one row. Flex-wrap, no grid (house rule).
+.tiles {
+    flex-wrap: wrap;
+    gap: tokens.$sp-3;
+}
+
+.tile {
+    flex: 1 1 calc(50% - #{tokens.$sp-3 * 0.5});
+    min-width: 0;
+    gap: tokens.$sp-2;
+    padding: tokens.$sp-4;
+    border: 1px solid tokens.$color-border;
+    border-radius: tokens.$radius-md;
+    background: tokens.$color-surface;
+    box-sizing: border-box;
+}
+
+.label {
+    font-size: tokens.$text-100;
+    line-height: tokens.$leading-snug;
+    color: tokens.$color-text-secondary;
+}
+
+.value {
+    font-size: tokens.$text-500;
+    font-weight: tokens.$weight-bold;
+    line-height: tokens.$leading-tight;
+    overflow-wrap: anywhere;
+}
+
+.support {
+    font-size: tokens.$text-100;
+    color: tokens.$color-text-secondary;
+}
+
+.skeletonLabel {
+    @include fields.skeleton-block;
+    width: 60%;
+    height: tokens.$text-100;
+}
+
+.skeletonValue {
+    @include fields.skeleton-block;
+    width: 40%;
+    height: tokens.$text-400;
+}
+
+@media (min-width: tokens.$breakpoint-md) {
+    .tile {
+        flex: 1 1 0;
+        padding: tokens.$sp-5;
+    }
+}
