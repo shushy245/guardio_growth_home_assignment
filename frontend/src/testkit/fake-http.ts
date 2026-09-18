@@ -17,7 +17,10 @@ export enum HttpMethod {
 
 export type RecordedRequest = {
     method: HttpMethod;
+    // The URL as sent, query string included.
     path: string;
+    // The query string parsed, so a driver asserts on `query.sort` rather than on substrings.
+    query: Record<string, string>;
     body: unknown;
     headers: Record<string, string>;
 };
@@ -88,17 +91,27 @@ export type FakeHttp = {
 const routes: FakeRoute[] = [];
 const requests: RecordedRequest[] = [];
 
+const pathnameOf = (path: string): string => path.split('?')[0] ?? path;
+
+const queryOf = (path: string): Record<string, string> =>
+    Object.fromEntries(new URLSearchParams(path.split('?')[1] ?? '').entries());
+
+// A route registered with a query string answers that exact URL; one registered without answers
+// the path under any query — a list endpoint's filters change the URL, not the fixture behind it.
+const routeAnswers = (route: FakeRoute, path: string): boolean =>
+    route.path === path || (!route.path.includes('?') && route.path === pathnameOf(path));
+
 // `findLast` would need lib ES2023 and the project targets ES2022, so the search walks the
 // routes backwards by hand — last registration wins.
 const lastRouteFor = ({ method, path }: { method: HttpMethod; path: string }): FakeRoute | undefined =>
-    [...routes].reverse().find((candidate) => candidate.method === method && candidate.path === path);
+    [...routes].reverse().find((candidate) => candidate.method === method && routeAnswers(candidate, path));
 
 // Later routes win over earlier ones for the same method and path, so a test can override a
 // default the setup file registered.
 httpClient.defaults.adapter = async (config: InternalAxiosRequestConfig): Promise<AxiosResponse> => {
     const method = methodOf(config);
     const path = config.url ?? '';
-    requests.push({ method, path, body: bodyOf(config), headers: headersOf(config) });
+    requests.push({ method, path, query: queryOf(path), body: bodyOf(config), headers: headersOf(config) });
 
     const route = lastRouteFor({ method, path });
     if (route === undefined) {

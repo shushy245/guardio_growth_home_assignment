@@ -2,7 +2,7 @@
 // (summary and list), the request the provider's effect answers, and the predicates the pages
 // read. The provider file owns the effects; this file owns what the states mean.
 
-import type { BreachModel, BreachSummaryModel } from '~/models/breach';
+import type { BreachFilters, BreachModel, BreachSummaryModel } from '~/models/breach';
 
 export enum SummaryStatus {
     Idle = 'idle',
@@ -33,14 +33,21 @@ export type ListState =
     | { status: ListStatus.Ready; items: BreachModel[]; total: number; page: number }
     | { status: ListStatus.Failed };
 
-// What the provider's effect answers. `isEnabled` flips once, when the first consumer mounts;
-// `attempt` advances on every retry so the same request runs again.
+// The filters a visitor can set. Paging is the provider's own business, not a filter.
+export type CatalogFilters = Omit<BreachFilters, 'page' | 'limit'>;
+
+export const NO_FILTERS: CatalogFilters = {};
+
+// What the provider's effects answer. `isEnabled` flips once, when the first consumer mounts;
+// `attempt` advances on every retry so the same request runs again; `filters` is what the list
+// is asked for.
 export type CatalogRequest = {
     isEnabled: boolean;
     attempt: number;
+    filters: CatalogFilters;
 };
 
-export const IDLE_REQUEST: CatalogRequest = { isEnabled: false, attempt: 0 };
+export const IDLE_REQUEST: CatalogRequest = { isEnabled: false, attempt: 0, filters: NO_FILTERS };
 
 export const isSummaryReady = (state: SummaryState): state is Extract<SummaryState, { status: SummaryStatus.Ready }> =>
     state.status === SummaryStatus.Ready;
@@ -65,6 +72,14 @@ export const enableRequest = (request: CatalogRequest): CatalogRequest =>
     request.isEnabled ? request : { ...request, isEnabled: true };
 
 export const retryRequest = (request: CatalogRequest): CatalogRequest => ({
+    ...request,
     isEnabled: true,
     attempt: request.attempt + 1,
+});
+
+// A changed filter replaces the whole selection: the caller sends what should be in force, not a
+// delta, so a control that clears a value simply leaves it out.
+export const withFilters = (request: CatalogRequest, filters: CatalogFilters): CatalogRequest => ({
+    ...request,
+    filters,
 });

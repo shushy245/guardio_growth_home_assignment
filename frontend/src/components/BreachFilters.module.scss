@@ -1,0 +1,89 @@
+@use '~/styles/tokens' as tokens;
+
+.bar {
+    gap: tokens.$sp-3;
+}
+
+// Chips scroll sideways at 390 — one row, the thumb pans it — and wrap once they fit at md+.
+.chips {
+    gap: tokens.$sp-2;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: tokens.$sp-1;
+    scrollbar-width: none;
+}
+
+.chip {
+    font: inherit;
+    font-size: tokens.$text-100;
+    min-height: tokens.$tap-target;
+    padding: 0 tokens.$sp-4;
+    border: 1px solid tokens.$color-border;
+    border-radius: tokens.$radius-pill;
+    background: tokens.$color-surface;
+    color: tokens.$color-text-primary;
+    white-space: nowrap;
+    flex: 0 0 auto;
+    cursor: pointer;
+}
+
+// The selected chip reads its pair through the tone seam, like every tone-aware control.
+.chipSelected {
+    border-color: var(--tone-accent, #{tokens.$tone-calm-accent});
+    background: var(--tone-tint, #{tokens.$tone-calm-tint});
+    color: var(--tone-accent-strong, #{tokens.$tone-calm-accent-strong});
+    font-weight: tokens.$weight-semibold;
+}
+
+.segments {
+    display: inline-flex;
+    align-self: flex-start;
+    gap: tokens.$sp-1;
+    margin: 0;
+    padding: tokens.$sp-1;
+    border: 0;
+    border-radius: tokens.$radius-md;
+    background: tokens.$color-surface-sunken;
+}
+
+// The group's name for a screen reader; the segments themselves are the visible label.
+.legend {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+// 44px tall, not the design's 36 inside a 44 track (deviation 3): every segment is its own
+// tap target.
+.segment {
+    font: inherit;
+    font-size: tokens.$text-100;
+    min-height: tokens.$tap-target;
+    padding: 0 tokens.$sp-4;
+    border: 0;
+    border-radius: tokens.$radius-sm;
+    background: transparent;
+    color: tokens.$color-text-secondary;
+    cursor: pointer;
+}
+
+.segmentSelected {
+    background: tokens.$color-surface;
+    color: tokens.$color-text-primary;
+    font-weight: tokens.$weight-semibold;
+    box-shadow: tokens.$shadow-sm;
+}
+
+@media (min-width: tokens.$breakpoint-md) {
+    .chips {
+        flex-wrap: wrap;
+        overflow-x: visible;
+    }
+
+    .chip {
+        flex: 0 1 auto;
+    }
+}

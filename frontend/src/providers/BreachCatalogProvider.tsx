@@ -18,6 +18,7 @@ import { logger } from '~/logging/logger';
 import { describeError, isCancelled } from '~/api/http-client';
 import { fetchBreaches, fetchBreachSummary } from '~/api/breaches';
 import {
+    type CatalogFilters,
     type CatalogRequest,
     enableRequest,
     IDLE_REQUEST,
@@ -26,13 +27,16 @@ import {
     retryRequest,
     type SummaryState,
     SummaryStatus,
+    withFilters,
 } from '~/providers/BreachCatalogProvider.utils';
 
 type BreachCatalogContextValue = {
     summary: SummaryState;
     list: ListState;
+    filters: CatalogFilters;
     load: () => void;
     retry: () => void;
+    setFilters: (filters: CatalogFilters) => void;
 };
 
 const BreachCatalogContext = createContext<BreachCatalogContextValue | undefined>(undefined);
@@ -42,14 +46,14 @@ export const BreachCatalogProvider = ({ children }: { children: ReactNode }): Re
     const [summary, setSummary] = useState<SummaryState>({ status: SummaryStatus.Idle });
     const [list, setList] = useState<ListState>({ status: ListStatus.Idle });
 
-    // One effect per request: it owns the controller, and its cleanup aborts both fetches — so a
-    // retry or an unmount can never let an old answer land over a newer state.
+    // The summary answers the request's enabled/attempt pair and nothing else: a filter change
+    // must not refetch the tiles. The effect owns its controller and its cleanup aborts the fetch,
+    // so a retry or an unmount can never let an old answer land over a newer state.
     useEffect(() => {
         if (!request.isEnabled) return;
         const controller = new AbortController();
         const { signal } = controller;
         setSummary({ status: SummaryStatus.Loading });
-        setList({ status: ListStatus.Loading });
 
         fetchBreachSummary({ signal })
             .then((loaded) => {
@@ -64,7 +68,20 @@ export const BreachCatalogProvider = ({ children }: { children: ReactNode }): Re
                 setSummary({ status: SummaryStatus.Failed });
             });
 
-        fetchBreaches({ filters: {}, signal })
+        return (): void => {
+            controller.abort();
+        };
+    }, [request.isEnabled, request.attempt]);
+
+    // The list answers the filters too. Its cleanup aborts the page in flight, which is what
+    // stops a response to an older filter landing over a newer one.
+    useEffect(() => {
+        if (!request.isEnabled) return;
+        const controller = new AbortController();
+        const { signal } = controller;
+        setList({ status: ListStatus.Loading });
+
+        fetchBreaches({ filters: request.filters, signal })
             .then((page) => {
                 if (!signal.aborted) {
                     setList({ status: ListStatus.Ready, items: page.items, total: page.total, page: page.page });
@@ -74,6 +91,7 @@ export const BreachCatalogProvider = ({ children }: { children: ReactNode }): Re
                 if (isCancelled(error)) return;
                 logger.error('BreachCatalogProvider: the breach list could not be loaded', {
                     attempt: request.attempt,
+                    filters: request.filters,
                     detail: describeError(error),
                 });
                 setList({ status: ListStatus.Failed });
@@ -82,7 +100,7 @@ export const BreachCatalogProvider = ({ children }: { children: ReactNode }): Re
         return (): void => {
             controller.abort();
         };
-    }, [request]);
+    }, [request.isEnabled, request.attempt, request.filters]);
 
     const load = useCallback((): void => {
         setRequest(enableRequest);
@@ -92,9 +110,13 @@ export const BreachCatalogProvider = ({ children }: { children: ReactNode }): Re
         setRequest(retryRequest);
     }, []);
 
+    const setFilters = useCallback((filters: CatalogFilters): void => {
+        setRequest((current) => withFilters(current, filters));
+    }, []);
+
     const value = useMemo<BreachCatalogContextValue>(
-        () => ({ summary, list, load, retry }),
-        [summary, list, load, retry],
+        () => ({ summary, list, filters: request.filters, load, retry, setFilters }),
+        [summary, list, request.filters, load, retry, setFilters],
     );
 
     return <BreachCatalogContext.Provider value={value}>{children}</BreachCatalogContext.Provider>;

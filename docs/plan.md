@@ -1124,6 +1124,10 @@ Cases:
   - F27. the urgent "Accounts exposed" tile counts up to its value and shows it at once under
     `prefers-reduced-motion`; the calm tile never animates; an unmount mid-count cancels the frame
     loop (driver, fake `requestAnimationFrame`)
+  - F28. (added at C6) typing in the search re-queries with `q` once the visitor pauses, and a
+    word typed quickly costs one request, not one per letter (driver, fake timers)
+  - F29. (added at C6) the Verified-only toggle re-queries with `verifiedOnly=true` and drops the
+    parameter when toggled off again (driver)
   - (harness) the funnel pages need the visitor and analytics providers above them, and the
     breach catalog state has to survive the `/scan` → `/result` navigation without a second
     fetch — so the three providers are one `FunnelProviders` component mounted once by `App` on
