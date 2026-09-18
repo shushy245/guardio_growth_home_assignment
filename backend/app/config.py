@@ -9,7 +9,7 @@ from collections.abc import Mapping
 from enum import StrEnum
 from urllib.parse import urlsplit
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
+from pydantic import BaseModel, ConfigDict, Field, SecretStr, ValidationError, field_validator
 
 
 class Env(StrEnum):
@@ -40,6 +40,9 @@ class Settings(BaseModel):
     frontend_origin: str
     # HIBP refuses API calls that do not identify their consumer; an unset value is a 403.
     hibp_user_agent: str = Field(min_length=1)
+    # Gates the feature-flag write. Kept as SecretStr so a settings dump can never print it;
+    # non-empty because an empty token would compare equal to an empty header.
+    admin_token: SecretStr = Field(min_length=1)
 
     @property
     def log_format(self) -> LogFormat:

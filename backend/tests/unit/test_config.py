@@ -7,6 +7,7 @@ COMPLETE_ENVIRON = {
     "DATABASE_URL": "postgresql+psycopg://u:p@db:5432/breachscan",
     "FRONTEND_ORIGIN": "https://funnel.example",
     "HIBP_USER_AGENT": "breach-scan-funnel",
+    "ADMIN_TOKEN": "not-the-real-token",
 }
 
 
@@ -80,4 +81,20 @@ def test_frontend_origin_without_a_scheme_fails_loudly() -> None:
     environ = {**COMPLETE_ENVIRON, "FRONTEND_ORIGIN": "funnel.example"}
 
     with pytest.raises(SettingsError, match="FRONTEND_ORIGIN"):
+        load_settings(environ)
+
+
+def test_missing_admin_token_fails_loudly_naming_the_variable() -> None:
+    """The flag write is gated on it; an app that boots without one has an open write."""
+    environ = {key: value for key, value in COMPLETE_ENVIRON.items() if key != "ADMIN_TOKEN"}
+
+    with pytest.raises(SettingsError, match="ADMIN_TOKEN"):
+        load_settings(environ)
+
+
+def test_an_empty_admin_token_fails_loudly_too() -> None:
+    """An empty token would compare equal to an empty header — a gate that is not one."""
+    environ = {**COMPLETE_ENVIRON, "ADMIN_TOKEN": ""}
+
+    with pytest.raises(SettingsError, match="ADMIN_TOKEN"):
         load_settings(environ)

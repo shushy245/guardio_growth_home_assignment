@@ -9,7 +9,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass, replace
 
+from pydantic import SecretStr
+
 from app.config import Env, Settings
+
+# The token every driver-built app is configured with; a test that wants to be refused sends
+# something else. Not a credential: it never leaves the test process.
+TEST_ADMIN_TOKEN = "test-admin-token"
 
 
 def a_settings() -> _SettingsBuilder:
@@ -18,6 +24,7 @@ def a_settings() -> _SettingsBuilder:
         database_url="postgresql+psycopg://breachscan:breachscan@localhost:5433/breachscan_test",
         frontend_origin="http://frontend.test",
         hibp_user_agent="breach-scan-funnel-test",
+        admin_token=TEST_ADMIN_TOKEN,
     )
 
 
@@ -27,6 +34,7 @@ class _SettingsBuilder:
     database_url: str
     frontend_origin: str
     hibp_user_agent: str
+    admin_token: str
 
     def with_frontend_origin(self, frontend_origin: str) -> _SettingsBuilder:
         return replace(self, frontend_origin=frontend_origin)
@@ -40,4 +48,5 @@ class _SettingsBuilder:
             database_url=self.database_url,
             frontend_origin=self.frontend_origin,
             hibp_user_agent=self.hibp_user_agent,
+            admin_token=SecretStr(self.admin_token),
         )
