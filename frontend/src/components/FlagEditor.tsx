@@ -101,11 +101,11 @@ export const FlagEditor = ({
                 />
                 <span>{`Running — assign new visitors to a variant`}</span>
             </Row>
-            <Row className={styles.variants}>
+            <Column className={styles.variants}>
                 {flag.variants.map((variant) => (
                     <VariantEditor key={variant.key} flag={flag} variant={variant} onChange={handleFlagEdited} />
                 ))}
-            </Row>
+            </Column>
             <SplitNote flag={flag} />
             <button
                 className={styles.save}

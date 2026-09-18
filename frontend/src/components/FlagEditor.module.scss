@@ -32,6 +32,15 @@
     height: 20px;
 }
 
+// Mobile first, and stated rather than inherited: at 390 the two variant cards stack, and the
+// md query below is the actual change. Without a base rule here the element kept the row its
+// primitive gave it, the query changed nothing, and the cards sat 154px wide with their inputs
+// clipped mid-word.
+.variants {
+    flex-direction: column;
+    gap: 12px;
+}
+
 .variant {
     gap: 12px;
     padding: 12px;
