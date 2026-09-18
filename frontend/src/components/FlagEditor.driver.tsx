@@ -40,10 +40,14 @@ export type FlagEditorDriver = {
         theFlag: (dto: FeatureFlagDTO) => void;
         theAdminToken: (token: string) => void;
         theSaveSucceedsWithToken: (token: string) => void;
+        theSaveHangs: (token: string) => void;
         theSaveConflicts: () => void;
         theSaveFails: () => void;
     };
-    when: { created: () => Promise<void> };
+    when: {
+        created: () => Promise<void>;
+        theSaveResponds: () => Promise<void>;
+    };
     type: {
         urgentCtaLabel: (label: string) => Promise<void>;
         urgentWeight: (weight: string) => Promise<void>;
@@ -68,6 +72,7 @@ export const makeFlagEditorDriver = (): FlagEditorDriver => {
 
     let dto = aFeatureFlagDTO().build();
     let adminToken = 'the-pasted-admin-token';
+    let releaseSave: (() => void) | undefined = undefined;
 
     const saves = (): RecordedRequest[] =>
         fakeHttp.requests().filter((request) => request.method === HttpMethod.Patch && request.path === SAVE_PATH);
@@ -120,6 +125,17 @@ export const makeFlagEditorDriver = (): FlagEditorDriver => {
                     body: { updatedAt: token },
                 });
             },
+            theSaveHangs: (token: string): void => {
+                fakeHttp.respond({
+                    method: HttpMethod.Patch,
+                    path: SAVE_PATH,
+                    status: 200,
+                    body: { updatedAt: token },
+                    gate: new Promise<void>((resolve) => {
+                        releaseSave = resolve;
+                    }),
+                });
+            },
             theSaveConflicts: (): void => {
                 fakeHttp.respond({
                     method: HttpMethod.Patch,
@@ -143,6 +159,13 @@ export const makeFlagEditorDriver = (): FlagEditorDriver => {
                     renderWithProviders(<FlagEditorHost flag={fromDTO(dto)} adminToken={adminToken} />, {
                         route: '/admin',
                     });
+                });
+            },
+            theSaveResponds: async (): Promise<void> => {
+                const release = releaseSave;
+                if (release === undefined) throw new Error('FlagEditorDriver: no save is waiting to be released');
+                await act(async () => {
+                    release();
                 });
             },
         },

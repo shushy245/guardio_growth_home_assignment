@@ -44,6 +44,16 @@ describe('FlagEditor', () => {
         driver.assert.saveCarried({ isEnabled: false });
     });
 
+    it('sends one save when the button is clicked again before the first one answers', async () => {
+        driver.given.theFlag(aFeatureFlagDTO().withUpdatedAt(FIRST_TOKEN).build());
+        driver.given.theSaveHangs(SECOND_TOKEN);
+        await driver.when.created();
+        await driver.click.save();
+        await driver.click.save();
+        await driver.when.theSaveResponds();
+        driver.assert.saveTokensSent(FIRST_TOKEN);
+    });
+
     it('refuses to send a save before the admin token is pasted', async () => {
         driver.given.theFlag(aFeatureFlagDTO().build());
         driver.given.theAdminToken('');

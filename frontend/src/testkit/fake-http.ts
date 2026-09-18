@@ -27,6 +27,10 @@ type FakeRoute = {
     path: string;
     status: number;
     body: unknown;
+    // A route that answers only once this resolves — what a request in flight looks like, so a
+    // test can act on the page while the server has not replied yet. The request is recorded
+    // before the wait, so what was sent is assertable while it hangs.
+    gate?: Promise<void>;
 };
 
 const NO_ROUTE_STATUS = 599;
@@ -104,6 +108,8 @@ httpClient.defaults.adapter = async (config: InternalAxiosRequestConfig): Promis
         );
         throw toError(missing, config);
     }
+
+    if (route.gate !== undefined) await route.gate;
 
     const response = toResponse(route, config);
     if (isFailureStatus(route.status)) throw toError(response, config);
