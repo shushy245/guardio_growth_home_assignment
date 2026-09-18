@@ -2,8 +2,7 @@ import { act } from 'react';
 import { expect, vi } from 'vitest';
 import type { ReactElement } from 'react';
 import { Route, Routes } from 'react-router';
-import userEvent from '@testing-library/user-event';
-import { cleanup, screen } from '@testing-library/react';
+import { cleanup, fireEvent, screen } from '@testing-library/react';
 
 import { Scan } from '~/pages/Scan';
 import { FunnelEventName } from '~/models/funnelEvent';
@@ -47,6 +46,7 @@ export type ScanDriver = {
         errorIsShown: () => void;
         stepsPosted: (name: FunnelEventName, count: number) => void;
         catalogRequested: (times: number) => void;
+        nothingIsStillScheduled: () => void;
     };
 };
 
@@ -54,7 +54,6 @@ export const makeScanDriver = (): ScanDriver => {
     // Only the clock the moment reads: promises and the fake network stay real, so a gated
     // route is released with `act` and the two seconds pass with `advanceTimersByTime`.
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
-    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     let releaseCatalog: (() => void) | undefined = undefined;
 
     fakeHttp.respond({ method: HttpMethod.Post, path: EVENTS_PATH, status: 201, body: {} });
@@ -148,8 +147,12 @@ export const makeScanDriver = (): ScanDriver => {
             },
         },
         click: {
+            // `fireEvent`, not `userEvent`: user-event settles through testing-library's async
+            // wrapper, which drains on a `setTimeout` this driver has faked and never fires.
             retry: async (): Promise<void> => {
-                await user.click(screen.getByTestId(ErrorStateTestIds.Retry));
+                await act(async () => {
+                    fireEvent.click(screen.getByTestId(ErrorStateTestIds.Retry));
+                });
             },
         },
         assert: {
@@ -172,6 +175,12 @@ export const makeScanDriver = (): ScanDriver => {
             },
             catalogRequested: (times: number): void => {
                 expect(catalogRequests()).toHaveLength(times);
+            },
+            // A page that was left leaves no clock behind it. React would swallow a state update
+            // from a stray timer, so "goes nowhere" holds even without the cleanup — this is what
+            // pins the cleanup itself.
+            nothingIsStillScheduled: (): void => {
+                expect(vi.getTimerCount()).toBe(0);
             },
         },
     };
