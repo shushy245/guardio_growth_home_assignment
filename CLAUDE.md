@@ -8,24 +8,12 @@
 `test+impl`, `refactor`, or `chore` as defined in `docs/plan.md` → TDD contract. Untested code is a
 defect, not a shortcut.**
 **Stop at plan stage D1 (before S5) and hand Shalev a Claude Design prompt; never build funnel UI without it.**
-**VISUAL PASS — before writing review findings, run `git diff --name-only HEAD` and
-`git ls-files -o --exclude-standard`. If any path matches `frontend/` and is not `*.test.*` /
-`*.driver.*`, the change has a rendered surface. The path check is mechanical on purpose — don't
-judge for yourself whether something "counts as UI".
-- **Never run the pass yourself on code you wrote, and never let the `/code-review` fork do it.**
-  Spawn the `visual-reviewer` agent (`.claude/agents/visual-reviewer.md`) — a separate agent with
-  fresh context, like the code review itself. An author checking their own render is not a review;
-  a forked reviewer runs a capped recipe and cannot tell which effort level it is in (a `medium`
-  invocation reported itself as `low` and skipped on that basis).
-- **Give it the changed file paths and the URL, and nothing else.** No commit message, no story, no
-  description of what the screen is meant to look like — a reviewer told what to expect stops seeing
-  what is there. It reports MEASURED / OBSERVED / UNCERTAIN; it does not propose fixes.
-- Required before `/story-done` and before calling any UI change done. Fold its report into the
-  review verbatim. If it did not run, say so plainly — "visual pass not run; no claim here is backed
-  by a capture" — and if it ran but skipped a viewport, that is a finding, not a footnote. A stated
-  skip is acceptable, a silent one is the bug.
-Never write "responsive" / "renders correctly" / "looks right" without captures behind them; font
-size, tap-target size and line length are measured, never eyeballed.**
+**VISUAL PASS — HARD RULE 5 in the global CLAUDE.md governs this; it is not restated here.**
+Project-specific trigger only: run `git diff --name-only HEAD` and `git ls-files -o
+--exclude-standard`; any path under `frontend/` that is not `*.test.*` / `*.driver.*` is a
+rendered surface. The path check is mechanical on purpose — don't judge for yourself whether
+something "counts as UI". The app serves at `http://localhost:5173`; `docker compose up -d`
+alone serves a STALE baked image, so the reviewer must rebuild with `--build` before measuring.
 
 ## Recipes
 - **First run on a clone:** `docker compose up -d --build` works with no `.env` (compose inlines the non-secret defaults). `cp .env.example .env` is still the first step for local work: `pnpm test` needs it (`test:backend` passes `--env-file ../.env`) plus the db on host port 5433 for the integration tests.
