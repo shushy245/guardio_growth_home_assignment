@@ -1,4 +1,5 @@
 @use '~/styles/tokens' as tokens;
+@use '~/styles/fields' as fields;
 
 // The tone classes the result root carries. Each sets the `--tone-*` custom properties from its
 // token set; the buttons and chips below read them, so switching the variant is switching one
@@ -9,4 +10,46 @@
 
 .toneUrgent {
     @include tokens.tone-urgent;
+}
+
+// Built at 390 first: a white header band over the page background, the CTA in a sticky bar at
+// the bottom. The content cap is per page (RF4), so it is here.
+.page {
+    min-height: 100dvh;
+    background: tokens.$color-bg;
+}
+
+.header {
+    gap: tokens.$sp-2;
+    padding: tokens.$gutter-sm;
+    background: tokens.$color-surface;
+    border-bottom: 1px solid tokens.$color-border;
+}
+
+.headline {
+    font-size: tokens.$text-500;
+    font-weight: tokens.$weight-bold;
+    margin: 0;
+}
+
+.subheadline {
+    font-size: tokens.$text-200;
+    line-height: tokens.$leading-relaxed;
+    color: tokens.$color-text-secondary;
+    margin: 0;
+}
+
+.stickyBar {
+    position: sticky;
+    bottom: 0;
+    margin-top: auto;
+    padding: tokens.$sp-3 tokens.$gutter-sm;
+    background: tokens.$color-surface;
+    border-top: 1px solid tokens.$color-border;
+    box-shadow: tokens.$shadow-sticky;
+}
+
+.cta {
+    @include fields.button-primary;
+    width: 100%;
 }

@@ -3,7 +3,9 @@ import { Outlet, Route, Routes } from 'react-router';
 
 import { Scan } from '~/pages/Scan';
 import { Admin } from '~/pages/Admin';
+import { Result } from '~/pages/Result';
 import { Landing } from '~/pages/Landing';
+import { RESULT_ROUTE } from '~/pages/Scan.utils';
 import { SCAN_ROUTE } from '~/pages/Landing.utils';
 import { FunnelProviders } from '~/providers/FunnelProviders';
 
@@ -12,6 +14,7 @@ export const App = (): ReactElement => (
         <Route element={<Funnel />}>
             <Route path="/" element={<Landing />} />
             <Route path={SCAN_ROUTE} element={<Scan />} />
+            <Route path={RESULT_ROUTE} element={<Result />} />
         </Route>
         <Route path="/admin" element={<Admin />} />
     </Routes>
