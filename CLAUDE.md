@@ -16,7 +16,7 @@ something "counts as UI". The app serves at `http://localhost:5173`; `docker com
 alone serves a STALE baked image, so the reviewer must rebuild with `--build` before measuring.
 
 ## Recipes
-- **First run on a clone:** `docker compose up -d --build` works with no `.env` (compose inlines the non-secret defaults). `cp .env.example .env` is still the first step for local work: `pnpm test` needs it (`test:backend` passes `--env-file ../.env`) plus the db on host port 5433 for the integration tests.
+- **First run on a clone:** `cp .env.example .env` first, then set `ADMIN_TOKEN` in it (`openssl rand -hex 24`) — compose has no default for it and refuses to start without one, naming the variable. Everything else non-secret still defaults. Then `docker compose up -d --build`. `pnpm test` needs the same `.env` (`test:backend` passes `--env-file ../.env`) plus the db on host port 5433 for the integration tests. Every published port binds to `127.0.0.1`, so the stack is reachable from this machine only — a phone on the LAN cannot reach it without deliberately rebinding.
 
 ## Project overview
 Guardio take-home: mobile-first Breach Scan funnel on public HIBP data, a DB-backed **feature

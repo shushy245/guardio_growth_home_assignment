@@ -6,8 +6,9 @@ services:
       POSTGRES_PASSWORD: breachscan
       POSTGRES_DB: breachscan
     ports:
-      # 5433 on the host so a locally installed Postgres on 5432 never collides
-      - "5433:5432"
+      # 5433 on the host so a locally installed Postgres on 5432 never collides. Bound to
+      # loopback like every other published port here: this stack is a development stack.
+      - "127.0.0.1:5433:5432"
     volumes:
       - db-data:/var/lib/postgresql/data
       - ./infra/postgres/init-test-db.sql:/docker-entrypoint-initdb.d/init-test-db.sql:ro
@@ -19,21 +20,25 @@ services:
 
   backend:
     build: ./backend
-    # Optional so a clean clone runs before `cp .env.example .env`; secrets live there, and the
-    # non-secret defaults below make the compose stack self-contained without it.
+    # Secrets live in .env — required, because there is no safe default for one. The non-secret
+    # values below still default, so .env only has to carry what actually matters.
     env_file:
       - path: .env
-        required: false
+        required: true
     environment:
       ENV: ${ENV:-dev}
       DATABASE_URL: postgresql+psycopg://breachscan:breachscan@db:5432/breachscan
       FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:5173}
       HIBP_USER_AGENT: ${HIBP_USER_AGENT:-breach-scan-funnel}
-      # A default only so a clean clone boots (same footing as the db password above); the
-      # compose stack binds to localhost and is not a deployment. Set it in .env for anything else.
-      ADMIN_TOKEN: ${ADMIN_TOKEN:-dev-admin-token}
+      # No default: a token committed here is a token everyone who clones the repo has, and it
+      # gates the write that rewrites what every visitor reads. Missing, the stack refuses to
+      # start and says so.
+      ADMIN_TOKEN: ${ADMIN_TOKEN:?set ADMIN_TOKEN in .env — cp .env.example .env, then generate one with `openssl rand -hex 24`}
     ports:
-      - "8000:8000"
+      # Loopback: the API is reached through the frontend's /api proxy, and a published 0.0.0.0
+      # port is one every machine on the network can reach — which, with the header trust that
+      # only holds behind the proxy, is not a port to offer them.
+      - "127.0.0.1:8000:8000"
     depends_on:
       db:
         condition: service_healthy
@@ -43,7 +48,7 @@ services:
       context: .
       dockerfile: frontend/Dockerfile
     ports:
-      - "5173:8080"
+      - "127.0.0.1:5173:8080"
     depends_on:
       - backend
 
