@@ -1,0 +1,9 @@
+// Design tokens. D1 (the Claude Design handoff) adds colour, spacing and type; the breakpoints
+// are here now because the responsive contract says they are named exactly once, and the admin
+// page is the first screen that reflows.
+//
+// 390 is the design target (a phone), 768 a tablet, 1280 a laptop. Every screen is built at 390
+// and must hold at the other two.
+$breakpoint-sm: 390px;
+$breakpoint-md: 768px;
+$breakpoint-lg: 1280px;

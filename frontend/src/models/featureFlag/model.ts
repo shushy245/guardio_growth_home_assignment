@@ -32,3 +32,7 @@ export type FeatureFlagModel = {
 };
 
 export const RESULT_SCREEN_TONE_FLAG = 'result_screen_tone';
+
+// Weights are integer percentages of one whole; the backend rejects a split that sums to
+// anything else, because the leftover buckets would have no variant to serve.
+export const WEIGHT_TOTAL = 100;

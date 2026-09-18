@@ -1,0 +1,133 @@
+@use '~/styles/tokens' as tokens;
+
+// Built at 390 first: one column, full-width fields, tap targets that a thumb can hit. At md+
+// the page gets a reading width and centres instead of stretching across a laptop.
+.page {
+    gap: 24px;
+    padding: 16px;
+    max-width: 100%;
+    margin: 0 auto;
+    font-family: system-ui, sans-serif;
+    color: #14202e;
+}
+
+.intro {
+    gap: 8px;
+}
+
+.title {
+    font-size: 22px;
+    margin: 0;
+}
+
+.note {
+    font-size: 14px;
+    line-height: 1.5;
+    margin: 0;
+    color: #4a5a6a;
+}
+
+.field {
+    gap: 6px;
+    font-size: 14px;
+}
+
+.label {
+    font-weight: 600;
+}
+
+.input {
+    font: inherit;
+    padding: 10px 12px;
+    min-height: 44px;
+    border: 1px solid #b6c2cf;
+    border-radius: 8px;
+    background: #fff;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.flag {
+    gap: 16px;
+    padding: 16px;
+    border: 1px solid #dbe3ec;
+    border-radius: 12px;
+    background: #f7f9fc;
+}
+
+.flagName {
+    font-size: 18px;
+    margin: 0;
+}
+
+.variant {
+    gap: 12px;
+    padding: 12px;
+    border: 1px solid #dbe3ec;
+    border-radius: 10px;
+    background: #fff;
+}
+
+.variantName {
+    font-size: 15px;
+    font-weight: 700;
+    margin: 0;
+}
+
+.toggle {
+    gap: 10px;
+    align-items: center;
+    min-height: 44px;
+    font-size: 14px;
+}
+
+.checkbox {
+    width: 20px;
+    height: 20px;
+}
+
+.save {
+    font: inherit;
+    font-weight: 600;
+    min-height: 48px;
+    padding: 0 20px;
+    border: 0;
+    border-radius: 8px;
+    background: #16508f;
+    color: #fff;
+    cursor: pointer;
+}
+
+.save:disabled {
+    background: #93a3b5;
+    cursor: not-allowed;
+}
+
+.message {
+    font-size: 14px;
+    line-height: 1.5;
+    margin: 0;
+}
+
+.warning {
+    font-size: 14px;
+    line-height: 1.5;
+    margin: 0;
+    color: #8a4b00;
+}
+
+@media (min-width: tokens.$breakpoint-md) {
+    .page {
+        max-width: 720px;
+        padding: 32px 24px;
+    }
+
+    .variants {
+        flex-direction: row;
+        gap: 16px;
+    }
+
+    .variant {
+        flex: 1 1 0;
+    }
+}
