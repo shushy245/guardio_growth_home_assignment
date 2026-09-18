@@ -855,6 +855,8 @@ Tasks:
   well as the funnel screens:
   - **BF36** the disabled Save renders at 2.58:1. Lighthouse passes it — axe skips disabled
     controls — so only a measurement finds it, and only a token decision fixes it everywhere.
+    **Sharpened by the S3 confirmation pass:** the button is now disabled for the whole of every
+    save, so the lowest-contrast element on the page is the one carrying the in-progress signal.
   - **BF42** body text is 14px throughout the admin page, below the 16px floor, at every viewport.
   - Line lengths of 94–101 characters at 768 and 1280, outside the 45–75 the responsive contract
     asks for.
