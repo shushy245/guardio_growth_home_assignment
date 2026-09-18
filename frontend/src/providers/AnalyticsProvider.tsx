@@ -63,7 +63,7 @@ export const AnalyticsProvider = ({ children }: { children: ReactNode }): ReactE
 
                 return;
             }
-            if (!isReady(state) || hasWaitingEvents(queue.current)) {
+            if (!isReady(state)) {
                 queue.current = [...queue.current, pending];
 
                 return;

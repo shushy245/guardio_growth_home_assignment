@@ -4,6 +4,7 @@ import { screen, waitFor } from '@testing-library/react';
 import { act, type ReactElement, useState } from 'react';
 
 import { logger } from '~/logging/logger';
+import { aVisitorDTO } from '~/testkit/builders';
 import type { VisitorDTO } from '~/models/visitor';
 import { useTrackOnce } from '~/hooks/useTrackOnce';
 import { FunnelEventName } from '~/models/funnelEvent';
@@ -143,7 +144,13 @@ export const makeAnalyticsProviderDriver = (): AnalyticsProviderDriver => {
                 const gate = new Promise<void>((resolve) => {
                     releaseVisitor = resolve;
                 });
-                fakeHttp.respond({ method: HttpMethod.Post, path: '/visitors', status: 201, body: undefined, gate });
+                fakeHttp.respond({
+                    method: HttpMethod.Post,
+                    path: '/visitors',
+                    status: 201,
+                    body: aVisitorDTO().build(),
+                    gate,
+                });
             },
             theVisitorCannotBeCreated: (): void => {
                 fakeHttp.respond({
