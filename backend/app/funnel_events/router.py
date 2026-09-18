@@ -38,6 +38,8 @@ def create_funnel_event(
 
     tag = experiment_tag(assignments)
     log.info("create_funnel_event: recording", **ctx, tag=tag)
-    repository.insert_event(session=session, event=event, tag=tag)
+    written = repository.insert_event(session=session, event=event, tag=tag)
+    if not written:
+        log.info("create_funnel_event: already recorded, replay ignored", **ctx)
 
     return FunnelEventRecorded()
