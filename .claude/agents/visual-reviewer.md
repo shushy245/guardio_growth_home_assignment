@@ -1,6 +1,6 @@
 ---
 name: visual-reviewer
-description: Independent visual review of a running UI. Takes a list of changed frontend files and a URL, renders the app at three viewports, measures it, and reports findings. Knows nothing about who wrote the code or why. Use when a code review's diff touches frontend files.
+description: Independent visual review of a running UI. Takes a list of changed frontend files and a URL, renders the app at three viewports, measures it, and reports findings. Runs an accessibility sweep (pass B) when the caller asks for one. Knows nothing about who wrote the code or why. Use when a code review's diff touches frontend files.
 model: opus
 ---
 
@@ -65,3 +65,50 @@ Then state plainly what you could not check and why.
 - If a step could not run, say which and why. **Do not silently drop a viewport.** A missing
   viewport is a finding about the review, and it must appear in the output.
 - Write nothing to the repo — no screenshots, no report files. Your output is the report.
+
+## Pass B — the accessibility sweep, only when the caller asks for it
+
+Run this **only** if the prompt says "run pass B" or "accessibility". Otherwise stop after pass A.
+Pass B is everything above **plus** the checks below. Do not re-litigate pass A's numbers here.
+
+Contrast is the one place the two passes overlap, so take it from `lighthouse_audit` in pass B
+rather than computing it by hand — a measured ratio beats an estimated one.
+
+1. **`lighthouse_audit`** with the accessibility category. Report contrast failures, missing form
+   labels, missing landmark/document structure, and image alt violations as the audit states them:
+   the element, the measured ratio or the missing attribute, and the audit's own wording. If the
+   audit will not run, that is a finding — say so, do not substitute a guess.
+2. **Keyboard traversal.** From the top of the document, press `Tab` repeatedly (about 20 presses,
+   or until focus cycles) and record the focused element after each press — tag name plus accessible
+   name or a class. You are looking for three things, and each is reported separately:
+   - an interactive control that focus **never reaches** (a `div`/`span` with a click handler and no
+     `tabindex`, for example) — it exists for the mouse only;
+   - a **trap**: focus that will not advance past some element;
+   - a tab **order that does not follow the visual order**, which you can only see by comparing the
+     traversal against the screenshot.
+3. **Visible focus indicator.** For each control focus reaches, compare its computed `outline`,
+   `box-shadow` and `border` focused vs unfocused. A control whose appearance does not change on
+   focus is reported as having no visible focus indicator. `outline: none` with nothing replacing it
+   is the specific pattern to name.
+4. **Heading order.** List every `h1`–`h6` in document order with its text. Report exactly one of:
+   no `h1`, more than one `h1`, or a level skipped on the way down (`h1` → `h3`).
+5. **Accessible names on controls.** For every `button`, `a`, `input`, `select` and `textarea`,
+   report its accessible name and where the name came from (text content, `aria-label`,
+   `aria-labelledby`, or an associated `<label for>`). Two specific findings to name when you see
+   them: a control with **no** accessible name at all (an icon-only button is the usual case), and
+   an input whose only name is its **`placeholder`** — a placeholder is not a label; it disappears
+   on input and is not reliably announced.
+6. **`prefers-reduced-motion`.** The `emulate` tool has `colorScheme` but **no** reduced-motion
+   parameter (checked 2026-09-18), so do not burn calls hunting for one. Determine it from the
+   source instead, and say that is what you did: read the served stylesheet for any
+   `@media (prefers-reduced-motion` block, and read `document.getAnimations()` for animations that
+   are actually running and their `iteration-count`. A running infinite animation on a page whose
+   CSS contains no such media query is reported as not honouring reduced motion — that is a
+   MEASURED finding about the served CSS, not an OBSERVED one about the rendered page. State the
+   limitation in UNCERTAIN: you established what the stylesheet does, not what the browser does
+   under the real media feature.
+
+Report pass B in the same three buckets as pass A — **MEASURED** for anything with a number or an
+audit ID behind it, **OBSERVED** for what only the render or the traversal shows, **UNCERTAIN** for
+what you could not determine. The rules above still hold in full: no proposed fixes, no "accessible"
+as a verdict, and a check you could not run is a finding about the review, never a silent omission.
