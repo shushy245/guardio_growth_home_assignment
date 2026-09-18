@@ -35,6 +35,15 @@ describe('FlagEditor', () => {
         driver.assert.saveTokensSent(FIRST_TOKEN, SECOND_TOKEN);
     });
 
+    it('saves the flag as stopped after the running checkbox is cleared', async () => {
+        driver.given.theFlag(aFeatureFlagDTO().build());
+        driver.given.theSaveSucceedsWithToken(SECOND_TOKEN);
+        await driver.when.created();
+        await driver.click.enabled();
+        await driver.click.save();
+        driver.assert.saveCarried({ isEnabled: false });
+    });
+
     it('refuses to send a save before the admin token is pasted', async () => {
         driver.given.theFlag(aFeatureFlagDTO().build());
         driver.given.theAdminToken('');

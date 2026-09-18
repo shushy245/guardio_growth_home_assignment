@@ -48,8 +48,12 @@ export type FlagEditorDriver = {
         urgentCtaLabel: (label: string) => Promise<void>;
         urgentWeight: (weight: string) => Promise<void>;
     };
-    click: { save: () => Promise<void> };
+    click: {
+        save: () => Promise<void>;
+        enabled: () => Promise<void>;
+    };
     assert: {
+        saveCarried: (expected: { isEnabled: boolean }) => void;
         saveTokensSent: (...lockTokens: string[]) => void;
         savesSent: (count: number) => void;
         savedConfirmationIsShown: () => Promise<void>;
@@ -71,7 +75,17 @@ export const makeFlagEditorDriver = (): FlagEditorDriver => {
     // A type predicate, not a cast: the recorded body arrives as `unknown` and this is the one
     // place that says what a save looks like on the wire.
     const isUpdatePayload = (body: unknown): body is FeatureFlagUpdatePayload =>
-        isPlainObject(body) && typeof body['updatedAt'] === 'string' && Array.isArray(body['variants']);
+        isPlainObject(body) &&
+        typeof body['updatedAt'] === 'string' &&
+        typeof body['isEnabled'] === 'boolean' &&
+        Array.isArray(body['variants']);
+
+    const lastSave = (): RecordedRequest => {
+        const last = saves().at(-1);
+        if (last === undefined) throw new Error('FlagEditorDriver: no save was sent');
+
+        return last;
+    };
 
     const savedPayload = (request: RecordedRequest): FeatureFlagUpdatePayload => {
         if (!isUpdatePayload(request.body)) {
@@ -146,8 +160,16 @@ export const makeFlagEditorDriver = (): FlagEditorDriver => {
                     screen.getByTestId(flagFieldTestId({ flagKey: RESULT_SCREEN_TONE, field: FlagField.Save })),
                 );
             },
+            enabled: async (): Promise<void> => {
+                await user.click(
+                    screen.getByTestId(flagFieldTestId({ flagKey: RESULT_SCREEN_TONE, field: FlagField.Enabled })),
+                );
+            },
         },
         assert: {
+            saveCarried: ({ isEnabled }: { isEnabled: boolean }): void => {
+                expect(savedPayload(lastSave()).isEnabled).toBe(isEnabled);
+            },
             saveTokensSent: (...lockTokens: string[]): void => {
                 expect(saves().map((request) => savedPayload(request).updatedAt)).toStrictEqual(lockTokens);
             },
