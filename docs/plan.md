@@ -1104,6 +1104,33 @@ Cases:
 - F19. the CTA is rendered inside the sticky footer region on the result page (driver asserts the test id is present; visual sticky behaviour is checked manually at 390px)
 - F20. the result page renders exactly one CTA node at any width — the mobile/desktop switch is CSS, never a second element or a width branch (driver: one match for the CTA test id)
 - F21. `BreachRow` expanded reveals the breach description; collapsed does not render it (driver) — from D1, the design gives the description its only home on the screen
+- Pre-mortem (added at /story-start, 2026-09-19):
+  - F22. leaving `/scan` before the moment completes (the back button mid-scan) neither tracks
+    `scan_completed` nor navigates: the timer and the pending loads are cancelled on unmount
+    (driver, fake timers) — the interleaving case
+  - F23. a filter change while a page is in flight aborts the earlier request, so a response to an
+    older filter can never land over a newer one (driver, two gated routes released out of order)
+  - F24. a filter change after a load-more resets to page 1 and *replaces* the items — never page 2
+    of the new filter appended under page 1 of the old (driver)
+  - F25. a visitor outside the experiment — no assignment because the flag is disabled, or a
+    visitor session that failed — still gets a working result screen, with the control copy and the
+    calm tone: the funnel never depends on the flag service being up. The control copy's one
+    frontend home is a fail-open constant in `Result.utils.ts`; it duplicates the seeded calm copy
+    by design (the DB one is product's to edit, this one is what renders when product's cannot be
+    read) and ADR-0004 records that
+  - F26. the result root carries `toneClassMap[tone]` — `tone-urgent` for the urgent variant — so
+    the CTA's `--tone-accent-strong` is re-pointed by CSS alone (driver asserts the class; the S5
+    visual pass **measures the urgent CTA fill `#681500`**, closing the other half of D1 finding 1)
+  - F27. the urgent "Accounts exposed" tile counts up to its value and shows it at once under
+    `prefers-reduced-motion`; the calm tile never animates; an unmount mid-count cancels the frame
+    loop (driver, fake `requestAnimationFrame`)
+  - (harness) the funnel pages need the visitor and analytics providers above them, and the
+    breach catalog state has to survive the `/scan` → `/result` navigation without a second
+    fetch — so the three providers are one `FunnelProviders` component mounted once by `App` on
+    the funnel layout route, and every page driver wraps its subject in the same component
+  - (recorded) `Scan` loads the summary and the first page into `BreachCatalogProvider`, and
+    `Result` reads them; a direct visit to `/result` finds the catalog idle and loads it itself,
+    which is the only way F18's skeleton rows are reachable
 
 Commits:
 - C1 `[test+impl F1, F2]` Landing page (driver first)
