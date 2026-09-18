@@ -3,7 +3,7 @@
 // the admin token; this owns the save.
 import { type ChangeEvent, type ReactElement, useState } from 'react';
 
-import { Column, Row } from '~/ui/box';
+import { Column } from '~/ui/box';
 import { logger } from '~/logging/logger';
 import { updateFeatureFlag } from '~/api/feature-flags';
 import { describeError, statusOfError } from '~/api/http-client';
@@ -91,7 +91,9 @@ export const FlagEditor = ({
         <Column className={styles.flag}>
             <h2 className={styles.flagName}>{flag.key}</h2>
             <p className={styles.note}>{flag.description}</p>
-            <Row className={styles.toggle}>
+            {/* The input lives inside its label: that is what gives the control an accessible
+                name, and what makes the words beside it part of the same 44px target. */}
+            <label className={styles.toggle}>
                 <input
                     className={styles.checkbox}
                     type="checkbox"
@@ -100,7 +102,7 @@ export const FlagEditor = ({
                     onChange={handleToggleEnabled}
                 />
                 <span>{`Running — assign new visitors to a variant`}</span>
-            </Row>
+            </label>
             <Column className={styles.variants}>
                 {flag.variants.map((variant) => (
                     <VariantEditor key={variant.key} flag={flag} variant={variant} onChange={handleFlagEdited} />
@@ -116,8 +118,11 @@ export const FlagEditor = ({
             >
                 {`Save`}
             </button>
+            {/* Saving, saved, rejected and conflict all replace the text in this one slot; a
+                live region is what makes that a change a screen reader hears. */}
             <p
                 className={styles.message}
+                role="status"
                 data-testid={flagFieldTestId({ flagKey: flag.key, field: FlagField.SaveMessage })}
             >
                 {message}

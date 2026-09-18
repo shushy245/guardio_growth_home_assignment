@@ -26,6 +26,7 @@ const HTTP_CONFLICT = 409;
 const HTTP_SERVER_ERROR = 500;
 // What the backend puts in `{ error }` — written for an on-call engineer, never for this page.
 const SERVER_ERROR_DETAIL = 'internal error';
+const ENABLED_LABEL = 'Running — assign new visitors to a variant';
 
 const urgentFieldId = (field: CopyField | typeof WEIGHT_FIELD): string =>
     variantFieldTestId({ flagKey: RESULT_SCREEN_TONE, variantKey: URGENT, field });
@@ -63,6 +64,7 @@ export type FlagEditorDriver = {
     click: {
         save: () => Promise<void>;
         enabled: () => Promise<void>;
+        enabledLabelText: () => Promise<void>;
     };
     assert: {
         saveCarried: (expected: { isEnabled: boolean }) => void;
@@ -71,6 +73,7 @@ export type FlagEditorDriver = {
         savedConfirmationIsShown: () => Promise<void>;
         noSaveMessageIsShown: () => void;
         saveIsOffered: () => void;
+        saveMessagesAreAnnounced: () => void;
         saveIsNotOffered: () => void;
         urgentWeightIs: (weight: number) => void;
         conflictMessageIsShown: () => Promise<void>;
@@ -204,6 +207,10 @@ export const makeFlagEditorDriver = (): FlagEditorDriver => {
                     screen.getByTestId(flagFieldTestId({ flagKey: RESULT_SCREEN_TONE, field: FlagField.Enabled })),
                 );
             },
+            // What someone actually hits: the words beside the box, not the 20px box.
+            enabledLabelText: async (): Promise<void> => {
+                await user.click(screen.getByText(ENABLED_LABEL));
+            },
         },
         assert: {
             saveCarried: ({ isEnabled }: { isEnabled: boolean }): void => {
@@ -219,6 +226,9 @@ export const makeFlagEditorDriver = (): FlagEditorDriver => {
                 await waitFor(() => {
                     expect(messageOf()).toHaveTextContent('Saved');
                 });
+            },
+            saveMessagesAreAnnounced: (): void => {
+                expect(messageOf()).toHaveAttribute('role', 'status');
             },
             saveIsOffered: (): void => {
                 expect(saveButton()).toBeEnabled();

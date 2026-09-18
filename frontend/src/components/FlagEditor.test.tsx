@@ -74,6 +74,21 @@ describe('FlagEditor', () => {
         driver.assert.noSaveMessageIsShown();
     });
 
+    it('toggles the flag when the words beside the checkbox are clicked', async () => {
+        driver.given.theFlag(aFeatureFlagDTO().build());
+        driver.given.theSaveSucceedsWithToken(SECOND_TOKEN);
+        await driver.when.created();
+        await driver.click.enabledLabelText();
+        await driver.click.save();
+        driver.assert.saveCarried({ isEnabled: false });
+    });
+
+    it('announces what a save did instead of changing text nobody is told about', async () => {
+        driver.given.theFlag(aFeatureFlagDTO().build());
+        await driver.when.created();
+        driver.assert.saveMessagesAreAnnounced();
+    });
+
     it('tells the operator a save failed in their words and logs the server’s', async () => {
         driver.given.theFlag(aFeatureFlagDTO().withUpdatedAt(FIRST_TOKEN).build());
         driver.given.theSaveFails();

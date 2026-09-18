@@ -21,15 +21,23 @@
 }
 
 .toggle {
+    display: flex;
+    flex-direction: row;
     gap: 10px;
     align-items: center;
+    // The whole label is the target, not the 20px box inside it: a checkbox drawn at its
+    // native size is under half the 44px a thumb needs.
     min-height: 44px;
+    padding: 4px 0;
     font-size: 14px;
+    cursor: pointer;
 }
 
 .checkbox {
-    width: 20px;
-    height: 20px;
+    width: 24px;
+    height: 24px;
+    // The box is 24px; the hit area is the label's 44px, which the padding above completes.
+    flex: 0 0 auto;
 }
 
 // Mobile first, and stated rather than inherited: at 390 the two variant cards stack, and the
