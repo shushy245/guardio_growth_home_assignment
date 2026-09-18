@@ -50,6 +50,20 @@ def test_a_failed_refresh_is_not_retried_inside_the_retry_interval(
     refresh.then.a_refresh_was_not_wanted()
 
 
+def test_a_refresh_scheduled_before_a_failed_attempt_landed_does_not_fetch_again(
+    refresh: CatalogRefreshDriver,
+) -> None:
+    """Requests check the retry gate when they schedule, milliseconds before the task runs. A
+    cohort that all passed the gate before the first attempt failed would each fetch a fast-
+    failing HIBP unless the task re-checks under the lock (BF22)."""
+    refresh.given.the_catalog_source_is_unreachable()
+    refresh.when.a_refresh_is_requested(at=T)
+
+    refresh.when.a_refresh_is_requested(at=T + timedelta(minutes=1))
+
+    refresh.then.the_catalog_was_fetched(1)
+
+
 def test_a_failed_refresh_is_retried_once_the_interval_has_passed(
     refresh: CatalogRefreshDriver,
 ) -> None:

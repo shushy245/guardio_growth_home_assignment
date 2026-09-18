@@ -48,12 +48,25 @@ class CatalogRefresher:
 
         Non-blocking acquire: a refresh that finds another in flight returns at once rather than
         queueing behind it to fetch the same catalog again the moment it finishes.
+
+        The retry gate is checked again here, under the lock, not only in `wants_refresh`: a
+        request checks it when it schedules, milliseconds before the task runs, so a cohort of
+        requests that all passed before the first attempt failed would otherwise each fetch a
+        fast-failing HIBP in turn (BF22).
         """
         if not self._in_flight.acquire(blocking=False):
             log.info("CatalogRefresher.refresh: a refresh is already in flight, skipping")
             return
 
         try:
+            if not should_retry(last_attempt_at=self._last_attempt_at, now=now):
+                log.info(
+                    "CatalogRefresher.refresh: inside the retry interval of a failed attempt, "
+                    "skipping",
+                    last_attempt_at=_isoformat_or_never(self._last_attempt_at),
+                )
+                return
+
             self._last_attempt_at = now
             log.info("CatalogRefresher.refresh: started", now=now.isoformat())
             sync_catalog_in_own_transaction(
@@ -64,3 +77,7 @@ class CatalogRefresher:
 
     def _is_in_flight(self) -> bool:
         return self._in_flight.locked()
+
+
+def _isoformat_or_never(at: datetime | None) -> str:
+    return "never" if at is None else at.isoformat()
