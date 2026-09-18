@@ -8,18 +8,20 @@ from app.funnel_events.schemas import FunnelEventCreate
 from app.funnel_events.tagging import ExperimentTag
 
 
-def insert_event(*, session: Session, event: FunnelEventCreate, tag: ExperimentTag | None) -> bool:
-    """`True` when the row was written, `False` when this id was already stored.
+def insert_event(
+    *, session: Session, event: FunnelEventCreate, visitor_id: str, tag: ExperimentTag | None
+) -> str | None:
+    """The id written, or `None` when this id was already stored.
 
     `ON CONFLICT DO NOTHING` is the whole idempotency mechanism: a retry, a StrictMode
     double-run or a replay lands here and the first write wins — a replay carrying a different
     body is not an update.
     """
-    inserted_id = session.execute(
+    return session.execute(
         insert(FunnelEventRow)
         .values(
             id=event.id,
-            visitor_id=event.visitor_id,
+            visitor_id=visitor_id,
             name=event.name,
             flag_key=None if tag is None else tag.flag_key,
             variant_key=None if tag is None else tag.variant_key,
@@ -30,5 +32,3 @@ def insert_event(*, session: Session, event: FunnelEventCreate, tag: ExperimentT
         # RETURNING yields a row only for an insert that happened; a conflict returns nothing.
         .returning(FunnelEventRow.id)
     ).scalar_one_or_none()
-
-    return inserted_id is not None

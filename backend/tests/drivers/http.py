@@ -43,6 +43,7 @@ class HttpDriver:
         self._catalog = FakeBreachCatalog()
         self._crashing_route = False
         self._session_override: Session | None = None
+        self._cookies: dict[str, str] = {}
         self._built_app: FastAPI | None = None
         self._client: TestClient | None = None
         self._response: httpx.Response | None = None
@@ -83,6 +84,8 @@ class HttpDriver:
     def _app_client(self) -> TestClient:
         if self._client is None:
             self._client = TestClient(self._app())
+            for name, value in self._cookies.items():
+                self._client.cookies.set(name, value)
         return self._client
 
     def _app(self) -> FastAPI:
@@ -130,6 +133,10 @@ class _Given:
         no business in production code — S1 shipped one as a probe and this replaces it.
         """
         self._driver._crashing_route = True
+
+    def cookie(self, *, name: str, value: str) -> None:
+        """A cookie the browser under test carries from the start, before any response set one."""
+        self._driver._cookies[name] = value
 
     def database_session(self, session: Session) -> None:
         """Integration tests: route every request's DB work through the test's session."""

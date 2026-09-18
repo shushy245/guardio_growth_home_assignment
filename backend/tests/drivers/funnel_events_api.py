@@ -1,19 +1,26 @@
 """Driver for `POST /api/funnel-events`.
 
 Composes the shared `HttpDriver`. The visitor a test records events for is minted through the
-real `POST /api/visitors`, so the assignment an event must be tagged with is the stored one —
-the driver remembers what creation answered and the Then compares the row against it.
+real `POST /api/visitors`, which sets the `visitor_id` cookie on the test client's jar — the same
+way a browser would carry it — so the assignment an event must be tagged with is the stored one.
+The driver remembers what creation answered and the Then compares the row against it.
+
+Dev env for every scenario that mints a visitor: the test client speaks plain http, and the
+`Secure` cookie every other env sets is one no client sends back over http.
 """
 
 from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
+from app.config import Env
 from app.feature_flags.models import FeatureFlagRow
 from app.funnel_events.models import FunnelEventRow
+from app.visitors.cookie import VISITOR_COOKIE
 from tests.builders.funnel_event import _FunnelEventBuilder
 from tests.drivers.http import HttpDriver
 
 RESULT_SCREEN_TONE = "result_screen_tone"
+UNKNOWN_VISITOR_ID = "vis_00000000000000000000000000"
 
 
 class FunnelEventsApiDriver:
@@ -27,11 +34,9 @@ class FunnelEventsApiDriver:
         self.when = _When(self)
         self.then = _Then(self)
 
-    @property
-    def _the_visitor(self) -> str:
+    def _require_a_visitor(self) -> None:
+        """The cookie jar holds the visitor; a When that posts as them needs one to exist."""
         assert self._visitor_id is not None, "given.a_visitor_exists() first"
-
-        return self._visitor_id
 
     @property
     def _the_posted_event(self) -> str:
@@ -40,6 +45,7 @@ class FunnelEventsApiDriver:
         return self._posted_event_id
 
     def _create_visitor(self) -> None:
+        self._http.given.env(Env.DEV)
         self._http.post.empty("/api/visitors")
         body = self._http._last.json()
         assert isinstance(body, dict), f"expected a visitor body, got {body!r}"
@@ -83,8 +89,13 @@ class _Given:
         self._driver._session.flush()
         self._driver._create_visitor()
 
+    def the_browser_carries_a_cookie_naming_nobody(self) -> None:
+        """The browser outlived the database: its cookie names a visitor no row remembers."""
+        self._driver._http.given.cookie(name=VISITOR_COOKIE, value=UNKNOWN_VISITOR_ID)
+
     def the_visitor_already_recorded(self, event: _FunnelEventBuilder) -> None:
-        self._driver._post(event.for_visitor(self._driver._the_visitor))
+        self._driver._require_a_visitor()
+        self._driver._post(event)
         self._driver._http.then.status(201)
 
 
@@ -93,10 +104,11 @@ class _When:
         self._driver = driver
 
     def the_visitor_records(self, event: _FunnelEventBuilder) -> None:
-        self._driver._post(event.for_visitor(self._driver._the_visitor))
+        self._driver._require_a_visitor()
+        self._driver._post(event)
 
-    def an_event_is_recorded_for_a_visitor_nobody_knows(self, event: _FunnelEventBuilder) -> None:
-        """The builder's default visitor id names nobody; posted as built."""
+    def an_event_is_recorded_by_a_browser_with_no_cookie(self, event: _FunnelEventBuilder) -> None:
+        """No visitor was ever created on this client, so its jar is empty."""
         self._driver._post(event)
 
 
@@ -113,6 +125,10 @@ class _Then:
 
     def the_visitor_was_not_found(self) -> None:
         self._driver._http.then.status(404)
+        self._driver._http.then.error_body()
+
+    def the_browser_was_not_identified(self) -> None:
+        self._driver._http.then.status(401)
         self._driver._http.then.error_body()
 
     def the_stored_event_is_tagged_with_the_visitors_assignment(self) -> None:

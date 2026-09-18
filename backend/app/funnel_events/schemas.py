@@ -1,4 +1,8 @@
-"""The wire contract for funnel events: what the browser posts for one step."""
+"""The wire contract for funnel events: what the browser posts for one step.
+
+The body names no visitor. The identity is the `visitor_id` cookie the browser carries — a
+`visitorId` field would let any caller who knows an id file steps, `activation` included, under
+someone else. `extra="forbid"` is what refuses it."""
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
@@ -17,7 +21,6 @@ class FunnelEventCreate(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel, extra="forbid", frozen=True)
 
     id: str = Field(pattern=EVENT_ID_PATTERN)
-    visitor_id: str = Field(min_length=1, max_length=64)
     name: FunnelEventName
     # Aware, never naive: a timestamp without an offset would be read in the server's zone, and
     # the skew guard's comparison against an aware `now` would raise a TypeError instead of a 400.

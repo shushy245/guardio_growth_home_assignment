@@ -4,13 +4,39 @@ experiment never enrolled."""
 from datetime import UTC, datetime, timedelta
 
 from tests.builders.funnel_event import a_funnel_event
-from tests.drivers.funnel_events_api import FunnelEventsApiDriver
+from tests.drivers.funnel_events_api import UNKNOWN_VISITOR_ID, FunnelEventsApiDriver
 
 
-def test_an_event_for_a_visitor_nobody_knows_is_not_found(
+def test_an_event_from_a_browser_with_no_visitor_cookie_is_refused(
     funnel_events: FunnelEventsApiDriver,
 ) -> None:
-    funnel_events.when.an_event_is_recorded_for_a_visitor_nobody_knows(a_funnel_event())
+    """The cookie is the identity. Without one there is nobody to file the step under, and
+    a body field naming a visitor would let anyone file steps for anyone."""
+    funnel_events.when.an_event_is_recorded_by_a_browser_with_no_cookie(a_funnel_event())
+
+    funnel_events.then.the_browser_was_not_identified()
+    funnel_events.then.no_event_is_stored()
+
+
+def test_an_event_naming_a_visitor_in_its_body_is_refused(
+    funnel_events: FunnelEventsApiDriver,
+) -> None:
+    """A visitor cannot say who they are; only the cookie can. Reproduced by the S4 review:
+    with the id in the body, one curl filed an `activation` for a stranger."""
+    funnel_events.given.a_visitor_exists()
+
+    funnel_events.when.the_visitor_records(a_funnel_event().claiming_to_be(UNKNOWN_VISITOR_ID))
+
+    funnel_events.then.the_event_was_refused()
+    funnel_events.then.no_event_is_stored()
+
+
+def test_an_event_from_a_cookie_naming_a_visitor_nobody_knows_is_not_found(
+    funnel_events: FunnelEventsApiDriver,
+) -> None:
+    funnel_events.given.the_browser_carries_a_cookie_naming_nobody()
+
+    funnel_events.when.an_event_is_recorded_by_a_browser_with_no_cookie(a_funnel_event())
 
     funnel_events.then.the_visitor_was_not_found()
     funnel_events.then.no_event_is_stored()
