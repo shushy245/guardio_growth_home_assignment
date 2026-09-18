@@ -12,7 +12,14 @@ from sqlalchemy.orm import Session
 from app.db.session import get_session
 from app.feature_flags import repository
 from app.feature_flags.admin import require_admin_token
-from app.feature_flags.schemas import FeatureFlagResponse, FeatureFlagUpdate, FeatureFlagUpdated
+from app.feature_flags.assignment import orphaned_variant_keys
+from app.feature_flags.schemas import (
+    FeatureFlagResponse,
+    FeatureFlagUpdate,
+    FeatureFlagUpdated,
+    to_weighted_variants,
+)
+from app.visitors import repository as visitor_repository
 
 log = structlog.get_logger()
 
@@ -48,6 +55,25 @@ def update_feature_flag(
         is_enabled=changes.is_enabled,
         split={variant.key: variant.weight for variant in changes.variants},
     )
+    orphans = orphaned_variant_keys(
+        assigned=visitor_repository.list_assigned_variant_keys(session=session, flag_key=key),
+        variants=to_weighted_variants(changes.variants),
+    )
+    if orphans:
+        log.info(
+            "update_feature_flag: refused, the split would orphan assignments",
+            key=key,
+            orphans=orphans,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                f"update_feature_flag: flag {key!r} would stop defining "
+                f"{', '.join(repr(orphan) for orphan in orphans)}, which visitors are already "
+                "assigned to; keep those keys, or retire the flag and start a new one"
+            ),
+        )
+
     new_token = repository.update_flag(session=session, key=key, changes=changes)
     if new_token is not None:
         log.info("update_feature_flag: saved", key=key, new_token=new_token.isoformat())

@@ -7,7 +7,7 @@ visitor — this rule decides only at creation; changing weights later moves new
 """
 
 import hashlib
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 
 # Weights are integer percentages, so a hundred buckets is exactly the resolution they have.
@@ -74,6 +74,20 @@ def duplicated_variant_keys(variants: Sequence[WeightedVariant]) -> list[str]:
         seen.add(variant.key)
 
     return duplicated
+
+
+def orphaned_variant_keys(
+    *, assigned: Iterable[str], variants: Sequence[WeightedVariant]
+) -> list[str]:
+    """Keys visitors already hold that a proposed split would stop defining, sorted.
+
+    There is no foreign key from `visitor_assignment` to a variant — variants live inside a JSONB
+    column — so nothing in the database notices a rename. The visitor just falls out of the
+    experiment, and keeps contributing events under a label the flag no longer has.
+    """
+    offered = {variant.key for variant in variants}
+
+    return sorted({key for key in assigned if key not in offered})
 
 
 def bucket_for(*, visitor_id: str, flag_key: str) -> int:

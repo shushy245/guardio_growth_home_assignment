@@ -8,8 +8,10 @@ the API handed out, never one invented in a test.
 
 from datetime import datetime
 
+from sqlalchemy import insert
 from sqlalchemy.orm import Session
 
+from app.visitors.models import VisitorAssignmentRow, VisitorRow
 from tests.builders.settings import TEST_ADMIN_TOKEN
 from tests.drivers.http import HttpDriver
 
@@ -81,6 +83,15 @@ class FeatureFlagsApiDriver:
             for variant in variants
         ]
 
+    def _variants_renamed(self, renames: dict[str, str]) -> list[dict[str, object]]:
+        variants = self._held["variants"]
+        assert isinstance(variants, list)
+
+        return [
+            {**variant, "key": renames.get(str(variant["key"]), variant["key"])}
+            for variant in variants
+        ]
+
     def _variants_with_weights(self, *weights: int) -> list[dict[str, object]]:
         variants = self._held["variants"]
         assert isinstance(variants, list)
@@ -96,6 +107,18 @@ class _Given:
 
     def the_flag_was_read(self) -> None:
         self._driver._read()
+
+    def a_visitor_holds_the_variant(self, variant_key: str) -> None:
+        """A real assignment row: what a rename would leave pointing at nothing."""
+        visitor_id = "vis_00000000000000000000000001"
+        session = self._driver._session
+        session.execute(insert(VisitorRow).values(id=visitor_id, user_agent=None))
+        session.execute(
+            insert(VisitorAssignmentRow).values(
+                visitor_id=visitor_id, flag_key=RESULT_SCREEN_TONE, variant_key=variant_key
+            )
+        )
+        session.flush()
 
     def the_flag_was_saved_once_since(self) -> None:
         """Someone else's save landed after the read: the held token is now stale."""
@@ -150,6 +173,14 @@ class _When:
     def the_flag_is_saved_with_weights(self, *weights: int) -> None:
         self._driver._save(
             self._driver._update_payload(variants=self._driver._variants_with_weights(*weights)),
+            token=TEST_ADMIN_TOKEN,
+        )
+
+    def the_variant_is_renamed(self, old_key: str, new_key: str) -> None:
+        self._driver._save(
+            self._driver._update_payload(
+                variants=self._driver._variants_renamed({old_key: new_key})
+            ),
             token=TEST_ADMIN_TOKEN,
         )
 
@@ -212,6 +243,18 @@ class _Then:
     def the_save_was_rejected(self) -> None:
         self._driver._http.then.status(400)
         self._driver._http.then.error_body()
+
+    def the_save_was_rejected_naming(self, fragment: str) -> None:
+        self._driver._http.then.status(400)
+        self._driver._http.then.error_body()
+        body = self._driver._http._last.json()
+        assert fragment in body["error"], f"the rejection does not name {fragment!r}: {body}"
+
+    def the_variants_are_still(self, *variant_keys: str) -> None:
+        variants = self._driver._read()["variants"]
+        assert isinstance(variants, list)
+        actual = [variant["key"] for variant in variants]
+        assert actual == list(variant_keys), f"expected variants {variant_keys}, got {actual}"
 
     def the_flag_was_not_found(self) -> None:
         self._driver._http.then.status(404)

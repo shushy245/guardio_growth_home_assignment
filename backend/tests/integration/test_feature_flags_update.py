@@ -71,6 +71,30 @@ def test_a_save_whose_weights_do_not_sum_to_a_hundred_is_rejected_before_anythin
     flags.then.the_description_is_still(SEEDED_DESCRIPTION)
 
 
+def test_a_rename_that_would_orphan_a_stored_assignment_is_refused(
+    flags: FeatureFlagsApiDriver,
+) -> None:
+    """A visitor holding `calm` after `calm` stops existing is out of the experiment silently:
+    no foreign key notices, and their events arrive tagged with a variant the flag no longer
+    defines."""
+    flags.given.the_flag_was_read()
+    flags.given.a_visitor_holds_the_variant("calm")
+
+    flags.when.the_variant_is_renamed("calm", "gentle")
+
+    flags.then.the_save_was_rejected_naming("calm")
+    flags.then.the_variants_are_still("calm", "urgent")
+
+
+def test_a_rename_of_a_variant_nobody_holds_is_accepted(flags: FeatureFlagsApiDriver) -> None:
+    flags.given.the_flag_was_read()
+    flags.given.a_visitor_holds_the_variant("urgent")
+
+    flags.when.the_variant_is_renamed("calm", "gentle")
+
+    flags.then.the_save_was_accepted_with_a_new_token()
+
+
 def test_a_save_without_the_admin_token_is_refused_and_changes_nothing(
     flags: FeatureFlagsApiDriver,
 ) -> None:

@@ -24,6 +24,17 @@ def insert_assignments(*, session: Session, visitor_id: str, assignments: dict[s
     )
 
 
+def list_assigned_variant_keys(*, session: Session, flag_key: str) -> set[str]:
+    """Every variant key visitors currently hold for this flag — what a rename would orphan."""
+    return set(
+        session.execute(
+            select(VisitorAssignmentRow.variant_key)
+            .where(VisitorAssignmentRow.flag_key == flag_key)
+            .distinct()
+        ).scalars()
+    )
+
+
 def find_assignments(*, session: Session, visitor_id: str) -> dict[str, str] | None:
     """`{ flag_key: variant_key }` for a known visitor; `None` for one that does not exist.
 
