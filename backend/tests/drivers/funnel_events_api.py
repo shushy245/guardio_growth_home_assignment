@@ -9,17 +9,19 @@ Dev env for every scenario that mints a visitor: the test client speaks plain ht
 `Secure` cookie every other env sets is one no client sends back over http.
 """
 
-from sqlalchemy import func, select, update
+from sqlalchemy import func, insert, select, update
 from sqlalchemy.orm import Session
 
 from app.config import Env
 from app.feature_flags.models import FeatureFlagRow
 from app.funnel_events.models import FunnelEventRow
 from app.visitors.cookie import VISITOR_COOKIE
+from tests.builders.feature_flag import a_wire_variant
 from tests.builders.funnel_event import _FunnelEventBuilder
 from tests.drivers.http import HttpDriver
 
 RESULT_SCREEN_TONE = "result_screen_tone"
+A_SECOND_EXPERIMENT = "landing_hero_copy"
 UNKNOWN_VISITOR_ID = "vis_00000000000000000000000000"
 
 
@@ -89,6 +91,23 @@ class _Given:
         self._driver._session.flush()
         self._driver._create_visitor()
 
+    def a_visitor_exists_in_two_experiments(self) -> None:
+        """A second enabled flag, so the visitor holds two assignments — the one shape a single
+        flag/variant pair on the event cannot tag."""
+        self._driver._session.execute(
+            insert(FeatureFlagRow).values(
+                key=A_SECOND_EXPERIMENT,
+                description="A second experiment, enabled beside the first.",
+                is_enabled=True,
+                variants=[
+                    a_wire_variant().with_key("plain").with_weight(50).build(),
+                    a_wire_variant().with_key("bold").with_weight(50).build(),
+                ],
+            )
+        )
+        self._driver._session.flush()
+        self._driver._create_visitor()
+
     def the_browser_carries_a_cookie_naming_nobody(self) -> None:
         """The browser outlived the database: its cookie names a visitor no row remembers."""
         self._driver._http.given.cookie(name=VISITOR_COOKIE, value=UNKNOWN_VISITOR_ID)
@@ -130,6 +149,13 @@ class _Then:
     def the_browser_was_not_identified(self) -> None:
         self._driver._http.then.status(401)
         self._driver._http.then.error_body()
+
+    def the_request_failed_loudly_without_guessing(self) -> None:
+        """A 500 with the house body, and the reason in the log — never a row tagged with a
+        flag picked at random."""
+        self._driver._http.then.status(500)
+        self._driver._http.then.error_body()
+        self._driver._http.then.logged("request: failed")
 
     def the_stored_event_is_tagged_with_the_visitors_assignment(self) -> None:
         row = self._driver._stored_event()

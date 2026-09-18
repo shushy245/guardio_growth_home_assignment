@@ -125,3 +125,16 @@ def test_metadata_is_stored_as_sent(funnel_events: FunnelEventsApiDriver) -> Non
 
     funnel_events.then.the_event_was_recorded()
     funnel_events.then.the_stored_event_carries_metadata({"sort": "pwnCount", "page": 2})
+
+
+def test_a_visitor_in_two_experiments_fails_loudly_rather_than_being_tagged_with_one(
+    funnel_events: FunnelEventsApiDriver,
+) -> None:
+    """The recorded S4 decision at the HTTP level: one flag/variant pair per event cannot tag two
+    assignments, and picking one would misfile every step of theirs under one experiment."""
+    funnel_events.given.a_visitor_exists_in_two_experiments()
+
+    funnel_events.when.the_visitor_records(a_funnel_event())
+
+    funnel_events.then.the_request_failed_loudly_without_guessing()
+    funnel_events.then.no_event_is_stored()
