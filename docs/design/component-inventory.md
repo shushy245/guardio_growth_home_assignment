@@ -112,6 +112,10 @@ Screens: `Landing` (S5), `Scan` (S5), `Result` (S5, `toneClassMap` selects the `
 8. **Placeholder copy stays placeholder.** Plan prices, "4 seats left", the 3,120,000-leak count
    and the dashboard's lift numbers are the design's illustrations; S6 and S7 render live
    values.
+9. **The landing lead names no count.** The design's "against 1,031 known breaches" is a live
+   number the landing page does not have (the catalog is loaded by the scan moment, not before
+   it), and a literal would go stale the day the record grows. The lead reads "against the public
+   record of known data breaches" instead; the count is on the result screen, where it is live.
 
 ## Decisions taken at translation (Shalev said "go ahead"; flagged in chat)
 

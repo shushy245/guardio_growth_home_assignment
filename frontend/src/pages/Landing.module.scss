@@ -1,10 +1,11 @@
 @use '~/styles/tokens' as tokens;
+@use '~/styles/fields' as fields;
 
-// The page gutter. It used to come from the UA's 8px body margin by accident; the global reset
-// removed that, and a heading flush against the glass is what was left. The gutters and the
-// content cap are tokens; S5 replaces this file with the real landing screen.
+// Built at 390 first: a left-aligned column, a full-width button above the fold, the trust
+// points stacked. At md+ the hero centres, the type steps up one size and the trust points sit
+// in one row; at lg only the whitespace grows. The content cap is per page (RF4), so it is here.
 .page {
-    gap: tokens.$sp-4;
+    gap: tokens.$sp-6;
     padding: tokens.$gutter-sm;
     min-height: 100dvh;
     max-width: tokens.$content-max;
@@ -12,14 +13,103 @@
     box-sizing: border-box;
 }
 
+.wordmark {
+    font-size: tokens.$text-300;
+    font-weight: tokens.$weight-bold;
+    color: tokens.$color-brand;
+    letter-spacing: -0.01em;
+}
+
+.hero {
+    gap: tokens.$sp-3;
+}
+
+.headline {
+    font-size: tokens.$text-600;
+    font-weight: tokens.$weight-bold;
+    margin: 0;
+}
+
+.lead {
+    font-size: tokens.$text-200;
+    line-height: tokens.$leading-relaxed;
+    color: tokens.$color-text-secondary;
+    margin: 0 0 tokens.$sp-2;
+}
+
+.scan {
+    @include fields.button-primary;
+    width: 100%;
+}
+
+.trustPoints {
+    display: flex;
+    flex-direction: column;
+    gap: tokens.$sp-4;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.trustPoint {
+    display: flex;
+    align-items: center;
+    gap: tokens.$sp-3;
+}
+
+.check {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: tokens.$sp-7;
+    height: tokens.$sp-7;
+    border-radius: tokens.$radius-pill;
+    background: tokens.$tone-calm-tint;
+    color: tokens.$tone-calm-accent-strong;
+    font-weight: tokens.$weight-bold;
+    flex: 0 0 auto;
+}
+
 @media (min-width: tokens.$breakpoint-md) {
     .page {
-        padding: tokens.$gutter-md;
+        align-items: center;
+        text-align: center;
+        gap: tokens.$sp-8;
+        padding: tokens.$sp-10 tokens.$gutter-md;
+    }
+
+    .hero {
+        align-items: center;
+        max-width: tokens.$prose-measure;
+    }
+
+    .headline {
+        font-size: tokens.$text-700;
+    }
+
+    .scan {
+        width: auto;
+        padding: 0 tokens.$sp-7;
+    }
+
+    .trustPoints {
+        flex-direction: row;
+        gap: tokens.$sp-8;
+    }
+
+    .trustPoint {
+        flex-direction: column;
+        gap: tokens.$sp-2;
     }
 }
 
 @media (min-width: tokens.$breakpoint-lg) {
     .page {
-        padding: tokens.$gutter-lg;
+        gap: tokens.$sp-9;
+        padding: tokens.$sp-11 tokens.$gutter-lg;
+    }
+
+    .trustPoints {
+        gap: tokens.$sp-9;
     }
 }
