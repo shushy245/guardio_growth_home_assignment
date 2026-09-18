@@ -32,11 +32,19 @@ would land in a different bucket on every worker and after every restart. A pinn
 is what catches that substitution; every other test in the file passes with either.
 
 Identity is a `visitor_id` cookie (`HttpOnly`, `SameSite=Lax`, `Secure` outside dev, one year)
-**and** a `localStorage` mirror the page keeps. The cookie is the belt: it cannot be read by
-script, so it survives a hostile page. The mirror is the braces: the cookie is invisible to the
-page, so the mirror is how the browser knows which visitor to ask about on the next load. A
-stored id the server no longer knows — a reset database behind a browser that kept its mirror —
-starts a fresh visitor rather than surfacing an error.
+**and** a `localStorage` mirror the page keeps. They answer different questions. The cookie is
+the server's: `POST /api/visitors` reads it and, when it names a visitor this server still knows,
+answers `200` with that visitor and their **stored** assignments instead of minting a second
+identity — which is what makes the create idempotent per browser, and what stops two tabs opened
+together from enrolling one person in the experiment twice under two different variants. The
+mirror is the page's: the cookie is `HttpOnly` and invisible to script, so the mirror is how the
+browser knows which visitor to *ask about* on the next load. A stored id the server no longer
+knows — a reset database behind a browser that kept its state — starts a fresh visitor rather
+than surfacing an error, on both paths.
+
+*(Amended 2026-09-18, S3 review BF26. As first shipped the cookie was set and never read by any
+code on either side: "belt and braces" described a belt that was not fastened, and the second tab
+really did become a second visitor. The paragraph above is what the code now does.)*
 
 ## Consequences
 

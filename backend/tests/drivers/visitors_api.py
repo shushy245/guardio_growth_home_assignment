@@ -7,12 +7,12 @@ the test's session, which is the same session the app is wired to.
 
 from http.cookies import SimpleCookie
 
-from sqlalchemy import select, update
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.orm import Session
 
 from app.config import Env
 from app.feature_flags.models import FeatureFlagRow
-from app.visitors.models import VisitorAssignmentRow
+from app.visitors.models import VisitorAssignmentRow, VisitorRow
 from tests.builders.feature_flag import a_wire_variant
 from tests.drivers.http import HttpDriver
 
@@ -91,6 +91,12 @@ class _Given:
         )
         self._driver._session.flush()
 
+    def the_database_has_forgotten_the_visitor(self) -> None:
+        """The browser keeps its cookie across a database reset; the id in it names nobody."""
+        self._driver._session.execute(delete(VisitorAssignmentRow))
+        self._driver._session.execute(delete(VisitorRow))
+        self._driver._session.flush()
+
     def the_result_screen_tone_flag_is_disabled(self) -> None:
         self._driver._session.execute(
             update(FeatureFlagRow)
@@ -158,6 +164,33 @@ class _Then:
         assert stored == self._driver._assignments.get(flag_key), (
             f"stored {stored!r} but the response reported {self._driver._assignments}"
         )
+
+    def the_visitor_was_recognised(self) -> None:
+        """Nothing was created: 200, not the 201 a new identity would answer with."""
+        self._driver._http.then.status(200)
+
+    def the_visitor_is_the_one_already_created(self) -> None:
+        assert self._driver._visitor_id == self._driver._created_id, (
+            f"expected the stored visitor {self._driver._created_id!r}, "
+            f"got a new one: {self._driver._visitor_id!r}"
+        )
+
+    def the_visitor_is_not_the_one_already_created(self) -> None:
+        assert self._driver._visitor_id != self._driver._created_id, (
+            f"expected a new visitor, got the stored {self._driver._created_id!r} back"
+        )
+
+    def the_assignments_are_the_ones_already_stored(self) -> None:
+        assert self._driver._assignments == self._driver._created_assignments, (
+            f"got {self._driver._assignments}, but the visitor was assigned "
+            f"{self._driver._created_assignments}"
+        )
+
+    def exactly_one_visitor_exists(self) -> None:
+        count = self._driver._session.execute(
+            select(func.count()).select_from(VisitorRow)
+        ).scalar_one()
+        assert count == 1, f"expected one visitor row, found {count}"
 
     def the_visitor_cookie_names_the_visitor(self) -> None:
         cookie = self._driver._visitor_cookie()

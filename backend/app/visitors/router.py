@@ -3,6 +3,10 @@
 `POST` is the one place a visitor is assigned. Everything is computed first — the id, every
 enabled flag's variant — and written last, in one transaction, so a visitor row never exists
 without the assignments the response reports.
+
+It is also idempotent per browser: a request carrying a `visitor_id` cookie this server knows is
+answered with that visitor and their stored assignments. Two tabs opened together are one person,
+and minting a second identity would enrol them in the experiment twice, under two variants.
 """
 
 from typing import Annotated
@@ -33,6 +37,20 @@ def create_visitor(
     request: Request,
     response: Response,
 ) -> VisitorResponse:
+    log.info("create_visitor: started", has_cookie=VISITOR_COOKIE in request.cookies)
+
+    recognised = _recognised_visitor(session=session, request=request)
+    if recognised is not None:
+        log.info(
+            "create_visitor: cookie names a known visitor, reusing them",
+            visitor_id=recognised.id,
+            assignments=recognised.assignments,
+        )
+        response.status_code = status.HTTP_200_OK
+        _set_visitor_cookie(response, visitor_id=recognised.id, settings=settings)
+
+        return recognised
+
     visitor_id = generate_unique_id("vis")
     splits = flag_repository.list_enabled_splits(session=session)
     assignments = assign_all(visitor_id=visitor_id, splits=splits)
@@ -42,6 +60,31 @@ def create_visitor(
         session=session, visitor_id=visitor_id, user_agent=request.headers.get("user-agent")
     )
     repository.insert_assignments(session=session, visitor_id=visitor_id, assignments=assignments)
+    _set_visitor_cookie(response, visitor_id=visitor_id, settings=settings)
+
+    return VisitorResponse(id=visitor_id, assignments=assignments)
+
+
+def _recognised_visitor(*, session: Session, request: Request) -> VisitorResponse | None:
+    """The visitor this request's cookie names, if this server still knows them.
+
+    A cookie naming nobody is a browser outliving a database, not an error: the caller mints a
+    new visitor, and the stale id is overwritten by the fresh cookie.
+    """
+    visitor_id = request.cookies.get(VISITOR_COOKIE)
+    if visitor_id is None:
+        return None
+
+    assignments = repository.find_assignments(session=session, visitor_id=visitor_id)
+    if assignments is None:
+        log.info("create_visitor: cookie names an unknown visitor", visitor_id=visitor_id)
+
+        return None
+
+    return VisitorResponse(id=visitor_id, assignments=assignments)
+
+
+def _set_visitor_cookie(response: Response, *, visitor_id: str, settings: Settings) -> None:
     response.set_cookie(
         VISITOR_COOKIE,
         visitor_id,
@@ -50,8 +93,6 @@ def create_visitor(
         samesite="lax",
         secure=is_secure_cookie_env(settings.env),
     )
-
-    return VisitorResponse(id=visitor_id, assignments=assignments)
 
 
 @router.get("/visitors/{visitor_id}", response_model=VisitorResponse)
