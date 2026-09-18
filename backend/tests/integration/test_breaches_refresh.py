@@ -64,3 +64,28 @@ def test_a_failed_refresh_never_reaches_the_visitor(breaches: BreachesApiDriver)
     breaches.then.the_breach_names_are("Adobe")
     breaches.then.the_catalog_source_was_fetched(1)
     breaches.then.the_failed_refresh_was_logged()
+
+
+def test_a_request_refused_over_an_empty_catalog_still_schedules_the_refresh(
+    breaches: BreachesApiDriver,
+) -> None:
+    """A boot that found HIBP down leaves the table empty and every request a 503. The refresh
+    is what heals it — so it must run even though the handler raised. FastAPI attaches
+    background tasks only to a response the handler returned; the error handler carries them."""
+    breaches.given.the_catalog_source_offers(a_breach().with_name("Adobe").build())
+
+    breaches.when.listed()
+    breaches.then.the_catalog_was_reported_unavailable()
+
+    breaches.then.the_catalog_source_was_fetched(1)
+    breaches.then.the_stored_catalog_holds("Adobe")
+
+
+def test_the_request_after_a_healing_refresh_is_served(breaches: BreachesApiDriver) -> None:
+    breaches.given.the_catalog_source_offers(a_breach().with_name("Adobe").build())
+    breaches.when.listed()
+
+    breaches.when.listed()
+
+    breaches.then.it_answered_normally()
+    breaches.then.the_breach_names_are("Adobe")

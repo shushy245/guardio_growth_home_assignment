@@ -435,6 +435,8 @@ Commits:
   `then.the_catalog_source_was_fetched(times)`. ADR-0002 and README amended in the same commit.
 - C6 `[test+impl R7]` non-blocking `threading.Lock` single-flight
 - C7 `[test+impl R8, R9]` retry interval and the logged failure path
+- C7b `[test+impl R10]` (pre-mortem) `carry_background_tasks` in `app/errors.py`: the `HTTPException`
+  response runs the tasks the handler scheduled, so a 503 over an empty catalog still refreshes it
 - C8 `[test+impl F3]` frontend `syncedAt` in DTO, model, translator and builder
 - C9 `[chore]` python-primer section (`threading.Lock(blocking=False)`, `BackgroundTasks`,
   router-level `dependencies=[Depends(…)]`, `threading.Event` in a test); changelog entry

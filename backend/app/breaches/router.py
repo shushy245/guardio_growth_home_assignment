@@ -29,6 +29,7 @@ from app.breaches.schemas import (
 )
 from app.breaches.summary import summarise_breaches
 from app.db.session import get_session
+from app.errors import carry_background_tasks
 
 log = structlog.get_logger()
 
@@ -46,8 +47,11 @@ def revalidate_catalog(
     """Stale-while-revalidate.
 
     The refresh runs after the response through `BackgroundTasks`, in its own transaction from
-    the app's session factory — never the request's session, which is closed by then.
+    the app's session factory — never the request's session, which is closed by then. It is
+    carried onto an error response too: an empty catalog is a 503 *and* the case that most needs
+    the refresh, since it is how a boot that found HIBP down heals without a restart.
     """
+    carry_background_tasks(request=request, background_tasks=background_tasks)
     refresher: CatalogRefresher = request.app.state.catalog_refresher
     now = datetime.now(UTC)
     fetched_at = repository.latest_fetched_at(session=session)
