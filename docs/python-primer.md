@@ -255,3 +255,37 @@ You will struggle to validate details, so here is what to look for:
 - **ruff `S105`**: bandit flags a *name* containing `TOKEN`/`PASSWORD` assigned a string literal
   as a hardcoded credential. `ADMIN_TOKEN_HEADER = "X-Admin-Token"` trips it even though the value
   is a header name. The fix is the name (`ADMIN_HEADER_NAME`), never a suppression comment.
+
+## Added in S4 — constructs that actually landed
+
+- **`Enum(PyEnum, native_enum=False, create_constraint=True, values_callable=…)`**
+  (`app/funnel_events/models.py`): a SQLAlchemy column typed by a Python enum. `native_enum=False`
+  makes it `VARCHAR` plus a `CHECK` constraint instead of a Postgres `ENUM` type, so adding a step
+  later is an ordinary constraint change. The trap: SQLAlchemy stores the member **name**
+  (`LANDING_VIEW`) by default, not its value (`landing_view`) — the first autogenerate wrote
+  exactly that into the migration. `values_callable` says "store the values". A dashboard query
+  written in SQL should never have to know Python spelling.
+- **`metadata` is reserved on declarative models**: `Base.metadata` is SQLAlchemy's own table
+  registry, so a column called `metadata` needs another attribute name. The form
+  `metadata_: Mapped[…] = mapped_column("metadata", JSONB)` keeps the plan's column name and
+  gives the attribute a suffix. Pydantic has no such reservation, so the wire schema uses the
+  plain name.
+- **`insert(...).on_conflict_do_nothing(index_elements=[…]).returning(…)`**
+  (`app/funnel_events/repository.py`): the Postgres-dialect `insert` (imported from
+  `sqlalchemy.dialects.postgresql`, not the generic one) is the only one that knows `ON CONFLICT`.
+  With `RETURNING id` the statement yields a row only when the insert happened, so
+  `scalar_one_or_none()` answers "written or replayed" without a second query. The generic
+  `Result` has no typed `rowcount`, which is why the first attempt failed mypy.
+- **`AwareDatetime`** (`app/funnel_events/schemas.py`): a Pydantic type that refuses a timestamp
+  without an offset. A naive `datetime` compared against `datetime.now(UTC)` raises `TypeError`,
+  which the error handler turns into a 500 — the wrong status for what is a malformed request.
+  Declaring the type at the boundary makes it a 400 before any comparison runs.
+- **`Field(pattern=r"…")`**: a regex constraint on a string field, the Zod `.regex()` analogue.
+  Here it defines what a client-minted primary key may look like, because the table cannot.
+- **`((flag_key, variant_key),) = assignments.items()`** (`app/funnel_events/tagging.py`):
+  unpacking a one-item view. The outer parentheses-with-comma say "exactly one element" and raise
+  `ValueError` on any other count — a guard the reader sees in the shape, after the explicit
+  length check has already named the failure.
+- **`Mapping[str, str]` as a parameter type**: the read-only protocol for dict-like arguments
+  (`collections.abc`). A pure function that only reads takes `Mapping`, which also documents that
+  it does not mutate — the immutability rule expressed as a type.
