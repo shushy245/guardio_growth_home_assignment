@@ -3,6 +3,28 @@
 The product diary: one entry per story, newest first, in the words of someone who never saw the
 code. Commit-level detail lives in `git log`; the plan holds what is still ahead.
 
+## S3 — feature-flags (closed 2026-09-18)
+
+- **Pain** — The A/B test on the result screen existed only on paper. There was no way to say
+  which visitor should see which framing, no way for a product person to change the split or the
+  wording without a developer and a deploy, and nothing that would let the funnel numbers be
+  broken down by variant later.
+- **Fix** — A visitor now gets an identity on their first visit and is assigned a variant once,
+  on the server, which is written down and never recalculated *(instead of the browser deciding
+  for itself, or the server re-deciding on every request)*. A small admin console at `/admin`
+  lets product retune the traffic split, reword the headline, subheadline and button, or stop the
+  test — live, with no redeploy.
+- **Trade-off** — A change to the weights moves **new visitors only**; everyone already in the
+  test keeps what they were shown, which is what keeps the eventual result honest but means a
+  retune is not instant across the whole audience. The console is protected by a single pasted
+  token rather than real accounts, and reads are open — a deliberate stopping point, recorded in
+  the README, not an oversight.
+- **Result** — Verified on the running stack through the proxy: a visitor is created, assigned,
+  and returns the same variant when asked again; editing the button text with a valid token
+  succeeds and the change is live immediately; saving without a token is refused; and saving
+  against a version someone else has already changed is refused with an explanation instead of
+  quietly overwriting their work.
+
 ## S2b — catalog-refresh (closed 2026-09-18)
 
 - **Pain** — "Refreshed once a day" was only true across restarts: the copy of the public record

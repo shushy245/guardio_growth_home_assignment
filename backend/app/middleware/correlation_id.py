@@ -32,6 +32,11 @@ class CorrelationIdMiddleware(BaseHTTPMiddleware):
         correlation_id = request.headers.get(CORRELATION_ID_HEADER) or generate_unique_id("req")
         structlog.contextvars.bind_contextvars(correlation_id=correlation_id)
         started_at = time.perf_counter()
+        # Behind the compose proxy every request arrives from nginx over plain http. These two
+        # are only the visitor's if uvicorn rewrote them from `X-Forwarded-For` /
+        # `X-Forwarded-Proto` (`--proxy-headers`, and nginx sending them) — logging them is what
+        # makes that wiring observable instead of a config line nobody can check.
+        caller = {"client_ip": client_ip(request), "scheme": request.url.scheme}
         try:
             response = await call_next(request)
         except Exception:
@@ -40,6 +45,7 @@ class CorrelationIdMiddleware(BaseHTTPMiddleware):
                 method=request.method,
                 path=request.url.path,
                 duration_ms=_elapsed_ms(started_at),
+                **caller,
             )
             response = JSONResponse(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -52,11 +58,21 @@ class CorrelationIdMiddleware(BaseHTTPMiddleware):
                 path=request.url.path,
                 status_code=response.status_code,
                 duration_ms=_elapsed_ms(started_at),
+                **caller,
             )
         finally:
             structlog.contextvars.clear_contextvars()
         response.headers[CORRELATION_ID_HEADER] = correlation_id
         return response
+
+
+def client_ip(request: Request) -> str:
+    """`request.client` is None when the transport does not report a peer (an in-process ASGI
+    call); `unknown` keeps the field present in every line rather than absent in some."""
+    if request.client is None:
+        return "unknown"
+
+    return request.client.host
 
 
 def _elapsed_ms(started_at: float) -> float:

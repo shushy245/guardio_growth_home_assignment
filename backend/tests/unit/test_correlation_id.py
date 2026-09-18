@@ -40,3 +40,12 @@ def test_two_overlapping_requests_each_get_their_own_correlation_id(driver: Http
 
     driver.then.each_overlapping_request_echoed_its_own_id()
     driver.then.each_overlapping_request_logged_its_own_id()
+
+
+def test_the_request_log_names_the_client_and_the_scheme(driver: HttpDriver) -> None:
+    """Behind the compose proxy every request arrives from nginx over plain http. The client and
+    scheme are only true if uvicorn rewrote them from `X-Forwarded-For` / `X-Forwarded-Proto`,
+    and a log that never carried them would make that wiring unobservable."""
+    driver.get.path("/api/health")
+
+    driver.then.logged("request: completed", client_ip="testclient", scheme="http")

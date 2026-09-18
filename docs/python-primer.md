@@ -205,3 +205,51 @@ You will struggle to validate details, so here is what to look for:
 - **`datetime.fromisoformat("…Z")`** (`tests/drivers/breaches_api.py`): since Python 3.11 the
   stdlib parser accepts the `Z` suffix Pydantic emits. Compare instants as datetimes, never as
   strings — `Z` and `+00:00` are the same instant spelled two ways.
+
+## Added in S3 — constructs that actually landed
+
+- **`hashlib.sha256(...).digest()` + `int.from_bytes(...)`** (`app/feature_flags/assignment.py`):
+  the stdlib hash, returning raw bytes, turned into an integer to take a modulus. The thing to be
+  suspicious of is the *alternative*: Python's built-in `hash()` is seeded with a random salt at
+  process start (PYTHONHASHSEED), so `hash("abc") % 100` gives a different answer in every
+  process. It is the obvious-looking way to write this and it is wrong for anything that must be
+  reproducible. The TypeScript instinct — "a hash is a hash" — does not carry over.
+- **`SecretStr`** (`app/config.py`, now with a second user): a Pydantic string whose `repr` is
+  `**********`. `settings.admin_token` prints as stars in a traceback or a settings dump; the
+  real value only comes out of `.get_secret_value()`, which is a single grep-able call site.
+- **`hmac.compare_digest(a, b)`** (`app/feature_flags/admin.py`): compares two byte strings in
+  time that does not depend on how many leading bytes matched. A plain `==` on a secret leaks the
+  answer one byte at a time to anyone who can measure response times. Same idea as Node's
+  `crypto.timingSafeEqual`. It takes bytes, hence the `.encode()` on both sides.
+- **`Annotated[str | None, Header()]` with a `None` default** (`app/feature_flags/admin.py`):
+  FastAPI reads a request header into a parameter. Declaring it *optional* is deliberate — a
+  required header that is missing is a 422→400 "malformed request", and a missing credential is
+  a 401. The framework's default would have given the wrong status code.
+- **`dependencies=[Depends(require_admin_token)]` on a route decorator**: a dependency run for
+  its side effect (raise or return `None`), not its value. The Express analogue is a middleware
+  mounted on one route. Contrast with S2b's lesson: a dependency listed at the **router** level
+  runs before the handler's own parameters are validated — fine here, because the gate should
+  answer 401 before it reads a body at all.
+- **`update(...).where(...).values(...).returning(...)`** (`app/feature_flags/repository.py`):
+  SQLAlchemy's `UPDATE … RETURNING`, executed with `.scalar_one_or_none()` — the new token, or
+  `None` when no row matched. One statement does the lock check, the write and the read of the
+  new token; splitting it into a SELECT-then-UPDATE would be the race the lock exists to prevent.
+- **`func.clock_timestamp()` vs `func.now()`**: `func.X` writes the SQL function `X` into the
+  statement. Postgres's `now()` is the **transaction** start time and does not move inside one
+  transaction; `clock_timestamp()` is the actual wall clock and does. Every ORM tutorial reaches
+  for `now()`. Here it would mean two saves in one transaction mint the same lock token — and
+  every integration test in this repo runs inside one transaction, which is how the test caught it.
+- **`insert(Table).values([{...}, {...}])`** (`app/visitors/repository.py`): one multi-row INSERT
+  from a list of dicts, rather than a loop of inserts.
+- **`select(A.x, B.y).outerjoin(B, B.a_id == A.id)`** (`app/visitors/repository.py`): a LEFT JOIN.
+  It is what lets "this visitor exists but has no assignments" be an empty mapping rather than
+  indistinguishable from "no such visitor" — the difference between a 200 and a 404.
+- **`TypeAdapter(list[Model])`** (`app/feature_flags/repository.py`): a validator for a type that
+  is not itself a model — here the JSONB column's list of variants. Built once at module level,
+  because constructing one compiles a validator and this runs on every visitor creation.
+- **`@field_validator("variants")` returning the value** (`app/feature_flags/schemas.py`): the
+  same Zod-`.refine()` analogue as S1's, but on a list field, and it must **return** the value it
+  validated — a validator that falls off the end returns `None` and silently empties the field.
+- **ruff `S105`**: bandit flags a *name* containing `TOKEN`/`PASSWORD` assigned a string literal
+  as a hardcoded credential. `ADMIN_TOKEN_HEADER = "X-Admin-Token"` trips it even though the value
+  is a header name. The fix is the name (`ADMIN_HEADER_NAME`), never a suppression comment.
