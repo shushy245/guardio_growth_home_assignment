@@ -1,10 +1,11 @@
 // One flag's editor: the split, the copy each variant serves, whether the flag runs at all, and
 // the optimistic-lock round trip that saves them. The page above it owns the list of flags and
 // the admin token; this owns the save.
-import { type ChangeEvent, type ReactElement, useState } from 'react';
+import { type ChangeEvent, type ReactElement, useEffect, useRef, useState } from 'react';
 
 import { Column } from '~/ui/box';
 import { logger } from '~/logging/logger';
+import { bringIntoView } from '~/ui/scroll';
 import { updateFeatureFlag } from '~/api/feature-flags';
 import { describeError, statusOfError } from '~/api/http-client';
 import {
@@ -21,6 +22,7 @@ import {
 import {
     canSave,
     clampWeight,
+    isAnswered,
     copyLabelMap,
     flagFieldTestId,
     FlagField,
@@ -47,6 +49,18 @@ export const FlagEditor = ({
     onSaved: (saved: { flagKey: string; lockToken: string }) => void;
 }): ReactElement => {
     const [save, setSave] = useState<SaveStatus>(SaveStatus.Idle);
+    // Save sits below the fold of a long flag at 390 and at 1280, so the answer to a click can
+    // land entirely off screen — the click reads as having done nothing at all.
+    const messageRef = useRef<HTMLParagraphElement | undefined>(undefined);
+
+    useEffect(() => {
+        if (!isAnswered(save)) return;
+        bringIntoView(messageRef.current);
+    }, [save]);
+
+    const handleMessageRef = (node: HTMLParagraphElement | null): void => {
+        messageRef.current = node ?? undefined;
+    };
 
     // Any edit invalidates the last answer: "Saved." standing beside a field the operator has
     // since changed claims the value on screen is the value stored. A save still in flight keeps
@@ -121,6 +135,7 @@ export const FlagEditor = ({
             {/* Saving, saved, rejected and conflict all replace the text in this one slot; a
                 live region is what makes that a change a screen reader hears. */}
             <p
+                ref={handleMessageRef}
                 className={styles.message}
                 role="status"
                 data-testid={flagFieldTestId({ flagKey: flag.key, field: FlagField.SaveMessage })}

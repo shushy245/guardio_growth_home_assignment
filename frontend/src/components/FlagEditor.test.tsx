@@ -89,6 +89,21 @@ describe('FlagEditor', () => {
         driver.assert.saveMessagesAreAnnounced();
     });
 
+    it('brings the save result into view so clicking Save is never a no-op on screen', async () => {
+        driver.given.theFlag(aFeatureFlagDTO().withUpdatedAt(FIRST_TOKEN).build());
+        driver.given.theSaveSucceedsWithToken(SECOND_TOKEN);
+        await driver.when.created();
+        await driver.click.save();
+        await driver.assert.saveResultWasBroughtIntoView();
+    });
+
+    it('does not scroll anything before a save has been answered', async () => {
+        driver.given.theFlag(aFeatureFlagDTO().build());
+        await driver.when.created();
+        await driver.type.urgentCtaLabel('Just typing');
+        driver.assert.nothingWasBroughtIntoView();
+    });
+
     it('tells the operator a save failed in their words and logs the server’s', async () => {
         driver.given.theFlag(aFeatureFlagDTO().withUpdatedAt(FIRST_TOKEN).build());
         driver.given.theSaveFails();

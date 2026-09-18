@@ -10,6 +10,10 @@ import { aFeatureFlagDTO, aVisitorDTO } from '~/testkit/builders';
 // seeded world: a visitor can be created and the one flag is listed. A driver overrides what its
 // scenario changes; a route nothing registered fails loudly rather than reaching a server.
 beforeEach(() => {
+    // jsdom has no layout engine and therefore no scrollIntoView. A no-op per test keeps a
+    // component that scrolls from crashing every test that renders it; a driver that asserts on
+    // the scroll replaces this with its own spy.
+    Element.prototype.scrollIntoView = (): void => {};
     forgetVisitorId();
     fakeHttp.reset();
     fakeHttp.respond({ method: HttpMethod.Post, path: '/visitors', status: 201, body: aVisitorDTO().build() });

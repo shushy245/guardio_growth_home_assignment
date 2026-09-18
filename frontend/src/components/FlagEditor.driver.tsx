@@ -74,6 +74,8 @@ export type FlagEditorDriver = {
         noSaveMessageIsShown: () => void;
         saveIsOffered: () => void;
         saveMessagesAreAnnounced: () => void;
+        saveResultWasBroughtIntoView: () => Promise<void>;
+        nothingWasBroughtIntoView: () => void;
         saveIsNotOffered: () => void;
         urgentWeightIs: (weight: number) => void;
         conflictMessageIsShown: () => Promise<void>;
@@ -91,6 +93,9 @@ export const makeFlagEditorDriver = (): FlagEditorDriver => {
     let adminToken = 'the-pasted-admin-token';
     let releaseSave: (() => void) | undefined = undefined;
     const loggedErrors = vi.spyOn(logger, 'error').mockImplementation(() => {});
+    // jsdom has no layout and therefore no scrollIntoView; the driver supplies it so the call
+    // the component makes in a real browser is observable here.
+    const scrolled = vi.fn();
 
     const saves = (): RecordedRequest[] =>
         fakeHttp.requests().filter((request) => request.method === HttpMethod.Patch && request.path === SAVE_PATH);
@@ -176,6 +181,7 @@ export const makeFlagEditorDriver = (): FlagEditorDriver => {
         },
         when: {
             created: async (): Promise<void> => {
+                Element.prototype.scrollIntoView = scrolled;
                 await act(async () => {
                     renderWithProviders(<FlagEditorHost flag={fromDTO(dto)} adminToken={adminToken} />, {
                         route: '/admin',
@@ -226,6 +232,15 @@ export const makeFlagEditorDriver = (): FlagEditorDriver => {
                 await waitFor(() => {
                     expect(messageOf()).toHaveTextContent('Saved');
                 });
+            },
+            saveResultWasBroughtIntoView: async (): Promise<void> => {
+                await waitFor(() => {
+                    expect(scrolled).toHaveBeenCalled();
+                });
+                expect(scrolled.mock.instances.at(-1)).toBe(messageOf());
+            },
+            nothingWasBroughtIntoView: (): void => {
+                expect(scrolled).not.toHaveBeenCalled();
             },
             saveMessagesAreAnnounced: (): void => {
                 expect(messageOf()).toHaveAttribute('role', 'status');

@@ -50,6 +50,10 @@ export enum SaveStatus {
 
 export const isSaving = (save: SaveStatus): boolean => save === SaveStatus.Saving;
 
+// A save that has been answered — the states that put something on screen the operator is
+// waiting for, and the ones worth scrolling to.
+export const isAnswered = (save: SaveStatus): boolean => save !== SaveStatus.Idle && !isSaving(save);
+
 export const CONFLICT_MESSAGE =
     'This flag changed somewhere else while you were editing. Reload the page, then apply your change to the current version.';
 export const SAVED_MESSAGE = 'Saved.';
