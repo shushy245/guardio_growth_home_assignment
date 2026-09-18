@@ -4,7 +4,7 @@
 on the day the test happens to run.
 """
 
-from datetime import date
+from datetime import UTC, date, datetime
 
 from app.breaches.summary import summarise_breaches
 from tests.builders.breach_facts import breach_facts
@@ -136,3 +136,23 @@ def test_breaches_tied_on_size_resolve_to_the_same_one_every_time() -> None:
 
     assert summary is not None
     assert summary.largest_breach.name == "Alpha"
+
+
+def test_the_summary_reports_the_newest_sync_as_when_the_catalog_was_synced() -> None:
+    """Every row of one sync shares a `fetched_at`; after a partial failure they may not, and the
+    newest is the age of what the visitor is looking at."""
+    catalog = [
+        breach_facts()
+        .with_name("Older")
+        .with_fetched_at(datetime(2026, 9, 17, 8, tzinfo=UTC))
+        .build(),
+        breach_facts()
+        .with_name("Newer")
+        .with_fetched_at(datetime(2026, 9, 18, 8, tzinfo=UTC))
+        .build(),
+    ]
+
+    summary = summarise_breaches(catalog, today=TODAY)
+
+    assert summary is not None
+    assert summary.synced_at == datetime(2026, 9, 18, 8, tzinfo=UTC)

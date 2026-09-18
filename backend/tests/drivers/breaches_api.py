@@ -161,6 +161,15 @@ class _Then:
         actual = {key: body.get(key) for key in expected}
         assert actual == expected, f"expected {expected}, got {actual}"
 
+    def the_summary_was_synced_when_the_rows_were_seeded(self) -> None:
+        """`syncedAt` is an ISO instant on the wire; compared as a datetime, not as a string,
+        because `Z` and `+00:00` are the same instant spelled two ways."""
+        raw = self._driver._body["syncedAt"]
+        assert isinstance(raw, str), f"syncedAt must be an ISO string, got {raw!r}"
+        actual = datetime.fromisoformat(raw)
+        expected = self._driver._now - SEEDED_AGE
+        assert actual == expected, f"expected syncedAt={expected.isoformat()}, got {raw}"
+
     def the_summary_highlights(self, *, largest: str, most_recent: str) -> None:
         body = self._driver._body
         highlights = (body["largestBreach"], body["mostRecentBreach"])

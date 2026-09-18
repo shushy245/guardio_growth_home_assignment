@@ -52,7 +52,7 @@ def has_any_servable_breach(*, session: Session) -> bool:
 
 
 def list_breach_facts(*, session: Session) -> list[BreachFacts]:
-    """Every servable breach, as the five fields the summary needs.
+    """Every servable breach, as the six fields the summary needs.
 
     Loading the catalog to summarise it in Python rather than aggregating in SQL is a deliberate
     trade at 1,036 rows: the `unnest`-and-group form of the data-class ranking is far harder to
@@ -66,8 +66,9 @@ def list_breach_facts(*, session: Session) -> list[BreachFacts]:
             breach_date=breach_date,
             pwn_count=pwn_count,
             data_classes=tuple(data_classes),
+            fetched_at=fetched_at,
         )
-        for name, title, breach_date, pwn_count, data_classes in session.execute(
+        for name, title, breach_date, pwn_count, data_classes, fetched_at in session.execute(
             build_breach_facts_query()
         ).all()
     ]

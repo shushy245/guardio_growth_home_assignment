@@ -97,3 +97,12 @@ def test_hibp_going_down_does_not_stop_the_list_serving_what_is_stored(
 
     breaches.then.it_answered_normally()
     breaches.then.the_breach_names_are("Adobe")
+
+
+def test_the_summary_reports_when_the_catalog_was_synced(breaches: BreachesApiDriver) -> None:
+    """The one number the tiles cannot imply: how old the copy the visitor is reading is."""
+    breaches.given.breaches(a_breach().with_name("Adobe").build())
+
+    breaches.when.the_summary_was_requested()
+
+    breaches.then.the_summary_was_synced_when_the_rows_were_seeded()

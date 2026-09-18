@@ -6,7 +6,7 @@ names are snake_case here and camelCase on the wire through one alias generator,
 vocabularies never have to be kept in step by hand.
 """
 
-from datetime import date
+from datetime import date, datetime
 from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -118,3 +118,4 @@ class BreachSummaryResponse(BaseModel):
     top_data_classes: list[DataClassCountResponse]
     largest_breach: BreachHighlightResponse
     most_recent_breach: BreachHighlightResponse
+    synced_at: datetime

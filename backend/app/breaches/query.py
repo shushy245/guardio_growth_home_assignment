@@ -6,7 +6,7 @@ repository is left with nothing but `session.execute`, and the docstring on each
 place a reader looks to find out why the list behaves as it does.
 """
 
-from datetime import date
+from datetime import date, datetime
 
 from sqlalchemy import ColumnElement, Select, exists, or_, select
 from sqlalchemy.orm import InstrumentedAttribute
@@ -39,8 +39,8 @@ def build_breach_query(query: BreachListQuery) -> Select[tuple[BreachRow]]:
     return select(BreachRow).where(*_conditions(query))
 
 
-def build_breach_facts_query() -> Select[tuple[str, str, date, int, list[str]]]:
-    """The whole servable catalog, reduced to the five fields the summary works from.
+def build_breach_facts_query() -> Select[tuple[str, str, date, int, list[str], datetime]]:
+    """The whole servable catalog, reduced to the six fields the summary works from.
 
     It shares `servable_conditions` with the list, so the tiles and the rows underneath them can
     never disagree about which breaches exist. It deliberately ignores the list's filters: the
@@ -52,6 +52,7 @@ def build_breach_facts_query() -> Select[tuple[str, str, date, int, list[str]]]:
         BreachRow.breach_date,
         BreachRow.pwn_count,
         BreachRow.data_classes,
+        BreachRow.fetched_at,
     ).where(*servable_conditions())
 
 

@@ -3,15 +3,15 @@
 Pure — no database, no clock. `today` arrives as a parameter because a "last 12 months" rule that
 reads the clock itself can only be tested on the day the test happens to run.
 
-It works from `BreachFacts` rather than whole breaches: five fields decide every tile, so the
-summary never learns what a description or a logo path is, and a test states five values instead
+It works from `BreachFacts` rather than whole breaches: six fields decide every tile, so the
+summary never learns what a description or a logo path is, and a test states six values instead
 of twenty-one.
 """
 
 from collections import Counter
 from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 # 365 days rather than a calendar year: the calendar form has to answer what 29 February minus a
 # year means, and no tile on the screen is worth that question.
@@ -32,6 +32,7 @@ class BreachFacts:
     breach_date: date
     pwn_count: int
     data_classes: tuple[str, ...]
+    fetched_at: datetime
 
 
 @dataclass(frozen=True)
@@ -57,6 +58,9 @@ class BreachSummary:
     top_data_classes: tuple[DataClassCount, ...]
     largest_breach: BreachHighlight
     most_recent_breach: BreachHighlight
+    # The age of what the visitor is reading. Every row of one sync shares a `fetched_at`; the
+    # newest is reported so a partially failed sync cannot make the copy look older than it is.
+    synced_at: datetime
 
 
 def summarise_breaches(breaches: Sequence[BreachFacts], *, today: date) -> BreachSummary | None:
@@ -79,6 +83,7 @@ def summarise_breaches(breaches: Sequence[BreachFacts], *, today: date) -> Breac
         top_data_classes=_rank_data_classes(breaches),
         largest_breach=_highlight(min(breaches, key=_largest_first)),
         most_recent_breach=_highlight(min(breaches, key=_most_recent_first)),
+        synced_at=max(breach.fetched_at for breach in breaches),
     )
 
 
