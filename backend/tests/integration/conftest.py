@@ -20,6 +20,7 @@ from sqlalchemy.orm import Session
 
 from tests.drivers.breach_sync import BreachSyncDriver
 from tests.drivers.breaches_api import BreachesApiDriver
+from tests.drivers.catalog_refresh import CatalogRefreshDriver
 from tests.drivers.db import DbDriver
 from tests.drivers.http import HttpDriver
 
@@ -76,3 +77,8 @@ def sync(db_session: Session) -> BreachSyncDriver:
 @pytest.fixture
 def breaches(driver: HttpDriver, db_session: Session) -> BreachesApiDriver:
     return BreachesApiDriver(driver, db_session)
+
+
+@pytest.fixture
+def refresh(db_session: Session) -> CatalogRefreshDriver:
+    return CatalogRefreshDriver(db_session)
