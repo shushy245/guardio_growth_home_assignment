@@ -51,3 +51,16 @@ def test_the_request_that_triggers_a_refresh_is_answered_from_the_stored_copy(
     breaches.then.it_answered_normally()
     breaches.then.the_summary_reports_the_seeded_sync_time()
     breaches.then.the_catalog_source_was_fetched(1)
+
+
+def test_a_failed_refresh_never_reaches_the_visitor(breaches: BreachesApiDriver) -> None:
+    """The stored copy is the answer; the failure is the operator's to see, in the log."""
+    breaches.given.breaches_stored_hours_ago(STALE_HOURS, a_breach().with_name("Adobe").build())
+    breaches.given.the_catalog_source_is_unreachable()
+
+    breaches.when.listed()
+
+    breaches.then.it_answered_normally()
+    breaches.then.the_breach_names_are("Adobe")
+    breaches.then.the_catalog_source_was_fetched(1)
+    breaches.then.the_failed_refresh_was_logged()

@@ -12,7 +12,7 @@ from datetime import datetime
 import structlog
 from sqlalchemy.orm import Session, sessionmaker
 
-from app.breaches.staleness import should_sync
+from app.breaches.staleness import should_retry, should_sync
 from app.breaches.sync import sync_catalog_in_own_transaction
 from app.ports.breach_catalog import BreachCatalogPort
 
@@ -22,18 +22,22 @@ log = structlog.get_logger()
 class CatalogRefresher:
     """One per process, built in the composition root and reached through `app.state`.
 
-    A class because the in-flight lock is state no caller may bypass: two requests that find
-    the catalog stale in the same window must become one fetch, not two fetches and two
-    concurrent upserts of the same rows. The lock is per process; a second worker would need a
-    database-level one (recorded in ADR-0002's amendment).
+    A class because the in-flight lock and the last attempt time are state no caller may
+    bypass: two requests that find the catalog stale in the same window must become one fetch,
+    not two fetches and two concurrent upserts of the same rows; and a down HIBP is attempted
+    once per retry interval, not once per visitor. Both are per process; a second worker would
+    need them in the database (recorded in ADR-0002's amendment).
     """
 
     def __init__(self, *, catalog: BreachCatalogPort) -> None:
         self._catalog = catalog
         self._in_flight = threading.Lock()
+        self._last_attempt_at: datetime | None = None
 
     def wants_refresh(self, *, fetched_at: datetime | None, now: datetime) -> bool:
         if self._is_in_flight():
+            return False
+        if not should_retry(last_attempt_at=self._last_attempt_at, now=now):
             return False
 
         return should_sync(fetched_at=fetched_at, now=now)
@@ -50,6 +54,7 @@ class CatalogRefresher:
             return
 
         try:
+            self._last_attempt_at = now
             log.info("CatalogRefresher.refresh: started", now=now.isoformat())
             sync_catalog_in_own_transaction(
                 session_factory=session_factory, catalog=self._catalog, now=now

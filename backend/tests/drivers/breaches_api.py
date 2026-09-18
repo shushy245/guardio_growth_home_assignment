@@ -183,6 +183,11 @@ class _Then:
         expected = self._driver._seeded_at
         assert actual == expected, f"expected syncedAt={expected.isoformat()}, got {raw}"
 
+    def the_failed_refresh_was_logged(self) -> None:
+        self._driver._http.then.logged(
+            "sync_catalog_best_effort: catalog unavailable, serving what is stored"
+        )
+
     def the_catalog_source_was_fetched(self, times: int) -> None:
         actual = self._driver._http._catalog.fetch_count
         assert actual == times, f"expected {times} catalog fetch(es), got {actual}"
