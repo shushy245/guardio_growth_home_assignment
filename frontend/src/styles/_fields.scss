@@ -71,11 +71,15 @@
     cursor: pointer;
 }
 
+// The tone seam, live: the custom property is what a `tone-calm` / `tone-urgent` class on an
+// ancestor re-points, and the calm SCSS value is the fallback for every screen that sets no tone
+// (admin, landing). Binding the SCSS variable directly would resolve at compile time and could
+// only be re-pointed by editing this mixin — the Open/Closed violation the seam exists to avoid.
 @mixin button-primary {
     @include button-base;
     border: 0;
-    background: tokens.$tone-calm-accent-strong;
-    color: tokens.$tone-calm-on-accent;
+    background: var(--tone-accent-strong, #{tokens.$tone-calm-accent-strong});
+    color: var(--tone-on-accent, #{tokens.$tone-calm-on-accent});
 
     &:disabled {
         background: tokens.$color-disabled-fill;
@@ -87,7 +91,7 @@
 
 @mixin button-secondary {
     @include button-base;
-    border: 1.5px solid tokens.$tone-calm-accent-strong;
+    border: 1.5px solid var(--tone-accent-strong, #{tokens.$tone-calm-accent-strong});
     background: tokens.$color-surface;
-    color: tokens.$tone-calm-accent-strong;
+    color: var(--tone-accent-strong, #{tokens.$tone-calm-accent-strong});
 }

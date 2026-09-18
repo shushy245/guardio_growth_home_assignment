@@ -106,7 +106,7 @@ export const FlagEditor = ({
     };
 
     const message = saveMessage(save) ?? missingTokenHint(adminToken);
-    const toneClassMap: Record<SaveTone, string | undefined> = {
+    const saveToneClassMap: Record<SaveTone, string | undefined> = {
         [SaveTone.Neutral]: undefined,
         [SaveTone.Saved]: styles.saved,
         [SaveTone.Unsaved]: styles.unsaved,
@@ -148,7 +148,7 @@ export const FlagEditor = ({
                 live region is what makes that a change a screen reader hears. */}
             <p
                 ref={handleMessageRef}
-                className={joinClassNames(styles.message, toneClassMap[saveTone(save)])}
+                className={joinClassNames(styles.message, saveToneClassMap[saveTone(save)])}
                 role="status"
                 data-testid={flagFieldTestId({ flagKey: flag.key, field: FlagField.SaveMessage })}
             >

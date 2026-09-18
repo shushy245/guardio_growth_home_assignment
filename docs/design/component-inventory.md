@@ -38,7 +38,10 @@ The three findings carried from the S3 visual review are answered by a token eac
 per-page override:
 
 - **BF36, disabled Save at 2.58:1** → `$color-disabled-fill` / `$color-disabled-text` in the
-  `button-primary` mixin's `:disabled` rule; "disabled" is read from the fill and a border.
+  `button-primary` mixin's `:disabled` rule. The text pair measures 7.68:1 and the finding is
+  closed. The border the design asked for as a *second* signal is drawn in `$color-border` on
+  `$color-disabled-fill` — **1.13:1, not perceptible** (BF52); today the fill carries the signal
+  alone.
 - **BF42, 14px body text** → `$text-100` is 16px and the floor; the `field`, `note` and
   `message` mixins use it; nothing in the app sets a smaller size.
 - **96–101 character measure at 768/1280** → `$prose-measure: 65ch`, applied to every `p` in
@@ -73,7 +76,7 @@ Names are the design's, and they are what S5–S7 name their components and driv
 | `PlanCard` | idle · selected | S6 | F7 |
 | `TextField` | idle · focus · error | D1 (mixin) · S6 | `input` mixin |
 | `PasswordField` | idle · checking · leaked · unchecked | S6 | F3–F6 |
-| `StatusMessage` | info · success · warning · error | D1 (mixins) | `message` + `message-success/warning/error` mixins; the flag editor's save answers use them now |
+| `StatusMessage` | info · success · warning · error | D1 (mixins) | `message` + `message-success/warning/error` mixins. **`message-error` is defined and used by nothing** — a failed load renders as the neutral chip and a save failure shares `message-warning` with a lock conflict (BF51) |
 | `Skeleton` | — | S5 | Shimmer with a reduced-motion static state |
 | `ProgressIndicator` | — | S5 | The scan moment's bar (F3) |
 | `HypothesisCard` · `FunnelChart` · `LiftCard` · `RecommendationBanner` | ship · keep-control · keep-running · error | S7 | F2–F4 |

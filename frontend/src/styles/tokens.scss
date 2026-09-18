@@ -11,7 +11,10 @@
 
 // Breakpoints — named exactly once (the responsive contract). 390 is the design target, a phone;
 // 768 a tablet; 1280 a laptop. Every screen is built at 390 and must hold at the other two.
-$breakpoint-sm: 390px;
+// `base` is deliberately not `sm`: it is the mobile-first floor, never a query threshold. A
+// `min-width: 390px` query would exclude every narrower device (the iPhone SE is 375px) from the
+// base styles, which is the opposite of what the name would suggest.
+$breakpoint-base: 390px;
 $breakpoint-md: 768px;
 $breakpoint-lg: 1280px;
 
@@ -27,7 +30,8 @@ $color-brand: #004867; // oklch(38% 0.09 235) — the wordmark only
 $color-focus-ring: #007bab; // oklch(55% 0.16 235)
 
 // Colour — tone sets. Calm and urgent share every name; only the value differs, so the result
-// screen selects a set by class (`toneClassMap`) and never branches on the tone in a rule.
+// screen selects a set by class (S5's `toneClassMap`; the flag editor's `saveToneClassMap` is a
+// different map, for save status) and never branches on the tone in a rule.
 $tone-calm-accent: #005256; // oklch(40% 0.13 200) — links, selected chip border
 $tone-calm-accent-strong: #003b3e; // oklch(32% 0.13 200) — primary button fill, link text
 $tone-calm-tint: #dcf4f5; // oklch(95% 0.025 200) — selected chip / plan card fill

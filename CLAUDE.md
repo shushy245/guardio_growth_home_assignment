@@ -58,7 +58,7 @@ Full history: `docs/changelog.md`; commit-level record: `git log`.
   Technically: `tokens.scss` translates the design's `oklch()` to sRGB hex with the source value in
   a comment beside each (Chrome gamut-maps by reducing chroma, and the review tooling measures from
   computed `rgb()`); `$text-100` 16px is the floor, `$prose-measure: 65ch` caps every `p`,
-  `$content-max` 1120px caps `main`, and `button-primary:disabled` reads its pair from
+  `$content-max` 1120px caps the landing `main` (per-page, not on `MainColumn` — RF4), and `button-primary:disabled` reads its pair from
   `$color-disabled-fill`/`-text`. Source Sans 3 is self-hosted via `@fontsource-variable`, imported
   once in `main.tsx` — a security product's page should not call a third-party origin to draw text.
   `/admin` and the landing route are re-tokened; every `@media` is `min-width` over a breakpoint

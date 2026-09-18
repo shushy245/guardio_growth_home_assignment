@@ -961,20 +961,102 @@ Cases:
 | BF36 disabled Save was 2.58:1 | `$color-disabled-fill` / `$color-disabled-text` in `button-primary:disabled` | Lighthouse `color-contrast` **passes, 0 items**, with Save rendered disabled |
 | BF42 14px body text | `$text-100` = 16px, the floor | `bodyTextUnder16` **empty at all three viewports**, both screens |
 | 96–101 ch measure at 768/1280 | `$prose-measure: 65ch` on every `p` | **nothing over 75ch at any viewport** — the finding does not reproduce |
-| the landing route had no `max-width` | `$content-max: 1120px` + `$gutter-*` | `main` computes `max-width: 1120px`, `padding: 64px` at 1280 |
+| the landing route had no `max-width` | `$content-max: 1120px` + `$gutter-*` | the landing `main` computes `max-width: 1120px`, `padding: 64px` at 1280 (the cap is on that page's class, not on `MainColumn` — see RF4) |
 | tokens file carries the three breakpoints | `$breakpoint-md` / `$breakpoint-lg` | all four `@media` blocks are `min-width` over the tokens; **no breakpoint literal, no `max-width` query, no width branch in any component** |
 
-Accessibility 100 on both screens, 0 accessibility audits failed. Four observations triaged, none a
-blocker and none a code fix: the 24×24 checkbox inside a 686×52 label (precondition, not a defect),
+Accessibility 100 on both screens, 0 accessibility audits failed — **which covers text contrast
+only**: Lighthouse's `color-contrast` audit does not test non-text contrast, and the code review
+then measured every border at 1.40–1.48:1 against WCAG 2.2 SC 1.4.11's 3:1 (BF52). Four visual
+observations triaged, none a blocker and none a code fix: the 24×24 checkbox inside a 686×52 label (precondition, not a defect),
 native `<input>` value clipping, the status `<p>` and Save not sharing a right edge at 768/1280
 (nit — the 65ch cap is the token answering the measure criterion), and a pre-existing devtools
 `id`/`name` console note on controls that all carry accessible names. **Unmeasured and stated as
 such:** every authenticated `/admin` state (the `.saved` / `.unsaved` / `.warning` pairs), the real
 `prefers-reduced-motion` feature, and iOS Safari `100dvh`.
 
-**Carried from the S3 visual review — closed 2026-09-19:** the landing route was a placeholder with
-no `max-width`, so its content box grew to the full viewport (1232px at 1280). `MainColumn` now
-carries `$content-max` (1120px) and the token gutters; measured at 1280 in the D1 pass.
+**Carried from the S3 visual review — closed 2026-09-19 for the landing route only:** it was a
+placeholder with no `max-width`, so its content box grew to the full viewport (1232px at 1280).
+`Landing.module.scss` now caps at `$content-max` (1120px) with the token gutters; measured at 1280
+in the D1 pass. **The cap is per-page, not on `MainColumn`** — so every screen S5 adds must set it
+itself or reopen this finding. Carried into S5 as **RF4**.
+
+### D1 — review triage
+
+Two independent reviews closed D1: the `visual-reviewer` pass A + B (`docs/reviews/d1-visual-review.md`,
+4 observations, none a blocker) and a high-effort code review of `story/D1..HEAD` on Opus
+(11 findings). The code review's own summary of the pattern is the finding worth keeping: **the
+prose consistently described the system that was designed rather than the system that was built.**
+Five of the eleven were that one defect wearing different clothes, and three of those were claims
+written in this very story.
+
+**Fixed in D1** (`frontend/src/styles/_fields.scss`, `tokens.scss`, `FlagEditor.tsx` and the three
+documents; no test, because every one is presentation or prose — D1 ships no logic):
+
+| # | Finding | Fix |
+|---|---|---|
+| 1 | **The tone seam was dead.** `tone-calm` / `tone-urgent` set `--tone-*` custom properties and *nothing read them*; `button-primary`/`-secondary` bound `$tone-calm-*` directly, resolved at compile time and re-pointable only by editing the shared mixin. S5 would have put `tone-urgent` on the result root and got a teal CTA on the urgent variant — an **Open/Closed** violation, and the exact branching the design's shared token names exist to prevent. This was the one capability D1 owed S5. | Both button mixins now read `var(--tone-accent-strong, #{$tone-calm-accent-strong})`. Calm is the fallback, so every screen that sets no tone renders byte-identically and the D1 visual pass stays valid. |
+| 7 | `docs/plan.md` and `CLAUDE.md` both claimed `MainColumn` carries `$content-max`. It does not — `MainColumn` sets only `styles.column`, and the cap lives on `Landing.module.scss:10`. S5 would have added Scan and Result on `MainColumn`, trusted the sentence, and reopened the carried S3 finding on two new screens. | Both sentences corrected to say the cap is per-page; **RF4** below decides where it belongs. |
+| 10 | `toneClassMap` named two different things: the tone selector the tokens comment and inventory promise S5, and a save-status map `FlagEditor.tsx` already defines. A grep for the name landed in the wrong file. | The existing one is `saveToneClassMap`; the comment now distinguishes them. |
+| 10b | `$breakpoint-sm: 390px` invited `@media (min-width: $breakpoint-sm)`, which in a mobile-first sheet excludes every narrower device (the iPhone SE is 375px) from the base styles. | Renamed `$breakpoint-base`, with the trap written into the comment. |
+| 2, 3, 4 (doc halves) | The inventory claimed the save answers use all four message mixins; the plan reported "Accessibility 100, 0 audits failed" without noting that Lighthouse's `color-contrast` does not test *non-text* contrast; the inventory said disabled is read "from the fill and a border". | All three corrected in place, each pointing at the BF item that carries the code half. |
+
+**BF items — correctness and robustness, before or during S5:**
+
+- **BF51** `message-error` is defined and included by nothing. `Admin.tsx:126` renders a failed
+  flag load with the plain neutral `message` chip — **byte-identical to the "Loading flags…" chip**,
+  so an operator whose load failed sees the box they saw while it was loading and only the words
+  differ. And `FlagEditor.utils.ts:114-120` maps both `SaveStatus.Failed` and `SaveStatus.Conflict`
+  to `SaveTone.Unsaved`, so a server error and a lock conflict are indistinguishable. This is S3's
+  own "a save that did not happen must not read like one that did" reintroduced one level down.
+  Fix red-first: two driver cases, one per surface.
+- **BF52** Non-text contrast fails WCAG 2.2 SC 1.4.11 across the board: `$color-border` on
+  `$color-surface` is **1.48:1** (an input's only boundary), on `$color-bg` **1.40:1**, and the
+  disabled button's "visible border" **1.13:1**; card-vs-page fill is 1.06:1 and `$shadow-sm`/`-md`
+  are defined but applied nowhere, so at 768 the two variant cards read as one flat area. The
+  translation made the border *lighter* than the `#b6c2cf` it replaced (1.81:1). **Precondition on
+  the dismissal of the visual pass's clean result:** Lighthouse tests text contrast only, so the
+  "Accessibility 100" measurement never covered this pair. The value is design-faithful — it is the
+  export's own token — so the fix is a deliberate deviation, not a correction.
+- **BF53** `button-base` sets `padding: 0 $sp-6` and declares no `box-sizing`, unlike the `input`
+  mixin directly above it. `button-primary` toggles `border: 0` → `1px` on `:disabled`, so under a
+  `content-box` default the Save button changes height by 2px the instant it disables — a visible
+  jump on every click. The design compensates the padding (14/24 with no border vs 13/23 with
+  1.5px) precisely so the variants share a box. Zero vertical padding also means a CTA label that
+  wraps to two lines at 390 exactly fills the 48px `min-height`, text flush against the border —
+  which is where S5's longer CTA copy lands.
+
+**RF-backlog — batched, not fixed reactively:**
+
+- **RF4** `$content-max` is applied per-page. Decide whether it is the default (on `MainColumn` or
+  on `main` in `global.scss`, with admin overriding) or stays per-page; either way S5's screens must
+  not rediscover it. Note the specificity trap: `Admin.module.scss`'s cap and a `box.module.scss`
+  cap are both single-class selectors, so source order would decide — which is why this is a
+  decision, not a one-line move.
+- **RF5** `Admin.module.scss:56` `max-width: 720px` is the only raw literal left in a
+  `.module.scss`, in the same range that writes "a one-off literal in a `.module.scss` is a
+  finding". It is deviation 6's number and has no token to disagree with. Same file `:57` writes
+  `padding: $gutter-md $gutter-md` twice for one value, and silently moved the md+ horizontal
+  gutter from 24px to 32px — unrecorded.
+- **RF6** Admin's `<h1>` is `$text-400`/`$text-500` against the design's `$text-700`, and its intro
+  is `$text-100` against `$text-200`. Not one of the eight recorded deviations, so by the project's
+  own rule ("recorded in the inventory or it is a defect") it is a defect. It is also why
+  `$text-600`/`$text-700` are unused: the app's only `<h1>` never reaches the top of the ramp.
+- **RF7** Two homes for the focus ring: `$focus-ring` in `tokens.scss` (hue 200, unused, and it
+  drops the export's `inset` half) and the live `outline: 3px solid $color-focus-ring` in
+  `global.scss` (hue 235, geometry hand-written at the call site). The live ring measures 4.49:1
+  and passes; the finding is the duplication and the unrecorded hue change.
+- **RF8** `global.scss` `p { max-width: 65ch }` is an element-level cascade rule, so any future
+  full-width paragraph must fight it and a module override wins on specificity. It is also the
+  direct cause of visual observation DV3 — recorded here so a later reader does not "fix" the
+  mismatched right edge by deleting the rule that answers D1's measure criterion.
+
+**Dismissed, with the precondition recorded:** the unused scale entries (`$color-brand`,
+`$text-300/600/700`, `$sp-5/8/9/11`, `$radius-sm/lg/pill`, `$shadow-*`, the whole `tone-urgent-*`
+set). A translated scale is **one piece of knowledge** and cherry-picking it would defeat the
+translation; they are consumed as S5–S7 build the inventory's components. The precondition is that
+they *are* consumed — an entry still unused when S7 closes is dead code, and Beck's rule 4 reaches
+it then. The two entries that were not scale — the tone mixins and `$focus-ring` — are findings 1
+and RF7, not part of this dismissal.
 
 ### S5 — funnel-ui (~2.5h; the result screen is the heart of the exercise and gets the most care; implements D1's design)
 
