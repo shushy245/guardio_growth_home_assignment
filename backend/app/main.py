@@ -20,6 +20,7 @@ from app.breaches.sync import sync_catalog_in_own_transaction
 from app.config import Settings
 from app.db.engine import build_engine, build_session_factory
 from app.errors import register_exception_handlers
+from app.feature_flags.router import router as feature_flags_router
 from app.health.router import router as health_router
 from app.logging import configure_logging
 from app.middleware.correlation_id import CorrelationIdMiddleware
@@ -56,4 +57,5 @@ def create_app(settings: Settings, *, catalog: BreachCatalogPort) -> FastAPI:
     app.include_router(health_router, prefix="/api")
     app.include_router(breaches_router, prefix="/api")
     app.include_router(visitors_router, prefix="/api")
+    app.include_router(feature_flags_router, prefix="/api")
     return app

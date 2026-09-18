@@ -22,6 +22,7 @@ from tests.drivers.breach_sync import BreachSyncDriver
 from tests.drivers.breaches_api import BreachesApiDriver
 from tests.drivers.catalog_refresh import CatalogRefreshDriver
 from tests.drivers.db import DbDriver
+from tests.drivers.feature_flags_api import FeatureFlagsApiDriver
 from tests.drivers.http import HttpDriver
 from tests.drivers.visitors_api import VisitorsApiDriver
 
@@ -88,3 +89,8 @@ def refresh(db_session: Session) -> CatalogRefreshDriver:
 @pytest.fixture
 def visitors(driver: HttpDriver, db_session: Session) -> VisitorsApiDriver:
     return VisitorsApiDriver(driver, db_session)
+
+
+@pytest.fixture
+def flags(driver: HttpDriver, db_session: Session) -> FeatureFlagsApiDriver:
+    return FeatureFlagsApiDriver(driver, db_session)

@@ -26,3 +26,7 @@ def list_enabled_splits(*, session: Session) -> list[FlagSplit]:
         )
         for row in rows
     ]
+
+
+def list_flags(*, session: Session) -> list[FeatureFlagRow]:
+    return list(session.execute(select(FeatureFlagRow).order_by(FeatureFlagRow.key)).scalars())
