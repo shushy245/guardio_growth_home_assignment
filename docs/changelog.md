@@ -3,6 +3,26 @@
 The product diary: one entry per story, newest first, in the words of someone who never saw the
 code. Commit-level detail lives in `git log`; the plan holds what is still ahead.
 
+## S2b — catalog-refresh (closed 2026-09-18)
+
+- **Pain** — "Refreshed once a day" was only true across restarts: the copy of the public record
+  was re-checked at boot and never again, so a backend that stayed up for a week quietly served a
+  week-old catalog, and nothing on the screen could say how old it was.
+- **Fix** — Every breach request now answers from the stored copy at once and, if that copy is
+  more than a day old, refreshes it in the background right after replying *(instead of a
+  scheduler, which would be the shape at scale, but whose only wiring is the one place our tests
+  cannot reach)*. One refresh at a time per process, and a source that is down is tried again
+  five minutes later, not on every visit. The summary now reports when the copy was last synced.
+- **Trade-off** — The copy is refreshed only while there is traffic (a cold start still fills
+  it at boot), and the refresh holds a database connection for the length of the HIBP call.
+  Both are the accepted cost of one worker in compose; the ADR names the point at which a
+  separate periodic job takes over.
+- **Result** — Watched live against HIBP: a request over a 25-hour-old copy was answered in
+  16 ms from the old rows, the refresh ran after it under the same correlation id, pulled all
+  1,036 records in about a second, and the next summary reported the new sync time. A backend
+  whose boot found HIBP down now heals itself on the first visit instead of answering 503 until
+  someone restarts it.
+
 ## S2 — breach-catalog (closed 2026-09-18)
 
 - **Pain** — The funnel had nothing to show a visitor: the breach data lived at HIBP, a third
