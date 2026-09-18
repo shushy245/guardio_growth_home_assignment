@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom/vitest';
-import { afterEach, beforeEach } from 'vitest';
 import { cleanup } from '@testing-library/react';
+import { afterEach, beforeEach, vi } from 'vitest';
 
 import { forgetVisitorId } from '~/storage/visitor-id';
 import { aMediaQueryList } from '~/testkit/media-query';
@@ -32,4 +32,6 @@ beforeEach(() => {
 
 afterEach(() => {
     cleanup();
+    // A driver that faked the clock hands it back, so no later test runs on a stopped one.
+    vi.useRealTimers();
 });

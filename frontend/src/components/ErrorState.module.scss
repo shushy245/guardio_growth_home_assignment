@@ -1,0 +1,37 @@
+@use '~/styles/tokens' as tokens;
+@use '~/styles/fields' as fields;
+
+.panel {
+    align-items: center;
+    text-align: center;
+    gap: tokens.$sp-2;
+    padding: tokens.$sp-9 tokens.$sp-5;
+    border: 1px solid tokens.$color-border;
+    border-radius: tokens.$radius-md;
+    background: tokens.$color-surface-sunken;
+}
+
+// A square, where the empty state's mark is a circle: the shape says which of the two this is
+// before the words do.
+.mark {
+    width: tokens.$tap-target;
+    height: tokens.$tap-target;
+    border: 2px solid tokens.$color-danger;
+    border-radius: tokens.$radius-sm;
+    margin-bottom: tokens.$sp-2;
+}
+
+.title {
+    font-size: tokens.$text-200;
+    font-weight: tokens.$weight-semibold;
+    margin: 0;
+}
+
+.description {
+    @include fields.note;
+    margin-bottom: tokens.$sp-3;
+}
+
+.retry {
+    @include fields.button-primary;
+}

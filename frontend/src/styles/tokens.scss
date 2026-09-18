@@ -118,4 +118,7 @@ $gutter-md: $sp-7; // 32px at 768
 $gutter-lg: $sp-10; // 64px at 1280
 $tap-target: 44px; // the floor for anything interactive
 $control-height: 48px; // fields and primary buttons
+// The scan moment's length for the progress bar that fills across it. `SCAN_MOMENT_MS` in
+// Scan.utils.ts is the same two seconds for the clock; change both or the bar and the page part.
+$scan-moment: 2s;
 $focus-ring: 0 0 0 3px rgba(0, 113, 118, 0.35); // oklch(50% 0.14 200 / 0.35)

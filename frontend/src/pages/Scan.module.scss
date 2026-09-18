@@ -1,0 +1,93 @@
+@use '~/styles/tokens' as tokens;
+
+// A centred column at every width: the design's scan moment grows only its whitespace between
+// 390 and 1280. The content cap is per page (RF4), so it is here.
+.page {
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: tokens.$sp-9;
+    padding: tokens.$gutter-sm;
+    min-height: 100dvh;
+    max-width: tokens.$content-max;
+    margin: 0 auto;
+    box-sizing: border-box;
+}
+
+.wordmark {
+    font-size: tokens.$text-300;
+    font-weight: tokens.$weight-bold;
+    color: tokens.$color-brand;
+    letter-spacing: -0.01em;
+}
+
+.scanning {
+    align-items: center;
+    gap: tokens.$sp-5;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes fill {
+    from {
+        width: 0;
+    }
+
+    to {
+        width: 100%;
+    }
+}
+
+.spinner {
+    width: tokens.$sp-10;
+    height: tokens.$sp-10;
+    border-radius: tokens.$radius-pill;
+    border: 4px solid tokens.$tone-calm-tint;
+    border-top-color: tokens.$tone-calm-accent-strong;
+    animation: spin 0.9s linear infinite;
+}
+
+.lead {
+    font-size: tokens.$text-200;
+    color: tokens.$color-text-secondary;
+    margin: 0;
+}
+
+// The design's 240px bar, as three of the largest spacing step rather than a fresh literal.
+.track {
+    display: block;
+    width: tokens.$sp-11 * 3;
+    height: tokens.$sp-2;
+    border-radius: tokens.$radius-pill;
+    background: tokens.$color-skeleton;
+    overflow: hidden;
+}
+
+.fill {
+    display: block;
+    height: 100%;
+    border-radius: tokens.$radius-pill;
+    background: tokens.$tone-calm-accent-strong;
+    animation: fill tokens.$scan-moment linear forwards;
+}
+
+// The check still reads as one in progress: the spinner stands still and the bar shows the
+// moment complete, so nothing moves and nothing is lost.
+@media (prefers-reduced-motion: reduce) {
+    .spinner,
+    .fill {
+        animation: none;
+    }
+
+    .fill {
+        width: 100%;
+    }
+}

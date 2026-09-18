@@ -17,6 +17,10 @@ httpClient.interceptors.response.use((response) => {
     return response;
 });
 
+// A request the caller abandoned by aborting its signal. Not a failure: the caller no longer
+// wants the answer, so there is nothing to show and nothing to log.
+export const isCancelled = (error: unknown): boolean => axios.isCancel(error);
+
 // The status behind a failed request, or undefined when it never got an answer (network, abort).
 export const statusOfError = (error: unknown): number | undefined => {
     if (!axios.isAxiosError(error)) return undefined;
