@@ -406,7 +406,17 @@ Cases:
   stored rows, and the failure is logged with the reason
 - F3. `summaryFromDTO` parses `syncedAt` as an instant (`new Date(iso)`), not a calendar day —
   it is a timestamp, the opposite of F1b's breach date
-- Pre-mortem (added at /story-start): see below.
+- Pre-mortem (added at /story-start):
+  - R10. a request refused with 503 over an empty catalog still schedules the refresh, so a boot
+    that found HIBP down heals without a restart: the 503 is followed by one fetch, and the next
+    request answers 200 — FastAPI attaches background tasks only to a response the handler
+    returns, so the error handler has to carry them over explicitly
+  - (harness) the background refresh commits through `app.state.session_factory`; the HTTP driver
+    swaps it for the test's savepoint-bound factory, or a refresh would commit for real and leak
+    rows into the test database (BF21's failure, one layer up)
+  - (accepted) a boot whose sync failed is followed by one more attempt on the first request,
+    because the boot path does not go through the refresher's retry gate — two hits on a down
+    HIBP a few seconds apart, not a storm
 
 Commits:
 - C1 `[refactor]` `BreachesApiDriver` seeds `fetched_at` relative to the real clock (fresh by
@@ -669,9 +679,10 @@ Each stretch story gets its own Cases/Commits block when opened; the TDD contrac
 
 ## RF-backlog
 
-- (S2 review) `sync_catalog_on_boot` holds its transaction across the HIBP HTTP call. Split the
-  staleness read and the write into two transactions when a second worker or a second boot-time
-  writer appears; the precondition is recorded in the function's docstring.
+- (S2 review) `sync_catalog_in_own_transaction` (S2b rename of `sync_catalog_on_boot`) holds its
+  transaction across the HIBP HTTP call. Split the staleness read and the write into two
+  transactions when a second worker appears; the precondition is recorded in the function's
+  docstring. S2b's refresher is single-flight per process, so it does not trip it.
 - (S2) `app/adapters/hibp/breach_catalog.py` reads fetch-first, wire-model-second. Consider
   reordering to wire model → translator → adapter if a reader trips on it.
 

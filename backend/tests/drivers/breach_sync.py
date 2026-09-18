@@ -13,8 +13,8 @@ from app.breaches.models import BreachRow
 from app.breaches.sync import (
     sync_breaches,
     sync_breaches_if_stale,
-    sync_catalog_at_startup,
-    sync_catalog_on_boot,
+    sync_catalog_best_effort,
+    sync_catalog_in_own_transaction,
 )
 from app.ports.breach_catalog import Breach
 from tests.builders.breach import a_breach
@@ -36,11 +36,11 @@ class BreachSyncDriver:
         sync_breaches_if_stale(session=self._session, catalog=self._catalog, now=at)
 
     def _start_up(self, at: datetime) -> None:
-        sync_catalog_at_startup(session=self._session, catalog=self._catalog, now=at)
+        sync_catalog_best_effort(session=self._session, catalog=self._catalog, now=at)
 
     def _boot(self, at: datetime) -> None:
         """Through the boot function the lifespan calls, transaction and all."""
-        sync_catalog_on_boot(
+        sync_catalog_in_own_transaction(
             session_factory=sessionmaker(
                 bind=self._session.connection(), join_transaction_mode="create_savepoint"
             ),

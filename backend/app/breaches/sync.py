@@ -45,28 +45,31 @@ def sync_breaches_if_stale(*, session: Session, catalog: BreachCatalogPort, now:
     sync_breaches(session=session, catalog=catalog, now=now)
 
 
-def sync_catalog_at_startup(*, session: Session, catalog: BreachCatalogPort, now: datetime) -> None:
-    """Sync on boot, but never fail the boot over it.
+def sync_catalog_best_effort(
+    *, session: Session, catalog: BreachCatalogPort, now: datetime
+) -> None:
+    """Sync if stale, but never let a failure reach the caller.
 
-    An unreachable catalog is answered by the endpoints with a 503 that names the reason. A
-    crash loop instead would hide the same fact behind a container that never comes up, and it
-    would take down a catalog we may already hold perfectly good rows for.
+    Called at boot and by the request-path refresher. An unreachable catalog is answered by the
+    endpoints with a 503 that names the reason; a crash loop at boot, or a background task that
+    dies, would hide the same fact — and at boot it would take down a catalog we may already
+    hold perfectly good rows for.
     """
     try:
         sync_breaches_if_stale(session=session, catalog=catalog, now=now)
     except BreachCatalogError:
-        log.exception("sync_catalog_at_startup: catalog unavailable, serving what is stored")
+        log.exception("sync_catalog_best_effort: catalog unavailable, serving what is stored")
     except SQLAlchemyError:
         # The database too, not just the source. Catching only `BreachCatalogError` left the
         # docstring's promise half-true: a rejected write escaped the lifespan and aborted
         # uvicorn's startup, turning one bad record into the crash loop this exists to avoid.
-        log.exception("sync_catalog_at_startup: could not store the catalog, serving what is held")
+        log.exception("sync_catalog_best_effort: could not store the catalog, serving what is held")
 
 
-def sync_catalog_on_boot(
+def sync_catalog_in_own_transaction(
     *, session_factory: sessionmaker[Session], catalog: BreachCatalogPort, now: datetime
 ) -> None:
-    """The whole boot-time sync, transaction included.
+    """The whole sync, transaction included — the unit the lifespan and the refresher both call.
 
     It lives here rather than inline in the lifespan so it can be tested: a lifespan body is
     reachable only by booting an app, and a boot that writes for real cannot run inside the
@@ -75,9 +78,10 @@ def sync_catalog_on_boot(
 
     **Known, accepted:** the HIBP call happens *inside* this transaction, so the connection sits
     idle-in-transaction for up to `HIBP_TIMEOUT_SECONDS`. That is tolerable only while compose
-    runs a single worker and this is the only boot-time writer — the S2 review flagged it and it
-    is deferred in the plan's RF-backlog. **Adding a worker, or a second boot-time sync, is what
-    makes it a real problem; split the read and the write into two transactions then.**
+    runs a single worker and at most one sync runs at a time — boot completes before the first
+    request, and the refresher is single-flight per process — the S2 review flagged it and it is
+    deferred in the plan's RF-backlog. **Adding a worker is what makes it a real problem; split
+    the read and the write into two transactions then.**
     """
     with session_factory.begin() as session:
-        sync_catalog_at_startup(session=session, catalog=catalog, now=now)
+        sync_catalog_best_effort(session=session, catalog=catalog, now=now)

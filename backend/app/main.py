@@ -15,7 +15,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.breaches.router import router as breaches_router
-from app.breaches.sync import sync_catalog_on_boot
+from app.breaches.sync import sync_catalog_in_own_transaction
 from app.config import Settings
 from app.db.engine import build_engine, build_session_factory
 from app.errors import register_exception_handlers
@@ -33,7 +33,7 @@ def create_app(settings: Settings, *, catalog: BreachCatalogPort) -> FastAPI:
     async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
         """Sync the catalog before the first request, so nobody is served an empty table while a
         fetch is in flight. Blocking here is the point: the app is not ready until it is."""
-        sync_catalog_on_boot(
+        sync_catalog_in_own_transaction(
             session_factory=session_factory, catalog=catalog, now=datetime.now(UTC)
         )
         yield
