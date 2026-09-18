@@ -1,4 +1,4 @@
-import shalev, { typeAwareRules } from 'eslint-config-shalev';
+import shalev, { pureFunctionTestSyntaxSelectors, typeAwareRules } from 'eslint-config-shalev';
 
 export default [
     ...shalev,
@@ -29,20 +29,18 @@ export default [
     //    types only, `translator.ts` maps wire → model, `selectors.ts` reads properties. There is
     //    no DOM, no async and no interaction for a driver to absorb, so these assert bare. This
     //    widens the exemption's reach, not the rule — the rule itself stays on everywhere else. ──
+    //    Composed, not switched off: every selector the rule carries stays on and only the
+    //    raw-`expect` ban is dropped, which is the whole of the exemption. `off` would also have
+    //    retired the inline-factory and raw-testid selectors in these files, silently.
     {
         files: ['frontend/src/models/**/*.test.ts'],
-        rules: { 'no-restricted-syntax': 'off' },
+        rules: { 'no-restricted-syntax': ['error', ...pureFunctionTestSyntaxSelectors] },
     },
 
-    // ── Boundary files that must speak null: the axios seam normalises JSON null, the composition
-    //    root reads the DOM, the storage wrapper reads localStorage (getItem returns null) ──
+    // ── Boundary files that must speak null: the axios seam normalises JSON null, and the
+    //    composition root reads the DOM ──
     {
-        files: [
-            '**/api/http-client.utils.ts',
-            '**/api/http-client.utils.test.ts',
-            '**/main.tsx',
-            '**/storage/visitor-id.ts',
-        ],
+        files: ['**/api/http-client.utils.ts', '**/api/http-client.utils.test.ts', '**/main.tsx'],
         rules: { 'no-restricted-syntax': 'off' },
     },
 
