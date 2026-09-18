@@ -22,6 +22,13 @@ describe('BreachSummary', () => {
         await driver.assert.tileSupportReads(SummaryTile.LargestBreach, '152.4M accounts');
     });
 
+    it('says how old the record is', async () => {
+        driver.given.theSummary(aBreachSummaryDTO().withSyncedAt('2026-09-19T10:00:00Z').build());
+        driver.given.theClockReads(new Date('2026-09-19T12:00:00Z'));
+        await driver.when.created();
+        await driver.assert.syncedLineReads('Record synced 2 hours ago');
+    });
+
     it('holds the space with skeleton tiles until the summary arrives', async () => {
         driver.given.theSummaryIsSlowToArrive();
         await driver.when.created();

@@ -12,6 +12,7 @@ import {
     BreachSummaryTestIds,
     buildSummaryTiles,
     countModeMap,
+    formatSyncedLine,
     SUMMARY_TILE_COUNT,
     type SummaryTileModel,
     summaryTileTestId,
@@ -29,11 +30,16 @@ export const BreachSummary = ({ tone }: { tone: Tone }): ReactElement => {
     if (!isSummaryReady(summary)) return <SkeletonTiles />;
 
     return (
-        <Row className={styles.tiles} data-testid={BreachSummaryTestIds.Tiles}>
-            {buildSummaryTiles({ summary: summary.summary, accountsExposed }).map((tile) => (
-                <Tile key={tile.id} tile={tile} />
-            ))}
-        </Row>
+        <Column className={styles.summary}>
+            <Row className={styles.tiles} data-testid={BreachSummaryTestIds.Tiles}>
+                {buildSummaryTiles({ summary: summary.summary, accountsExposed }).map((tile) => (
+                    <Tile key={tile.id} tile={tile} />
+                ))}
+            </Row>
+            <span className={styles.synced} data-testid={BreachSummaryTestIds.Synced}>
+                {formatSyncedLine({ syncedAt: summary.summary.syncedAt, now: new Date() })}
+            </span>
+        </Column>
     );
 };
 

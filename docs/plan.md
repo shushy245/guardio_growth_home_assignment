@@ -1128,6 +1128,9 @@ Cases:
     word typed quickly costs one request, not one per letter (driver, fake timers)
   - F29. (added at C6) the Verified-only toggle re-queries with `verifiedOnly=true` and drops the
     parameter when toggled off again (driver)
+  - F30. (added at C10) the tiles carry "Record synced 2 hours ago" from the summary's `syncedAt`
+    — S2b made the age visible on the wire so the screen could say it (pure `formatSyncedAgo`
+    plus a driver assertion)
   - (harness) the funnel pages need the visitor and analytics providers above them, and the
     breach catalog state has to survive the `/scan` → `/result` navigation without a second
     fetch — so the three providers are one `FunnelProviders` component mounted once by `App` on

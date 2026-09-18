@@ -1,6 +1,15 @@
 @use '~/styles/tokens' as tokens;
 @use '~/styles/fields' as fields;
 
+.summary {
+    gap: tokens.$sp-2;
+}
+
+.synced {
+    font-size: tokens.$text-100;
+    color: tokens.$color-text-secondary;
+}
+
 // Mobile first: two tiles per row, so `calc(50% - half the gap)`; at md+ every tile takes an
 // equal share of one row. Flex-wrap, no grid (house rule).
 .tiles {

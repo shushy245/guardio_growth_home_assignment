@@ -21,6 +21,7 @@ export type BreachSummaryDriver = {
         theSummaryIsSlowToArrive: () => void;
         theTone: (tone: Tone) => void;
         theVisitorPrefersReducedMotion: () => void;
+        theClockReads: (now: Date) => void;
     };
     when: {
         created: () => Promise<void>;
@@ -35,6 +36,7 @@ export type BreachSummaryDriver = {
         tilesAreShown: () => Promise<void>;
         tileReadsLessThan: (tile: SummaryTile, value: string) => void;
         nothingIsStillScheduled: () => void;
+        syncedLineReads: (text: string) => Promise<void>;
     };
 };
 
@@ -47,7 +49,7 @@ export const makeBreachSummaryDriver = (): BreachSummaryDriver => {
     let reducedMotion = false;
     // Only the frame clock: promises and the fake network stay real, so testing-library's
     // `waitFor` (which drains through `setTimeout`) keeps working.
-    vi.useFakeTimers({ toFake: ['requestAnimationFrame', 'cancelAnimationFrame', 'performance'] });
+    vi.useFakeTimers({ toFake: ['requestAnimationFrame', 'cancelAnimationFrame', 'performance', 'Date'] });
 
     fakeHttp.respond({ method: HttpMethod.Get, path: SUMMARY_PATH, status: 200, body: aBreachSummaryDTO().build() });
     fakeHttp.respond({
@@ -69,6 +71,9 @@ export const makeBreachSummaryDriver = (): BreachSummaryDriver => {
             },
             theVisitorPrefersReducedMotion: (): void => {
                 reducedMotion = true;
+            },
+            theClockReads: (now: Date): void => {
+                vi.setSystemTime(now);
             },
             theSummaryIsSlowToArrive: (): void => {
                 fakeHttp.respond({
@@ -139,6 +144,11 @@ export const makeBreachSummaryDriver = (): BreachSummaryDriver => {
             },
             nothingIsStillScheduled: (): void => {
                 expect(vi.getTimerCount()).toBe(0);
+            },
+            syncedLineReads: async (text: string): Promise<void> => {
+                await waitFor(() => {
+                    expect(screen.getByTestId(BreachSummaryTestIds.Synced)).toHaveTextContent(text);
+                });
             },
         },
     };

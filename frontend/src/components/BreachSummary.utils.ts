@@ -4,13 +4,14 @@
 import { Tone } from '~/models/featureFlag';
 import { CountMode } from '~/hooks/useCountUp';
 import type { BreachSummaryModel } from '~/models/breach';
-import { formatCount, formatShare } from '~/shared/format.utils';
+import { formatCount, formatShare, formatSyncedAgo } from '~/shared/format.utils';
 
 // A test id is its own access path (docs/testing-conventions.md §test ids): the string in the DOM
 // is exactly what you grep for to find the code that renders it.
 export enum BreachSummaryTestIds {
     Tiles = 'BreachSummaryTestIds.Tiles',
     Skeleton = 'BreachSummaryTestIds.Skeleton',
+    Synced = 'BreachSummaryTestIds.Synced',
 }
 
 // The four reasons to care, in the order the design shows them.
@@ -60,3 +61,6 @@ export const buildSummaryTiles = ({
         support: `${formatCount(summary.largestBreach.pwnCount)} accounts`,
     },
 ];
+
+export const formatSyncedLine = ({ syncedAt, now }: { syncedAt: Date; now: Date }): string =>
+    `Record synced ${formatSyncedAgo({ syncedAt, now })}`;

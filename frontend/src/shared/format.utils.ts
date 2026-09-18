@@ -28,3 +28,28 @@ export const formatInteger = (value: number): string => value.toLocaleString('en
 
 // `65%` from a share of one.
 export const formatShare = (share: number): string => `${Math.round(share * 100)}%`;
+
+const MINUTE_MS = 60_000;
+const HOUR_MS = 60 * MINUTE_MS;
+const DAY_MS = 24 * HOUR_MS;
+
+type AgeUnit = { floor: number; unit: Intl.RelativeTimeFormatUnit };
+
+// Largest first: the first unit the age reaches is the one it is written in.
+const ageUnits: readonly AgeUnit[] = [
+    { floor: DAY_MS, unit: 'day' },
+    { floor: HOUR_MS, unit: 'hour' },
+    { floor: MINUTE_MS, unit: 'minute' },
+];
+
+const relativeTime = new Intl.RelativeTimeFormat('en', { numeric: 'always' });
+
+// `2 hours ago`, `1 minute ago`, `3 days ago`; `just now` inside the first minute. `now` is a
+// parameter so the function stays pure and the screen's clock is the caller's to set.
+export const formatSyncedAgo = ({ syncedAt, now }: { syncedAt: Date; now: Date }): string => {
+    const age = now.getTime() - syncedAt.getTime();
+    const unit = ageUnits.find((candidate) => age >= candidate.floor);
+    if (unit === undefined) return 'just now';
+
+    return relativeTime.format(-Math.floor(age / unit.floor), unit.unit);
+};
