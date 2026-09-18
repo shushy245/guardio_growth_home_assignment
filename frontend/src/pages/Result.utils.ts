@@ -6,6 +6,9 @@ import { RESULT_SCREEN_TONE_FLAG, Tone, type VariantConfigModel } from '~/models
 
 import styles from '~/pages/Result.module.scss';
 
+// Where the CTA leads. The route table in App is the other reader of this path (S6 mounts it).
+export const SIGNUP_ROUTE = '/signup';
+
 // A test id is its own access path (docs/testing-conventions.md §test ids): the string in the DOM
 // is exactly what you grep for to find the code that renders it.
 export enum ResultTestIds {

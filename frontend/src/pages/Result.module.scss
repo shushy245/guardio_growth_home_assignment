@@ -12,18 +12,33 @@
     @include tokens.tone-urgent;
 }
 
-// Built at 390 first: a white header band over the page background, the CTA in a sticky bar at
-// the bottom. The content cap is per page (RF4), so it is here.
+// The CTA bar's height at 390: the control plus its padding, so the page can leave room for it.
+$sticky-bar-height: tokens.$control-height + tokens.$sp-3 * 2;
+
+// Built at 390 first: a white header band over the page background, and the CTA in a bar fixed
+// to the bottom of the viewport — "Protect me" is always one thumb away however far the list
+// scrolls. The bar is one node, a child of the header; at 768+ the stylesheet sets it back
+// inline beside the headline (deviation 2), so no second CTA and no width branch exist. The
+// content cap is per page (RF4), so it is here.
 .page {
     min-height: 100dvh;
+    padding-bottom: $sticky-bar-height;
     background: tokens.$color-bg;
+    box-sizing: border-box;
 }
 
 .header {
-    gap: tokens.$sp-2;
+    display: flex;
+    flex-direction: column;
+    gap: tokens.$sp-3;
     padding: tokens.$gutter-sm;
     background: tokens.$color-surface;
     border-bottom: 1px solid tokens.$color-border;
+}
+
+.headerText {
+    gap: tokens.$sp-2;
+    max-width: tokens.$prose-measure;
 }
 
 .headline {
@@ -39,6 +54,23 @@
     margin: 0;
 }
 
+.stickyBar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: tokens.$sp-3 tokens.$gutter-sm;
+    background: tokens.$color-surface;
+    border-top: 1px solid tokens.$color-border;
+    box-shadow: tokens.$shadow-sticky;
+    box-sizing: border-box;
+}
+
+.cta {
+    @include fields.button-primary;
+    width: 100%;
+}
+
 .body {
     gap: tokens.$sp-5;
     padding: tokens.$gutter-sm;
@@ -48,17 +80,49 @@
     box-sizing: border-box;
 }
 
-.stickyBar {
-    position: sticky;
-    bottom: 0;
-    margin-top: auto;
-    padding: tokens.$sp-3 tokens.$gutter-sm;
-    background: tokens.$color-surface;
-    border-top: 1px solid tokens.$color-border;
-    box-shadow: tokens.$shadow-sticky;
+@media (min-width: tokens.$breakpoint-md) {
+    .page {
+        padding-bottom: 0;
+    }
+
+    .header {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: flex-end;
+        flex-wrap: wrap;
+        gap: tokens.$sp-6;
+        padding: tokens.$gutter-md;
+    }
+
+    .headline {
+        font-size: tokens.$text-600;
+    }
+
+    // Back inline: the same node, now a plain block beside the headline.
+    .stickyBar {
+        position: static;
+        padding: 0;
+        border-top: 0;
+        box-shadow: none;
+        background: transparent;
+        flex: 0 0 auto;
+    }
+
+    .cta {
+        width: auto;
+    }
+
+    .body {
+        padding: tokens.$gutter-md;
+    }
 }
 
-.cta {
-    @include fields.button-primary;
-    width: 100%;
+@media (min-width: tokens.$breakpoint-lg) {
+    .header {
+        padding: tokens.$gutter-lg;
+    }
+
+    .body {
+        padding: tokens.$gutter-lg;
+    }
 }

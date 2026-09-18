@@ -2,6 +2,7 @@ import { beforeEach, describe, it } from 'vitest';
 
 import { Tone } from '~/models/featureFlag';
 import { aVisitorDTO } from '~/testkit/builders';
+import { FunnelEventName } from '~/models/funnelEvent';
 import { makeResultDriver, type ResultDriver } from '~/pages/Result.driver';
 
 const RESULT_SCREEN_TONE = 'result_screen_tone';
@@ -63,5 +64,26 @@ describe('Result for a visitor outside the experiment', () => {
         await driver.assert.headlineReads('Known breaches');
         await driver.assert.ctaReads('Protect me');
         await driver.assert.toneIs(Tone.Calm);
+    });
+});
+
+describe('Result call to action', () => {
+    let driver: ResultDriver;
+
+    beforeEach(() => {
+        driver = makeResultDriver();
+    });
+
+    it('records the click and hands the visitor on to sign-up', async () => {
+        await driver.when.created();
+        await driver.click.cta();
+        await driver.assert.stepsPosted(FunnelEventName.CtaClick, 1);
+        await driver.assert.signupRouteIsShown();
+    });
+
+    it("is one node, in the sticky bar, at any width — the desktop placement is the stylesheet's", async () => {
+        await driver.when.created();
+        driver.assert.ctaCount(1);
+        driver.assert.ctaIsInTheStickyBar();
     });
 });
