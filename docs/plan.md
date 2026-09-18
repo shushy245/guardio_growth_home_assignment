@@ -584,36 +584,36 @@ finished from the outside and is not.
 
 #### Correctness — fix before S3 closes
 
-- [ ] BF24 `Admin.tsx:161` a save closes over the flag captured at click time and writes that
+- [x] BF24 `Admin.tsx:161` a save closes over the flag captured at click time and writes that
   snapshot back on resolve, so every edit typed during the round trip is silently discarded —
   and "Saved." is displayed over the reverted value. Found independently by the frontend and
   conventions reviewers; the comment at `Admin.tsx:159-161` asserts the opposite, which is what
   makes the write read as deliberate. Fix: `onSaved(flagKey, lockToken)` applied by the parent
   inside the functional `setState`, never a replayed snapshot.
-- [ ] BF25 `Admin.tsx:162` "Saved." is never cleared when the flag changes, so the confirmation
+- [x] BF25 `Admin.tsx:162` "Saved." is never cleared when the flag changes, so the confirmation
   sits beside dirty, unsaved fields.
-- [ ] BF26 `POST /api/visitors` is not idempotent: it sets a `visitor_id` cookie that **no server
+- [x] BF26 `POST /api/visitors` is not idempotent: it sets a `visitor_id` cookie that **no server
   code ever reads** (`httponly`, so the page cannot read it either — it is write-only
   decoration). Two tabs opened together give one person two visitor rows under **two different
   variants**, contaminating the experiment the whole story exists to run. Fix: read the cookie at
   the top of `create_visitor` and return the existing visitor's assignments. This also retires
   ADR-0003's "belt and braces" claim, which describes a mechanism that cannot currently happen.
-- [ ] BF27 `nginx.conf` sends `X-Forwarded-For $proxy_add_x_forwarded_for`, which **appends** the
+- [x] BF27 `nginx.conf` sends `X-Forwarded-For $proxy_add_x_forwarded_for`, which **appends** the
   real peer, and uvicorn takes the **leftmost** entry — so `client_ip` is whatever the caller
   says it is, reproduced through nginx, not merely on the published port. The forwarded-header
   work landed in the same story and logs the forged value while discarding the trustworthy one
   nginx already sets. Fix: `proxy_set_header X-Forwarded-For $remote_addr`.
-- [ ] BF28 `docker-compose.yml` publishes on `0.0.0.0` with `ADMIN_TOKEN` defaulting to a token
+- [x] BF28 `docker-compose.yml` publishes on `0.0.0.0` with `ADMIN_TOKEN` defaulting to a token
   committed to the repo, under a comment claiming it binds to localhost. Reproduced from another
   host on the same network: a 200 rewriting the result screen's copy. Collides with the global
   HARD RULE on hardcoded credentials. Fix: bind published ports to `127.0.0.1`, drop the default
   so a missing token fails the boot, correct the comment. **Carry:** loopback binding breaks
   testing the stack from a phone on the LAN.
-- [ ] BF29 `Admin.module.scss` `.variants` has **no base rule** — it exists only inside the
+- [x] BF29 `Admin.module.scss` `.variants` has **no base rule** — it exists only inside the
   `min-width: 768px` query, and the element is a `Row`, so the media query is a no-op and the
   mobile-first reflow is inverted. Measured at 390: two cards 154px wide, inputs 128px, four of
   eight values clipped mid-word at rest. Fix: base column, md row.
-- [ ] BF30 the weights-sum invariant is enforced on the **write path only**. The read path
+- [x] BF30 the weights-sum invariant is enforced on the **write path only**. The read path
   (`list_enabled_splits` → `TypeAdapter`) validates each variant but never the list-level sum,
   and there is no CHECK constraint. A stored row summing to 90 raises for ~10% of visitors — an
   intermittent 500 on the funnel's entry point. Proven reachable by execution via a hand-edited
@@ -621,60 +621,60 @@ finished from the outside and is not.
   exactly as the current seed does). Fix: reuse `weights_cover_every_bucket` in
   `list_enabled_splits` so a malformed row is rejected once at load, naming the flag; keep the
   `ValueError` (it is the fail-loud rule working) and test both shapes.
-- [ ] BF31 a PATCH renaming a variant key orphans every stored `visitor_assignment` with no FK,
+- [x] BF31 a PATCH renaming a variant key orphans every stored `visitor_assignment` with no FK,
   no reconciliation and no log; the visitor silently falls out of the experiment and contributes
   events under a label the flag no longer defines. Fix: reject an update whose keys are not a
   superset of those already assigned, naming the orphans — or accept it deliberately and record
   the decision.
-- [ ] BF32 `VisitorProvider` wraps the router root, so opening `/admin` enrols the operator in
+- [x] BF32 `VisitorProvider` wraps the router root, so opening `/admin` enrols the operator in
   the experiment and fetches the flag list twice. Fix: scope the provider to the funnel routes.
-- [ ] BF33 `eslint.config.mjs` disables **all** of `no-restricted-syntax` in two places where the
+- [x] BF33 `eslint.config.mjs` disables **all** of `no-restricted-syntax` in two places where the
   documented `pureFunctionTestSyntaxSelectors` composition would have passed unchanged — verified
   by both reviewers. The `visitor-id.ts` exemption is for a violation that does not exist.
   HARD RULE 3: the rule was weakened rather than composed. Fix: delete one, compose the other.
 
 #### Robustness and accessibility — fix before S3 closes
 
-- [ ] BF34 the enabled checkbox has **no accessible name** (Lighthouse `label` failure) and is a
+- [x] BF34 the enabled checkbox has **no accessible name** (Lighthouse `label` failure) and is a
   20x20 tap target at every viewport; its visible text is a sibling node, so clicking the text
   does not toggle it. Fix: wrap the input in its label, size the hit area to 44x44.
-- [ ] BF35 **no state transition on the page is announced.** Zero `aria-live`, `role=status` or
+- [x] BF35 **no state transition on the page is announced.** Zero `aria-live`, `role=status` or
   `role=alert`; saving, saved, rejected token, 409, validation rejection and load failure all
   change unannounced text. Fix: a live region on the message slot.
 - [ ] BF36 the disabled Save renders at **2.58:1** contrast. Lighthouse passes it because axe
   skips disabled controls, so this is a case the audit structurally cannot catch and only a
   measurement finds.
-- [ ] BF37 at 390 and 1280 the save result lands **below the fold** and the page does not scroll
+- [x] BF37 at 390 and 1280 the save result lands **below the fold** and the page does not scroll
   to it — clicking Save changes nothing in the viewport. Holds for saved, rejected token,
   validation rejection and 409.
-- [ ] BF38 three operator-facing messages are raw server strings: a token rejection naming an HTTP
+- [x] BF38 three operator-facing messages are raw server strings: a token rejection naming an HTTP
   header, a Pydantic validation string with its field path and "Value error," prefix, and an axios
   wording with a status code. Messages written under the "errors are on-call docs" rule are being
   rendered to a product surface. The other three messages in the same state machine are proper
   operator copy, so this is an inconsistency, not a house style.
-- [ ] BF39 Save stays **enabled** with no token, a wrong token, and an invalid split — including
+- [x] BF39 Save stays **enabled** with no token, a wrong token, and an invalid split — including
   while the page itself displays "saving will be rejected". The weight input also accepts
   out-of-range values (`999`) and silently writes `0` when cleared. Fix: a named `canSave`
   predicate, and clamp the weight.
-- [ ] BF40 the failed-load screen unmounts every control including the admin-token field, offers
+- [x] BF40 the failed-load screen unmounts every control including the admin-token field, offers
   no retry, and does not recover when the backend returns — only a manual reload does.
-- [ ] BF41 neither page has a `main` landmark (zero landmarks of any kind).
+- [x] BF41 neither page has a `main` landmark (zero landmarks of any kind).
 - [ ] BF42 body text is 14px throughout the admin page, below the 16px floor, at every viewport.
 
 #### Test-coverage gaps — fix before S3 closes
 
-- [ ] BF43 emptying the enabled-checkbox handler leaves **59/59 green**. The control that decides
+- [x] BF43 emptying the enabled-checkbox handler leaves **59/59 green**. The control that decides
   whether the experiment runs at all has no component-level coverage.
-- [ ] BF44 replacing `disabled={isSaving(save)}` with `disabled={false}` leaves **59/59 green**.
+- [x] BF44 replacing `disabled={isSaving(save)}` with `disabled={false}` leaves **59/59 green**.
   It is the only thing preventing overlapping saves, and BF24 makes overlap actively destructive.
-- [ ] BF45 `FlagEditor` owns the save state machine, the async coordination and the optimistic-lock
+- [x] BF45 `FlagEditor` owns the save state machine, the async coordination and the optimistic-lock
   round trip, and has no file, driver or test of its own. **All five untested production branches
   and BF24/BF25/BF39/BF43/BF44 live inside it.** Extract it with a driver, which is the fix that
   makes the others testable.
 
 #### Documentation accuracy — fix before S3 closes
 
-- [ ] BF46 ADR-0003 and the changelog both cite a README paragraph recording the admin gate's
+- [x] BF46 ADR-0003 and the changelog both cite a README paragraph recording the admin gate's
   security scope. `README.md` is one line and contains no "admin", "token" or "auth" — the claim
   that matters most to an evaluator points at the place they would look, and it is not there.
   Also in scope: the `correlation_id` docstring whose example for the None branch is the one case
@@ -734,7 +734,7 @@ per item, `Story: S3` in the trailer. The reviewers' own reproductions are writt
 findings above and are the fastest route to each red test.
 
 **Phase 1 — the enabler (do this first).**
-- [ ] **BF45** extract `FlagEditor` from `Admin.tsx` into `src/components/FlagEditor.tsx` with
+- [x] **BF45** extract `FlagEditor` from `Admin.tsx` into `src/components/FlagEditor.tsx` with
   `FlagEditor.utils.ts` (its test ids, the `SaveState` machine, `saveMessage`, the operator copy
   constants, `HTTP_CONFLICT`, `copyLabelMap`) and a `FlagEditor.driver.tsx` written before the
   tests that use it. `Admin.utils.ts` keeps only `AdminTestIds` and the load state. A `[refactor]`
@@ -747,60 +747,60 @@ findings above and are the fastest route to each red test.
   variant). Leaving a known-misleading name in a file you are creating is worse than batching.
 
 **Phase 2 — behaviour fixes through the new driver, each red first.**
-- [ ] **BF43** `click.enabled()` + `assert.saveCarried({ isEnabled: false })`. Red proof: emptying
+- [x] **BF43** `click.enabled()` + `assert.saveCarried({ isEnabled: false })`. Red proof: emptying
   `handleToggleEnabled` must fail the new test (today it leaves 59/59 green).
-- [ ] **BF44** two rapid clicks against a gated save send exactly one PATCH. Red proof:
+- [x] **BF44** two rapid clicks against a gated save send exactly one PATCH. Red proof:
   `disabled={false}` must fail it.
-- [ ] **BF24** an edit typed while a save is in flight survives the response. Gate the PATCH
+- [x] **BF24** an edit typed while a save is in flight survives the response. Gate the PATCH
   behind a manual promise, type after the click, assert the field holds the later value. Fix:
   `onSaved(flagKey, lockToken)` applied by the parent inside the functional `setState` — never a
   replayed snapshot. Delete the "the values on screen are the ones we just sent" comment, which
   asserts the property the bug breaks.
-- [ ] **BF25** typing after a successful save clears "Saved.".
-- [ ] **BF39** Save is disabled when the split does not total 100, when the token is empty, and
+- [x] **BF25** typing after a successful save clears "Saved.".
+- [x] **BF39** Save is disabled when the split does not total 100, when the token is empty, and
   while saving — via one named `canSave({ save, flag, adminToken })` predicate in
   `FlagEditor.utils.ts`. Clamp the weight input to 0–100.
-- [ ] **BF38** give `SaveStatus.Failed` operator copy instead of rendering the backend's on-call
+- [x] **BF38** give `SaveStatus.Failed` operator copy instead of rendering the backend's on-call
   string; log the detail rather than show it. Use `given.theSaveFails`, which already exists and
   is called by nothing.
 
 **Phase 3 — backend, where the data corruption is.**
-- [ ] **BF26** read the `visitor_id` cookie in `create_visitor`; an existing visitor returns its
+- [x] **BF26** read the `visitor_id` cookie in `create_visitor`; an existing visitor returns its
   stored assignments rather than minting a second identity. Red test: two POSTs carrying the
   cookie yield one visitor row. Then amend ADR-0003, whose "belt and braces" paragraph describes
   a mechanism that cannot currently happen.
-- [ ] **BF30** reuse `weights_cover_every_bucket` in `list_enabled_splits` so a malformed stored
+- [x] **BF30** reuse `weights_cover_every_bucket` in `list_enabled_splits` so a malformed stored
   row is rejected once at load, naming the flag, instead of raising for ~10% of visitors. Keep the
   `ValueError`. Two red tests: a 90-sum row and an empty-variants row.
-- [ ] **BF31** reject a flag update whose variant keys are not a superset of the keys already
+- [x] **BF31** reject a flag update whose variant keys are not a superset of the keys already
   assigned for that flag, naming the orphans.
-- [ ] **BF27** `proxy_set_header X-Forwarded-For $remote_addr` — overwrite at the edge instead of
+- [x] **BF27** `proxy_set_header X-Forwarded-For $remote_addr` — overwrite at the edge instead of
   appending. Verify on the running stack that a forged header no longer reaches the log.
-- [ ] **BF28** bind the published ports to `127.0.0.1`, drop the committed `ADMIN_TOKEN` default
+- [x] **BF28** bind the published ports to `127.0.0.1`, drop the committed `ADMIN_TOKEN` default
   so a missing token fails the boot, correct the comment. **Carry:** this breaks testing from a
   phone on the LAN — if a device check is wanted, do it before this lands or bind deliberately.
 
 **Phase 4 — the lint rule (HARD RULE 3, not optional).**
-- [ ] **BF33** delete the `visitor-id.ts` exemption (it covers a violation that does not exist)
+- [x] **BF33** delete the `visitor-id.ts` exemption (it covers a violation that does not exist)
   and replace the models-test blanket `off` with the documented
   `['error', ...pureFunctionTestSyntaxSelectors]` composition. Both verified by reviewers to pass
   unchanged.
 
 **Phase 5 — the rendered surface. Re-run the `visual-reviewer` after these, never before.**
-- [ ] **BF29** give `.variants` a base rule (column, with a gap) and keep the md query as the
+- [x] **BF29** give `.variants` a base rule (column, with a gap) and keep the md query as the
   actual change. Today it has none, so the media query is a no-op and the reflow is inverted.
-- [ ] **BF34** wrap the enabled checkbox in its label and give the control a 44x44 hit area.
-- [ ] **BF35** a live region on the message slot so saved / rejected / conflict / load-failure are
+- [x] **BF34** wrap the enabled checkbox in its label and give the control a 44x44 hit area.
+- [x] **BF35** a live region on the message slot so saved / rejected / conflict / load-failure are
   announced at all.
-- [ ] **BF37** bring the save result into view — the message currently lands below the fold at 390
+- [x] **BF37** bring the save result into view — the message currently lands below the fold at 390
   and 1280 with no scroll, so clicking Save appears to do nothing.
-- [ ] **BF40** keep the admin-token field mounted when the load fails, and offer a retry.
-- [ ] **BF41** a `main` landmark on both pages.
-- [ ] **BF32** scope `VisitorProvider` to the funnel routes so opening `/admin` neither enrols the
+- [x] **BF40** keep the admin-token field mounted when the load fails, and offer a retry.
+- [x] **BF41** a `main` landmark on both pages.
+- [x] **BF32** scope `VisitorProvider` to the funnel routes so opening `/admin` neither enrols the
   operator in the experiment nor fetches the flag list twice.
 
 **Phase 6 — documentation, last, so it describes what shipped.**
-- [ ] **BF46** write the admin-gate security paragraph into `README.md` (two documents already
+- [x] **BF46** write the admin-gate security paragraph into `README.md` (two documents already
   cite it and it does not exist), then correct the docstrings listed in the triage above and
   reconcile the plan's own C8 and C7b entries.
 
@@ -849,9 +849,20 @@ Tasks:
 - [ ] I translate the output into `frontend/src/styles/tokens.scss` and a component inventory that S5's drivers and components are named after; deviations from the design are listed, not silent
 - [ ] Optional in the same round: the dashboard (S7) read, so the PM-facing page shares the system
 
+- [ ] **Carried from the S3 review** — three presentation findings deferred here rather than fixed
+  twice, because they are decisions the design tokens make and the admin page is deliberately
+  barely designed. Each is an exit criterion, measured against the real tokens, on `/admin` as
+  well as the funnel screens:
+  - **BF36** the disabled Save renders at 2.58:1. Lighthouse passes it — axe skips disabled
+    controls — so only a measurement finds it, and only a token decision fixes it everywhere.
+  - **BF42** body text is 14px throughout the admin page, below the 16px floor, at every viewport.
+  - Line lengths of 94–101 characters at 768 and 1280, outside the 45–75 the responsive contract
+    asks for.
+
 Cases:
 - none (no code). Exit criterion: tokens file (including the three breakpoints), the desktop reflow
-  decisions, and the component inventory agreed in chat.
+  decisions, the component inventory agreed in chat, and the three carried findings above answered
+  by a token rather than a one-off override.
 
 ### S5 — funnel-ui (~2.5h; the result screen is the heart of the exercise and gets the most care; implements D1's design)
 
