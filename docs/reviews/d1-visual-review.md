@@ -151,3 +151,30 @@ Every control has one; **none is placeholder-only, none is missing**.
 2. The real `prefers-reduced-motion` media feature — the tool has no parameter for it; answered from source instead.
 3. iOS Safari `100dvh` / safe-area behaviour — needs a real device.
 4. Keyboard traversal at 390 — deliberately not run, with the grep evidence above showing the DOM order is unchanged between the two widths.
+
+---
+
+# Confirmation pass — after the code-review fixes (`d916968`)
+
+Pass A only, on the rebuilt bundle `index-Do51A4uQ.css`, same two URLs and three viewports. Run
+because wiring the tone seam changed what the CSS says a button's fill *is*, and "it resolves to
+the same colour through the fallback" is a claim that needed a measurement rather than an argument.
+
+**The seam resolves as intended, measured at all three viewports.** The served stylesheet carries
+`background:var(--tone-accent-strong,#003b3e)`; with no ancestor setting a tone class, the Save
+button computes:
+
+| state | background | colour | contrast |
+|---|---|---|---|
+| disabled (what renders on load, no token pasted) | `rgb(222,226,229)` `#dee2e5` | `rgb(62,67,71)` `#3e4347` | **7.8:1** |
+| enabled (attribute removed, restored in the same call) | `rgb(0,59,62)` `#003b3e` | `rgb(252,252,252)` `#fcfcfc` | **12.2:1** |
+
+Identical at 390, 768 and 1280 — the pre-fix values, unchanged. Every other measurement matches the
+first pass: no overflow at any viewport, no text under 16px, nothing over 75ch, console clean on
+both screens across an `ignoreCache` reload, `/admin` still reflows one column → two at 768.
+
+**The precondition this confirmation does *not* cover, stated plainly:** `--tone-accent-strong` was
+never observed being *re-pointed*. Neither screen sets a tone class, so what this pass proves is
+that the fallback works — not that a `tone-urgent` ancestor produces the urgent colour. That is
+S5's to prove, and it is recorded as the precondition on the D1 triage's finding 1. Also unrendered
+anywhere reachable: `button-secondary` and the three `message-*` tones (BF51).

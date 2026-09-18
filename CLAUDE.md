@@ -48,9 +48,9 @@ in-app statistical dashboard.
 ## What's done
 Full history: `docs/changelog.md`; commit-level record: `git log`.
 
-- **D1 — design handoff (closed 2026-09-19).** The funnel screens had no design, and the admin
-  page carried three measured defects that no page-local fix could answer without answering them
-  twice. Shalev ran the prompt in Claude Design and brought back the project verbatim; it is now
+- **D1 — design handoff (closed 2026-09-19).** The screen the whole exercise is judged on was
+  about to be invented while it was built, and the admin page carried three measured defects that
+  no page-local fix could answer without answering them twice. Shalev ran the prompt in Claude Design and brought back the project verbatim; it is now
   translated into a token scale the app reads everywhere, and an inventory that names every
   component S5–S7 will build. The three carried findings are closed by a token each and confirmed
   by measurement: the disabled Save passes contrast with zero items, no text renders under 16px,
@@ -64,8 +64,17 @@ Full history: `docs/changelog.md`; commit-level record: `git log`.
   `/admin` and the landing route are re-tokened; every `@media` is `min-width` over a breakpoint
   token and no component branches on width. **Eight deviations** are recorded, not silent — the
   mock's JS width branch becomes CSS-only reflow, two CTA nodes become one, sort segments grow to
-  44px. Inventory: `docs/design/component-inventory.md`; review:
-  `docs/reviews/d1-visual-review.md`; export: `docs/design/claude-design-export/`.
+  44px.
+  **The review round is the other half of the story.** Two independent reviews found one defect
+  five times: the documents described the system that had been *designed*, not the one built. The
+  tone seam — the mechanism that switches the result screen between calm and urgent — was written
+  down, named in the inventory, and wired to nothing, so S5's urgent variant would have rendered
+  calm and the only fix would have been editing the shared button (Open/Closed). It now reads
+  `var(--tone-accent-strong, #{$tone-calm-accent-strong})` with calm as the fallback, confirmed
+  unchanged on screen by a third visual pass. 11 findings: 5 fixed, BF51–53 filed, RF4–8 batched,
+  1 dismissed with its precondition recorded. Inventory: `docs/design/component-inventory.md`;
+  reviews: `docs/reviews/d1-visual-review.md` and `docs/plan.md` → "D1 — review triage"; export:
+  `docs/design/claude-design-export/`.
 
 - **S4 — funnel-events (closed 2026-09-18).** The funnel could not say what a visitor did: no
   step was recorded anywhere, so the experiment had numbers on paper and none in a table. Every

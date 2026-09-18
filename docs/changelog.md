@@ -3,6 +3,44 @@
 The product diary: one entry per story, newest first, in the words of someone who never saw the
 code. Commit-level detail lives in `git log`; the plan holds what is still ahead.
 
+## D1 — design handoff (closed 2026-09-19)
+
+- **Pain** — The funnel screens had no design at all, so the screen the whole exercise is judged
+  on was about to be invented while it was being built, and the admin page still carried three
+  defects a previous accessibility check had already measured.
+- **Fix** — Shalev designed the screens in Claude Design and we translated the output into one
+  token scale the whole app reads, plus a named inventory of every component still to be built
+  *(instead of styling each screen as it is built, rejected because the three measured defects
+  would then have to be fixed once per page)*.
+- **Trade-off** — The design's colours were converted into a narrower colour space so the review
+  tooling can measure them, which costs a little richness on a wide-gamut laptop; keeping the
+  originals would have meant no measurable contrast numbers at all. And the borders inherited from
+  the design fail the non-text contrast standard, which we recorded rather than quietly corrected.
+- **Result** — 69 tokens and 24 named components (counted), 8 deviations recorded rather than
+  silent; all three carried defects closed and confirmed by an independent pass — contrast passes
+  with zero items, nothing renders under 16px, no line exceeds 75 characters, and both screens
+  score 100 on accessibility.
+
+### The review round that closed it
+
+- **Pain** — Two independent reviews found the same defect five times over: the documents
+  described the system that had been *designed*, not the one that had been *built*. The worst was
+  the mechanism that lets the result screen switch between its calm and urgent looks — it was
+  written down, named in the inventory, and connected to nothing, so the A/B test's urgent variant
+  would have rendered in the calm colours and the only fix left would have been to edit the shared
+  button everything else uses.
+- **Fix** — The switch is now wired, with the calm colours as the fallback so nothing on screen
+  today changed *(instead of deleting the unused mechanism and leaving it to S5, rejected because
+  the inventory S5 reads as its specification already promises it)*; three claims no code backed
+  were corrected in place, each pointing at the item that carries the code half.
+- **Trade-off** — Six findings were recorded rather than fixed, including two real ones: a failed
+  flag load still looks exactly like a page that is loading, and every border on the site fails the
+  non-text contrast standard. Fixing them inside a story that ships no logic would have meant
+  changing behaviour with no test to hold it.
+- **Result** — 11 findings triaged: 5 fixed, 3 filed as defects, 5 as batched cleanups, 1
+  dismissed with the condition that voids the dismissal written down. Three visual passes across
+  the story, the last confirming the rewired button still computes the colour it computed before.
+
 ## S4 — funnel-events (closed 2026-09-18)
 
 - **Pain** — The funnel could not say what a visitor did: no step was recorded anywhere, so the
