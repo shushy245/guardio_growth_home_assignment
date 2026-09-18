@@ -1,8 +1,10 @@
 import { act } from 'react';
-import { expect } from 'vitest';
-import { screen, waitFor } from '@testing-library/react';
+import { expect, vi } from 'vitest';
+import { cleanup, screen, waitFor } from '@testing-library/react';
 
+import { Tone } from '~/models/featureFlag';
 import { aBreachSummaryDTO } from '~/testkit/builders';
+import { aMediaQueryList } from '~/testkit/media-query';
 import type { BreachSummaryDTO } from '~/models/breach';
 import { fakeHttp, HttpMethod } from '~/testkit/fake-http';
 import { BreachSummary } from '~/components/BreachSummary';
@@ -17,21 +19,35 @@ export type BreachSummaryDriver = {
     given: {
         theSummary: (summary: BreachSummaryDTO) => void;
         theSummaryIsSlowToArrive: () => void;
+        theTone: (tone: Tone) => void;
+        theVisitorPrefersReducedMotion: () => void;
     };
     when: {
         created: () => Promise<void>;
         theSummaryArrives: () => Promise<void>;
+        framesPass: (count: number) => Promise<void>;
+        unmounted: () => Promise<void>;
     };
     assert: {
         tileReads: (tile: SummaryTile, value: string) => Promise<void>;
         tileSupportReads: (tile: SummaryTile, support: string) => Promise<void>;
         skeletonTilesAreShown: () => void;
         tilesAreShown: () => Promise<void>;
+        tileReadsLessThan: (tile: SummaryTile, value: string) => void;
+        nothingIsStillScheduled: () => void;
     };
 };
 
+// One frame of the count-up, in the clock it runs on.
+const FRAME_MS = 16;
+
 export const makeBreachSummaryDriver = (): BreachSummaryDriver => {
     let releaseSummary: (() => void) | undefined = undefined;
+    let tone = Tone.Calm;
+    let reducedMotion = false;
+    // Only the frame clock: promises and the fake network stay real, so testing-library's
+    // `waitFor` (which drains through `setTimeout`) keeps working.
+    vi.useFakeTimers({ toFake: ['requestAnimationFrame', 'cancelAnimationFrame', 'performance'] });
 
     fakeHttp.respond({ method: HttpMethod.Get, path: SUMMARY_PATH, status: 200, body: aBreachSummaryDTO().build() });
     fakeHttp.respond({
@@ -48,6 +64,12 @@ export const makeBreachSummaryDriver = (): BreachSummaryDriver => {
             theSummary: (summary: BreachSummaryDTO): void => {
                 fakeHttp.respond({ method: HttpMethod.Get, path: SUMMARY_PATH, status: 200, body: summary });
             },
+            theTone: (chosen: Tone): void => {
+                tone = chosen;
+            },
+            theVisitorPrefersReducedMotion: (): void => {
+                reducedMotion = true;
+            },
             theSummaryIsSlowToArrive: (): void => {
                 fakeHttp.respond({
                     method: HttpMethod.Get,
@@ -62,12 +84,24 @@ export const makeBreachSummaryDriver = (): BreachSummaryDriver => {
         },
         when: {
             created: async (): Promise<void> => {
+                window.matchMedia = (media: string): MediaQueryList =>
+                    aMediaQueryList({ media, matches: reducedMotion && media.includes('prefers-reduced-motion') });
                 await act(async () => {
                     renderWithProviders(
                         <BreachCatalogProvider>
-                            <BreachSummary />
+                            <BreachSummary tone={tone} />
                         </BreachCatalogProvider>,
                     );
+                });
+            },
+            framesPass: async (count: number): Promise<void> => {
+                await act(async () => {
+                    vi.advanceTimersByTime(count * FRAME_MS);
+                });
+            },
+            unmounted: async (): Promise<void> => {
+                await act(async () => {
+                    cleanup();
                 });
             },
             theSummaryArrives: async (): Promise<void> => {
@@ -97,6 +131,14 @@ export const makeBreachSummaryDriver = (): BreachSummaryDriver => {
                     expect(screen.getByTestId(BreachSummaryTestIds.Tiles)).toBeInTheDocument();
                 });
                 expect(screen.queryByTestId(BreachSummaryTestIds.Skeleton)).not.toBeInTheDocument();
+            },
+            // Mid-count: the tile shows a number, and not yet the final one.
+            tileReadsLessThan: (id: SummaryTile, value: string): void => {
+                expect(tile(id)).not.toHaveTextContent(value);
+                expect(tile(id)).toHaveTextContent(/\d/);
+            },
+            nothingIsStillScheduled: (): void => {
+                expect(vi.getTimerCount()).toBe(0);
             },
         },
     };

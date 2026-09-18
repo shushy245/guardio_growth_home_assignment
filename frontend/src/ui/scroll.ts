@@ -3,7 +3,7 @@
 // whole page instead of the element into the nearest edge, and `behavior: 'smooth'` is motion that
 // an operating-system setting may have asked us not to produce.
 
-const prefersReducedMotion = (): boolean => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+import { prefersReducedMotion } from '~/ui/motion';
 
 export const bringIntoView = (element: HTMLElement | undefined): void => {
     if (element === undefined) return;

@@ -1,5 +1,6 @@
 import { beforeEach, describe, it } from 'vitest';
 
+import { Tone } from '~/models/featureFlag';
 import { aBreachSummaryDTO } from '~/testkit/builders';
 import { SummaryTile } from '~/components/BreachSummary.utils';
 import { type BreachSummaryDriver, makeBreachSummaryDriver } from '~/components/BreachSummary.driver';
@@ -27,5 +28,47 @@ describe('BreachSummary', () => {
         driver.assert.skeletonTilesAreShown();
         await driver.when.theSummaryArrives();
         await driver.assert.tilesAreShown();
+    });
+});
+
+describe('BreachSummary count-up', () => {
+    let driver: BreachSummaryDriver;
+
+    beforeEach(() => {
+        driver = makeBreachSummaryDriver();
+    });
+
+    it('counts the exposed accounts up to the figure on the urgent variant', async () => {
+        driver.given.theTone(Tone.Urgent);
+        await driver.when.created();
+        await driver.assert.tilesAreShown();
+        await driver.when.framesPass(1);
+        driver.assert.tileReadsLessThan(SummaryTile.AccountsExposed, '17.7B');
+        await driver.when.framesPass(120);
+        await driver.assert.tileReads(SummaryTile.AccountsExposed, '17.7B');
+    });
+
+    it('shows the figure at once on the urgent variant when the visitor prefers reduced motion', async () => {
+        driver.given.theTone(Tone.Urgent);
+        driver.given.theVisitorPrefersReducedMotion();
+        await driver.when.created();
+        await driver.assert.tileReads(SummaryTile.AccountsExposed, '17.7B');
+        driver.assert.nothingIsStillScheduled();
+    });
+
+    it('never counts on the calm variant', async () => {
+        driver.given.theTone(Tone.Calm);
+        await driver.when.created();
+        await driver.assert.tileReads(SummaryTile.AccountsExposed, '17.7B');
+        driver.assert.nothingIsStillScheduled();
+    });
+
+    it('stops counting when the tiles leave the screen', async () => {
+        driver.given.theTone(Tone.Urgent);
+        await driver.when.created();
+        await driver.assert.tilesAreShown();
+        await driver.when.framesPass(1);
+        await driver.when.unmounted();
+        driver.assert.nothingIsStillScheduled();
     });
 });

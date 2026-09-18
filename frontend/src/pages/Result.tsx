@@ -26,7 +26,7 @@ export const Result = (): ReactElement => {
                 </p>
             </Column>
             <Column className={styles.body}>
-                <BreachSummary />
+                <BreachSummary tone={copy.tone} />
             </Column>
             <Column className={styles.stickyBar} data-testid={ResultTestIds.StickyBar}>
                 <button className={styles.cta} type="button" data-testid={ResultTestIds.Cta}>

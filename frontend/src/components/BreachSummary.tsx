@@ -4,11 +4,14 @@
 import type { ReactElement } from 'react';
 
 import { Column, Row } from '~/ui/box';
+import { useCountUp } from '~/hooks/useCountUp';
+import type { Tone } from '~/models/featureFlag';
 import { useBreachCatalog } from '~/providers/BreachCatalogProvider';
 import { isSummaryReady } from '~/providers/BreachCatalogProvider.utils';
 import {
     BreachSummaryTestIds,
     buildSummaryTiles,
+    countModeMap,
     SUMMARY_TILE_COUNT,
     type SummaryTileModel,
     summaryTileTestId,
@@ -16,13 +19,18 @@ import {
 
 import styles from '~/components/BreachSummary.module.scss';
 
-export const BreachSummary = (): ReactElement => {
+export const BreachSummary = ({ tone }: { tone: Tone }): ReactElement => {
     const { summary } = useBreachCatalog();
+    // Counted from zero once the figure is known; zero until then, which the skeleton covers.
+    const accountsExposed = useCountUp({
+        target: isSummaryReady(summary) ? summary.summary.totalAccountsExposed : 0,
+        mode: countModeMap[tone],
+    });
     if (!isSummaryReady(summary)) return <SkeletonTiles />;
 
     return (
         <Row className={styles.tiles} data-testid={BreachSummaryTestIds.Tiles}>
-            {buildSummaryTiles(summary.summary).map((tile) => (
+            {buildSummaryTiles({ summary: summary.summary, accountsExposed }).map((tile) => (
                 <Tile key={tile.id} tile={tile} />
             ))}
         </Row>
