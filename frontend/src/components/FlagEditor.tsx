@@ -31,7 +31,10 @@ import {
     missingTokenHint,
     saveMessage,
     SaveStatus,
+    variantFieldLabelledBy,
     variantFieldTestId,
+    variantHeadingId,
+    variantLabelId,
     WEIGHT_FIELD,
 } from '~/components/FlagEditor.utils';
 
@@ -177,15 +180,27 @@ const VariantEditor = ({
 
     return (
         <Column className={styles.variant}>
-            <h3 className={styles.variantName}>{variant.key}</h3>
+            <h3 className={styles.variantName} id={variantHeadingId({ flagKey: flag.key, variantKey: variant.key })}>
+                {variant.key}
+            </h3>
             <label className={styles.field}>
-                <span className={styles.label}>{`Share of traffic (%)`}</span>
+                <span
+                    className={styles.label}
+                    id={variantLabelId({ flagKey: flag.key, variantKey: variant.key, field: WEIGHT_FIELD })}
+                >
+                    {`Share of traffic (%)`}
+                </span>
                 <input
                     className={styles.input}
                     type="number"
                     inputMode="numeric"
                     min={0}
                     max={WEIGHT_TOTAL}
+                    aria-labelledby={variantFieldLabelledBy({
+                        flagKey: flag.key,
+                        variantKey: variant.key,
+                        field: WEIGHT_FIELD,
+                    })}
                     data-testid={variantFieldTestId({
                         flagKey: flag.key,
                         variantKey: variant.key,
@@ -228,10 +243,13 @@ const CopyFieldEditor = ({
 
     return (
         <label className={styles.field}>
-            <span className={styles.label}>{copyLabelMap[field]}</span>
+            <span className={styles.label} id={variantLabelId({ flagKey, variantKey, field })}>
+                {copyLabelMap[field]}
+            </span>
             <input
                 className={styles.input}
                 type="text"
+                aria-labelledby={variantFieldLabelledBy({ flagKey, variantKey, field })}
                 data-testid={variantFieldTestId({ flagKey, variantKey, field })}
                 value={value}
                 onChange={handleChange}

@@ -97,6 +97,21 @@ describe('FlagEditor', () => {
         await driver.assert.saveResultWasBroughtIntoView();
     });
 
+    it('brings the save result into view without motion when the operator asked for none', async () => {
+        driver.given.theFlag(aFeatureFlagDTO().withUpdatedAt(FIRST_TOKEN).build());
+        driver.given.theSaveSucceedsWithToken(SECOND_TOKEN);
+        driver.given.theOperatorPrefersReducedMotion();
+        await driver.when.created();
+        await driver.click.save();
+        await driver.assert.saveResultWasBroughtIntoViewWithoutMotion();
+    });
+
+    it('names each field by the variant it belongs to', async () => {
+        driver.given.theFlag(aFeatureFlagDTO().build());
+        await driver.when.created();
+        driver.assert.variantFieldsAreNamedPerVariant();
+    });
+
     it('does not scroll anything before a save has been answered', async () => {
         driver.given.theFlag(aFeatureFlagDTO().build());
         await driver.when.created();

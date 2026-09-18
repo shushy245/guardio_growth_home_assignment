@@ -6,6 +6,7 @@ import { act, type ReactElement, useState } from 'react';
 import { logger } from '~/logging/logger';
 import { FlagEditor } from '~/components/FlagEditor';
 import { aFeatureFlagDTO } from '~/testkit/builders';
+import { aMediaQueryList } from '~/testkit/media-query';
 import { isPlainObject } from '~/api/http-client.utils';
 import { renderWithProviders } from '~/testkit/renderWithProviders';
 import { fakeHttp, HttpMethod, type RecordedRequest } from '~/testkit/fake-http';
@@ -50,6 +51,7 @@ export type FlagEditorDriver = {
         theAdminToken: (token: string) => void;
         theSaveSucceedsWithToken: (token: string) => void;
         theSaveHangs: (token: string) => void;
+        theOperatorPrefersReducedMotion: () => void;
         theSaveConflicts: () => void;
         theSaveFails: () => void;
     };
@@ -75,6 +77,8 @@ export type FlagEditorDriver = {
         saveIsOffered: () => void;
         saveMessagesAreAnnounced: () => void;
         saveResultWasBroughtIntoView: () => Promise<void>;
+        saveResultWasBroughtIntoViewWithoutMotion: () => Promise<void>;
+        variantFieldsAreNamedPerVariant: () => void;
         nothingWasBroughtIntoView: () => void;
         saveIsNotOffered: () => void;
         urgentWeightIs: (weight: number) => void;
@@ -96,6 +100,7 @@ export const makeFlagEditorDriver = (): FlagEditorDriver => {
     // jsdom has no layout and therefore no scrollIntoView; the driver supplies it so the call
     // the component makes in a real browser is observable here.
     const scrolled = vi.fn();
+    let reducedMotion = false;
 
     const saves = (): RecordedRequest[] =>
         fakeHttp.requests().filter((request) => request.method === HttpMethod.Patch && request.path === SAVE_PATH);
@@ -162,6 +167,9 @@ export const makeFlagEditorDriver = (): FlagEditorDriver => {
                     }),
                 });
             },
+            theOperatorPrefersReducedMotion: (): void => {
+                reducedMotion = true;
+            },
             theSaveConflicts: (): void => {
                 fakeHttp.respond({
                     method: HttpMethod.Patch,
@@ -182,6 +190,11 @@ export const makeFlagEditorDriver = (): FlagEditorDriver => {
         when: {
             created: async (): Promise<void> => {
                 Element.prototype.scrollIntoView = scrolled;
+                window.matchMedia = (media: string): MediaQueryList =>
+                    aMediaQueryList({
+                        media,
+                        matches: reducedMotion && media.includes('prefers-reduced-motion'),
+                    });
                 await act(async () => {
                     renderWithProviders(<FlagEditorHost flag={fromDTO(dto)} adminToken={adminToken} />, {
                         route: '/admin',
@@ -238,6 +251,20 @@ export const makeFlagEditorDriver = (): FlagEditorDriver => {
                     expect(scrolled).toHaveBeenCalled();
                 });
                 expect(scrolled.mock.instances.at(-1)).toBe(messageOf());
+            },
+            saveResultWasBroughtIntoViewWithoutMotion: async (): Promise<void> => {
+                await waitFor(() => {
+                    expect(scrolled).toHaveBeenCalled();
+                });
+                expect(scrolled).toHaveBeenLastCalledWith(expect.objectContaining({ behavior: 'auto' }));
+            },
+            variantFieldsAreNamedPerVariant: (): void => {
+                expect(screen.getByTestId(urgentFieldId(CopyField.CtaLabel))).toHaveAccessibleName(
+                    'urgent Button label',
+                );
+                expect(screen.getByTestId(urgentFieldId(WEIGHT_FIELD))).toHaveAccessibleName(
+                    'urgent Share of traffic (%)',
+                );
             },
             nothingWasBroughtIntoView: (): void => {
                 expect(scrolled).not.toHaveBeenCalled();

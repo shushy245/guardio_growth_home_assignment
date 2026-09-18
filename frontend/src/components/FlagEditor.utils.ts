@@ -32,6 +32,32 @@ export const variantFieldTestId = ({
     field: VariantField;
 }): string => `AdminTestIds.Flag.${flagKey}.Variant.${variantKey}.${field}`;
 
+// A field's label reads "Headline" on screen, and every variant has one — so on their own the
+// names are eight controls called four things. The accessible name is built from the variant's
+// heading and the field's label together, which is the pair a reader needs to tell them apart.
+export const variantHeadingId = ({ flagKey, variantKey }: { flagKey: string; variantKey: string }): string =>
+    `flag-${flagKey}-variant-${variantKey}-name`;
+
+export const variantLabelId = ({
+    flagKey,
+    variantKey,
+    field,
+}: {
+    flagKey: string;
+    variantKey: string;
+    field: VariantField;
+}): string => `flag-${flagKey}-variant-${variantKey}-${field}-label`;
+
+export const variantFieldLabelledBy = ({
+    flagKey,
+    variantKey,
+    field,
+}: {
+    flagKey: string;
+    variantKey: string;
+    field: VariantField;
+}): string => `${variantHeadingId({ flagKey, variantKey })} ${variantLabelId({ flagKey, variantKey, field })}`;
+
 export const copyLabelMap: Record<CopyField, string> = {
     [CopyField.Headline]: 'Headline',
     [CopyField.Subheadline]: 'Subheadline',

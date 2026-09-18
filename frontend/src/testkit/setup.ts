@@ -3,6 +3,7 @@ import { afterEach, beforeEach } from 'vitest';
 import { cleanup } from '@testing-library/react';
 
 import { forgetVisitorId } from '~/storage/visitor-id';
+import { aMediaQueryList } from '~/testkit/media-query';
 import { fakeHttp, HttpMethod } from '~/testkit/fake-http';
 import { aFeatureFlagDTO, aVisitorDTO } from '~/testkit/builders';
 
@@ -14,6 +15,10 @@ beforeEach(() => {
     // component that scrolls from crashing every test that renders it; a driver that asserts on
     // the scroll replaces this with its own spy.
     Element.prototype.scrollIntoView = (): void => {};
+    // jsdom implements no media features either. Nothing matches by default — the state a
+    // browser reports when the operating system has expressed no preference; a driver that
+    // asserts on one replaces this with its own.
+    window.matchMedia = (media: string): MediaQueryList => aMediaQueryList({ media, matches: false });
     forgetVisitorId();
     fakeHttp.reset();
     fakeHttp.respond({ method: HttpMethod.Post, path: '/visitors', status: 201, body: aVisitorDTO().build() });
