@@ -66,6 +66,7 @@ export type FlagEditorDriver = {
         saveTokensSent: (...lockTokens: string[]) => void;
         savesSent: (count: number) => void;
         savedConfirmationIsShown: () => Promise<void>;
+        noSaveMessageIsShown: () => void;
         conflictMessageIsShown: () => Promise<void>;
         failureMessageIsShown: (message: string) => Promise<void>;
         urgentCtaLabelIs: (label: string) => void;
@@ -208,6 +209,9 @@ export const makeFlagEditorDriver = (): FlagEditorDriver => {
                 await waitFor(() => {
                     expect(messageOf()).toHaveTextContent('Saved');
                 });
+            },
+            noSaveMessageIsShown: (): void => {
+                expect(messageOf()).toBeEmptyDOMElement();
             },
             conflictMessageIsShown: async (): Promise<void> => {
                 await waitFor(() => {

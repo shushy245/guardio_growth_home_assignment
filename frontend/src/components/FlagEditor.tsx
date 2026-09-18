@@ -46,8 +46,17 @@ export const FlagEditor = ({
 }): ReactElement => {
     const [save, setSave] = useState<SaveState>({ status: SaveStatus.Idle });
 
+    // Any edit invalidates the last answer: "Saved." standing beside a field the operator has
+    // since changed claims the value on screen is the value stored. A save still in flight keeps
+    // its state — it is what disables the button, and re-enabling it mid-request would let a
+    // second save overlap the first.
+    const handleFlagEdited = (edited: FeatureFlagModel): void => {
+        setSave((current) => (isSaving(current) ? current : { status: SaveStatus.Idle }));
+        onChange(edited);
+    };
+
     const handleToggleEnabled = (): void => {
-        onChange(toggleEnabled(flag));
+        handleFlagEdited(toggleEnabled(flag));
     };
 
     const handleSave = (): void => {
@@ -93,7 +102,7 @@ export const FlagEditor = ({
             </Row>
             <Row className={styles.variants}>
                 {flag.variants.map((variant) => (
-                    <VariantEditor key={variant.key} flag={flag} variant={variant} onChange={onChange} />
+                    <VariantEditor key={variant.key} flag={flag} variant={variant} onChange={handleFlagEdited} />
                 ))}
             </Row>
             <SplitNote flag={flag} />

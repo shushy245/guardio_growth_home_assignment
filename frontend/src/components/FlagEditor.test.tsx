@@ -64,6 +64,16 @@ describe('FlagEditor', () => {
         driver.assert.urgentCtaLabelIs('Typed while the save was in flight');
     });
 
+    it('drops the saved confirmation as soon as the operator edits again', async () => {
+        driver.given.theFlag(aFeatureFlagDTO().withUpdatedAt(FIRST_TOKEN).build());
+        driver.given.theSaveSucceedsWithToken(SECOND_TOKEN);
+        await driver.when.created();
+        await driver.click.save();
+        await driver.assert.savedConfirmationIsShown();
+        await driver.type.urgentCtaLabel('Edited after the save');
+        driver.assert.noSaveMessageIsShown();
+    });
+
     it('refuses to send a save before the admin token is pasted', async () => {
         driver.given.theFlag(aFeatureFlagDTO().build());
         driver.given.theAdminToken('');
