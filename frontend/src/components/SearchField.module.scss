@@ -1,0 +1,15 @@
+@use '~/styles/tokens' as tokens;
+@use '~/styles/fields' as fields;
+
+.input {
+    @include fields.input;
+
+    // The native search decorations vary by browser; the field's own border and the focus ring
+    // are the design's affordance.
+    appearance: none;
+
+    &::placeholder {
+        color: tokens.$color-text-secondary;
+        opacity: 1;
+    }
+}

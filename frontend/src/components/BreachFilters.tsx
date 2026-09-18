@@ -6,6 +6,7 @@ import type { ChangeEvent, ReactElement } from 'react';
 
 import { Column, Row } from '~/ui/box';
 import { joinClassNames } from '~/ui/box.utils';
+import { SearchField } from '~/components/SearchField';
 import type { DataClassCountModel } from '~/models/breach';
 import { useBreachCatalog } from '~/providers/BreachCatalogProvider';
 import { type CatalogFilters, isListReady, isSummaryReady } from '~/providers/BreachCatalogProvider.utils';
@@ -46,8 +47,13 @@ export const BreachFilters = (): ReactElement => {
         setFilters(withoutFilters(filters));
     };
 
+    const handleSearch = (q: string | undefined): void => {
+        setFilters({ ...filters, q });
+    };
+
     return (
         <Column className={styles.bar}>
+            <SearchField query={filters.q} onSearch={handleSearch} />
             {isSummaryReady(summary) ? (
                 <DataClassChips classes={summary.summary.topDataClasses} filters={filters} onToggle={handleDataClass} />
             ) : undefined}

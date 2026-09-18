@@ -7,6 +7,7 @@ import type { BreachSummaryDTO } from '~/models/breach';
 import { fakeHttp, HttpMethod } from '~/testkit/fake-http';
 import { BreachFilters } from '~/components/BreachFilters';
 import { aBreachDTO, aBreachSummaryDTO } from '~/testkit/builders';
+import { SearchFieldTestIds } from '~/components/SearchField.utils';
 import { renderWithProviders } from '~/testkit/renderWithProviders';
 import { BreachCatalogProvider } from '~/providers/BreachCatalogProvider';
 import {
@@ -26,6 +27,7 @@ export type BreachFiltersDriver = {
         theListHolds: (total: number) => void;
     };
     when: { created: () => Promise<void> };
+    type: { intoSearch: (text: string) => Promise<void> };
     click: {
         sort: (option: SortOption) => Promise<void>;
         dataClass: (dataClass: string) => Promise<void>;
@@ -40,6 +42,7 @@ export type BreachFiltersDriver = {
         resultsLineReads: (text: string) => Promise<void>;
         clearFiltersIsOffered: () => Promise<void>;
         clearFiltersIsNotOffered: () => void;
+        searchIsEmpty: () => void;
     };
 };
 
@@ -96,6 +99,11 @@ export const makeBreachFiltersDriver = (): BreachFiltersDriver => {
                 });
             },
         },
+        type: {
+            intoSearch: async (text: string): Promise<void> => {
+                await user.type(screen.getByTestId(SearchFieldTestIds.Input), text);
+            },
+        },
         click: {
             sort: async (option: SortOption): Promise<void> => {
                 await user.click(screen.getByTestId(sortSegmentTestId(option)));
@@ -140,6 +148,9 @@ export const makeBreachFiltersDriver = (): BreachFiltersDriver => {
             },
             clearFiltersIsNotOffered: (): void => {
                 expect(screen.queryByTestId(BreachFiltersTestIds.ClearFilters)).not.toBeInTheDocument();
+            },
+            searchIsEmpty: (): void => {
+                expect(screen.getByTestId(SearchFieldTestIds.Input)).toHaveValue('');
             },
         },
     };

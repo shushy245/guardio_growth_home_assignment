@@ -67,6 +67,17 @@ describe('BreachFilters results line', () => {
         driver.assert.clearFiltersIsNotOffered();
     });
 
+    it('searches the record for what the visitor typed, and Clear filters empties the search too', async () => {
+        driver.given.theListHolds(1036);
+        await driver.when.created();
+        await driver.type.intoSearch('adobe');
+        await driver.assert.lastListQueryWas({ q: 'adobe' });
+        await driver.assert.clearFiltersIsOffered();
+        await driver.click.clearFilters();
+        await driver.assert.lastListQueryWas({});
+        driver.assert.searchIsEmpty();
+    });
+
     it('re-queries for verified breaches only when the toggle is on, and for all when it is off again', async () => {
         await driver.when.created();
         await driver.click.verifiedOnly();
