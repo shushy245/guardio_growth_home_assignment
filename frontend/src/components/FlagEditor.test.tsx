@@ -74,13 +74,29 @@ describe('FlagEditor', () => {
         driver.assert.noSaveMessageIsShown();
     });
 
-    it('refuses to send a save before the admin token is pasted', async () => {
+    it('does not offer a save before the admin token is pasted, and says why', async () => {
         driver.given.theFlag(aFeatureFlagDTO().build());
         driver.given.theAdminToken('');
         await driver.when.created();
         await driver.type.urgentCtaLabel('Protect me today');
-        await driver.click.save();
+        driver.assert.saveIsNotOffered();
         await driver.assert.failureMessageIsShown('Paste the admin token');
+        await driver.click.save();
         driver.assert.savesSent(0);
+    });
+
+    it('does not offer a save while the split leaves buckets unassigned', async () => {
+        driver.given.theFlag(aFeatureFlagDTO().build());
+        await driver.when.created();
+        driver.assert.saveIsOffered();
+        await driver.type.urgentWeight('40');
+        driver.assert.saveIsNotOffered();
+    });
+
+    it('holds a weight typed above the whole split at the whole split', async () => {
+        driver.given.theFlag(aFeatureFlagDTO().build());
+        await driver.when.created();
+        await driver.type.urgentWeight('999');
+        driver.assert.urgentWeightIs(100);
     });
 });

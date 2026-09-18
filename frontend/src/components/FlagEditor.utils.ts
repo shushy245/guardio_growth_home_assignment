@@ -1,7 +1,7 @@
 // The flag editor's testable surface: its test ids, the save state machine, and the operator copy
 // a message assertion pins. The component file exports only the component.
 
-import { CopyField } from '~/models/featureFlag';
+import { CopyField, type FeatureFlagModel, hasCompleteSplit, WEIGHT_TOTAL } from '~/models/featureFlag';
 
 export const HTTP_CONFLICT = 409;
 
@@ -78,4 +78,32 @@ export const saveMessage = (state: SaveState): string | undefined => {
     if (isFailedSave(state)) return state.error;
 
     return saveMessageMap[state.status];
+};
+
+// Every condition the server would reject on, asked once, before the round trip: a request in
+// flight (a second would race it), a split that does not cover every bucket (a 400), and no
+// admin token to sign with (a 401).
+export const canSave = ({
+    save,
+    flag,
+    adminToken,
+}: {
+    save: SaveState;
+    flag: FeatureFlagModel;
+    adminToken: string;
+}): boolean => !isSaving(save) && hasCompleteSplit(flag) && adminToken !== '';
+
+// A disabled button that does not say why is the same dead end as no button. The split has its
+// own note under the variants; the missing token has nowhere else to be said.
+export const missingTokenHint = (adminToken: string): string | undefined =>
+    adminToken === '' ? MISSING_TOKEN_MESSAGE : undefined;
+
+// A weight is a share of one whole. The input is `type=number`, and a browser number input hands
+// over whatever was typed — 999, or nothing at all — so the bound is applied here rather than
+// trusted to the control.
+export const clampWeight = (typed: string): number => {
+    const weight = Number.parseInt(typed, 10);
+    if (Number.isNaN(weight)) return 0;
+
+    return Math.min(Math.max(weight, 0), WEIGHT_TOTAL);
 };

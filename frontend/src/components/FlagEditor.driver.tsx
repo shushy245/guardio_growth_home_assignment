@@ -67,6 +67,9 @@ export type FlagEditorDriver = {
         savesSent: (count: number) => void;
         savedConfirmationIsShown: () => Promise<void>;
         noSaveMessageIsShown: () => void;
+        saveIsOffered: () => void;
+        saveIsNotOffered: () => void;
+        urgentWeightIs: (weight: number) => void;
         conflictMessageIsShown: () => Promise<void>;
         failureMessageIsShown: (message: string) => Promise<void>;
         urgentCtaLabelIs: (label: string) => void;
@@ -111,6 +114,9 @@ export const makeFlagEditorDriver = (): FlagEditorDriver => {
         await user.clear(field);
         await user.type(field, value);
     };
+
+    const saveButton = (): HTMLElement =>
+        screen.getByTestId(flagFieldTestId({ flagKey: RESULT_SCREEN_TONE, field: FlagField.Save }));
 
     const messageOf = (): HTMLElement =>
         screen.getByTestId(flagFieldTestId({ flagKey: RESULT_SCREEN_TONE, field: FlagField.SaveMessage }));
@@ -185,9 +191,7 @@ export const makeFlagEditorDriver = (): FlagEditorDriver => {
         },
         click: {
             save: async (): Promise<void> => {
-                await user.click(
-                    screen.getByTestId(flagFieldTestId({ flagKey: RESULT_SCREEN_TONE, field: FlagField.Save })),
-                );
+                await user.click(saveButton());
             },
             enabled: async (): Promise<void> => {
                 await user.click(
@@ -209,6 +213,15 @@ export const makeFlagEditorDriver = (): FlagEditorDriver => {
                 await waitFor(() => {
                     expect(messageOf()).toHaveTextContent('Saved');
                 });
+            },
+            saveIsOffered: (): void => {
+                expect(saveButton()).toBeEnabled();
+            },
+            saveIsNotOffered: (): void => {
+                expect(saveButton()).toBeDisabled();
+            },
+            urgentWeightIs: (weight: number): void => {
+                expect(screen.getByTestId(urgentFieldId(WEIGHT_FIELD))).toHaveValue(weight);
             },
             noSaveMessageIsShown: (): void => {
                 expect(messageOf()).toBeEmptyDOMElement();

@@ -19,12 +19,14 @@ import {
 } from '~/models/featureFlag';
 import {
     type SaveState,
+    canSave,
+    clampWeight,
     copyLabelMap,
     flagFieldTestId,
     FlagField,
     HTTP_CONFLICT,
     isSaving,
-    MISSING_TOKEN_MESSAGE,
+    missingTokenHint,
     saveMessage,
     SaveStatus,
     variantFieldTestId,
@@ -60,11 +62,6 @@ export const FlagEditor = ({
     };
 
     const handleSave = (): void => {
-        if (adminToken === '') {
-            setSave({ status: SaveStatus.Failed, error: MISSING_TOKEN_MESSAGE });
-
-            return;
-        }
         setSave({ status: SaveStatus.Saving });
         void updateFeatureFlag({ flag, adminToken })
             .then((lockToken) => {
@@ -84,7 +81,7 @@ export const FlagEditor = ({
             });
     };
 
-    const message = saveMessage(save);
+    const message = saveMessage(save) ?? missingTokenHint(adminToken);
 
     return (
         <Column className={styles.flag}>
@@ -110,7 +107,7 @@ export const FlagEditor = ({
                 className={styles.save}
                 type="button"
                 data-testid={flagFieldTestId({ flagKey: flag.key, field: FlagField.Save })}
-                disabled={isSaving(save)}
+                disabled={!canSave({ save, flag, adminToken })}
                 onClick={handleSave}
             >
                 {`Save`}
@@ -147,8 +144,7 @@ const VariantEditor = ({
     onChange: (flag: FeatureFlagModel) => void;
 }): ReactElement => {
     const handleWeightChange = (event: ChangeEvent<HTMLInputElement>): void => {
-        const weight = Number.parseInt(event.target.value, 10);
-        onChange(setVariantWeight(flag, { variantKey: variant.key, weight: Number.isNaN(weight) ? 0 : weight }));
+        onChange(setVariantWeight(flag, { variantKey: variant.key, weight: clampWeight(event.target.value) }));
     };
 
     const handleCopyChange = ({ field, value }: { field: CopyField; value: string }): void => {
