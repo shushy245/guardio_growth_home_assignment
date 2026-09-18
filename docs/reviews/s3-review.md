@@ -544,3 +544,155 @@ Trailers are clean: 14/14 commits carry `Story: S3`. Distribution: 2 `chore`, 11
 2. Angle 2 #1 — two docs cite a README security note that doesn't exist.
 3. Angle 1 #2 — a lint rule blanket-disabled where the documented narrow composition would have passed unchanged.
 
+
+---
+
+## 3b. conventions — completion pass (resumed with context intact, verbatim)
+
+> NOTE: this pass matters. The first report was delivered complete in structure, but the reviewer
+> had not finished reading 8 of the 79 files when it wrote it. Reading them produced new findings
+> and upgraded one from minor to mid-severity with an execution proof.
+
+S3 review — completion pass. Three things asked, plus the reading I had not finished.
+
+---
+
+## 1. Did my report end where I intended?
+
+**Partly — I'll be plain about it.** All three angles were analysed and delivered; nothing was sitting half-written when I stopped, and no finding was dropped. But the brief said "read the full current content of the files the diff touches," and I had **not** read eight of the 79 in full when I wrote the report:
+
+`backend/tests/drivers/feature_flags_api.py`, `backend/tests/drivers/visitors_api.py`, `backend/tests/integration/test_visitors_create.py`, `test_visitors_get.py`, `test_feature_flags_list.py`, `backend/migrations/versions/75463482a98c_…py`, `frontend/src/providers/VisitorProvider.test.tsx`, `frontend/src/testkit/builders/visitor.ts`, and `Admin.module.scss` past line 60.
+
+I had greps and per-commit stats across them, which is why I was confident about the history angle, but that is not the same as having read them. **I have now read all of them.** They produced two new minor findings (§4 below), one hard piece of evidence that settles Angle 1 #6, and a sharpening of Angle 1 #3. **No finding changed severity and nothing was retracted.**
+
+## 2. Working-tree contamination — confirmed clean
+
+**No finding was derived from a mutated file.** Verified at the new HEAD:
+
+- `frontend/src/providers/VisitorProvider.tsx` — `git show HEAD:` output is byte-identical to what I read, and `git diff af1d115 -- <file>` is empty. More to the point: **no finding of mine cites that file.** Angle 1 #3 cites `VisitorProvider.driver.tsx` (a different file), and §Angle 1 #1 cites `Admin.tsx`.
+- `eslint.config.mjs` — this is the one where I saw two different contents during the run. My `cat` showed a `pureFunctionTestSyntaxSelectors` version; the committed state was and still is `'no-restricted-syntax': 'off'`. **I built Angle 1 #2 from `git show HEAD:eslint.config.mjs`, not from the working-tree read** — confirmed again just now at HEAD. The finding stands against committed state.
+- Range is as you describe: the same 14 code commits, now plus `af1d115`, `5b7f049`, `f22a1cf` (doc-only `chore` commits landing review reports). Those three are outside what I reviewed and I have no findings on them.
+
+**One new hygiene item:** `frontend/src/pages/ZZopen.test.tsx` is sitting **untracked** in the source tree (1.5 KB, imports the real builders and model layer). It matches vitest's `*.test.tsx` glob, so it will execute as part of `pnpm test` while being invisible to `git` and to any diff-based review. Not part of S3 — flagging it because a passing suite that includes an untracked file is a false green.
+
+## 3. Angle 1 #6 settled — deliberate fail-loud, genuinely reachable, keep it and test it
+
+**Verdict: not Speculative Generality. Keep the `ValueError`, add a test.** I proved reachability by execution rather than reasoning:
+
+```
+TypeAdapter accepted a 90-sum row: [('calm', 50), ('urgent', 40)]
+visitor with bucket>=90: vis_00000000000000000000000007  bucket 92
+RAISED -> assign_variant: weights of flag 'result_screen_tone' cover only 90 of 100 buckets
+          — bucket 92 for visitor 'vis_...07' is unassigned
+TypeAdapter accepted []: []
+RAISED -> ... cover only 0 of 100 buckets — bucket 48 for visitor 'vis_x' is unassigned
+```
+
+**Why it is reachable — the invariant is guarded on only one of its two paths.** "Weights sum to 100" is enforced *solely* by `FeatureFlagUpdate._reject_an_incomplete_or_ambiguous_split` (`schemas.py:67-83`), which sits on the HTTP **write** path. The **read** path — `repository.list_enabled_splits:27` → `TypeAdapter(list[FeatureFlagVariant])` — validates each variant's key pattern and `0 <= weight <= 100` but never the list-level sum, and never `min_length=1` (that too lives only on `FeatureFlagUpdate`). There is also **no CHECK constraint**: `migrations/versions/75463482a98c_…py:34` declares `variants` as bare `JSONB NOT NULL`.
+
+So three concrete routes in:
+- a hand-edited row (`UPDATE feature_flag SET variants = …` — psql, a restore, a data fix),
+- `is_enabled = true` with `variants = '[]'`,
+- **a future seed migration**, which writes raw JSON via `op.execute` and bypasses the Pydantic boundary entirely — exactly how the current seed (`9b3f1c2d4e5a:55-68`) inserts. Today's seed is 50/50 and safe; nothing structurally stops the next one from not being.
+
+**Why the raise is right.** It fires inside `POST /api/visitors`, is unhandled, and becomes a `500 {"error": "internal error"}` via `CorrelationIdMiddleware`. That is the house rule working as intended — fail visibly rather than serve a silent fallback. The alternative (pick the last variant, or skip the flag) would silently mis-assign and poison the S7 z-test, which is precisely what ADR-0003 exists to prevent. The message is also a model on-call line: operation, flag key, expected-vs-found, visitor id.
+
+**The sharper finding underneath it:** the 90-sum case raises for only ~10% of visitors — an intermittent 500 on the funnel's entry point, the nastiest failure shape there is, and one no test would catch today. The minimal fix is not to delete the raise but to **close the read-path gap**: reuse `weights_cover_every_bucket` in `list_enabled_splits` so a malformed stored row is rejected once, at load, with the flag key named — instead of surfacing as a probabilistic 500 per visitor. Either way it wants the two tests the execution above already writes for you (a 90-sum row, an empty-variants row).
+
+I'd upgrade this from my original "minor" to **mid-severity**, and it now belongs just under Angle 1 #1.
+
+## 4. New findings from the reading I finished
+
+**A. Angle 1 #3 is worse than I reported.** The flag-key literal `result_screen_tone` has **17 occurrences across 10 files** — `test_assignment.py` (x4), `feature_flags_api.py:16`, `visitors_api.py:19`, the seed migration, `VisitorProvider.driver.tsx:20`, `Admin.driver.tsx:15`, `VisitorProvider.test.tsx` (x3), `visitor.test.ts` (x3), `builders/featureFlag.ts:32` — while `models/featureFlag/model.ts:34`'s `RESULT_SCREEN_TONE_FLAG`, the one constant declared to be its home, still has **zero** consumers. Two separate backend drivers each declare their own `RESULT_SCREEN_TONE = "result_screen_tone"` rather than sharing one.
+
+**B. Inappropriate Intimacy across the driver boundary.** `backend/tests/drivers/feature_flags_api.py:33, 72, 73` reach into `self._http._last` — a private attribute of `HttpDriver` — and line 106 chains `self._driver._http.then.status(200)`. The composing driver is coupled to the composed driver's internals, so any change to how `HttpDriver` stores its last response breaks a file that never declared the dependency. *Fix:* a public accessor on `HttpDriver` (`last_json()` / `last_status()`).
+
+**C. Four copies of the same test preamble.** `frontend/src/providers/VisitorProvider.test.tsx:6-11, 25-31, 58-63, 73-79` — four `describe` blocks, each repeating an identical `let driver` + `beforeEach(() => { driver = makeVisitorProviderDriver(); })`. One outer `describe` with nested blocks removes three copies.
+
+**Nothing else new.** The integration tests (`test_visitors_create/get`, `test_feature_flags_list`) are clean and idiomatic — correct `given/when/then` namespaces, builders throughout, no raw asserts in bodies, and `test_a_visitor_keeps_the_assignment_made_at_creation_after_the_weights_change` is a genuinely good mutation-resistant test of the ADR's central claim. `builders/visitor.ts` follows the reassign-never-mutate canon. `Admin.module.scss:119-140` has a real mobile-first md breakpoint (single column → row, 720px reading width); I did not render it, so I make **no claim about how it looks** — that is the visual pass's call, not mine.
+
+---
+
+### Final severity order, unchanged at the top
+1. **Angle 1 #1** — stale-closure save at `Admin.tsx:161` silently discards edits made during the round trip (`Admin.tsx:159-161`'s comment asserts the opposite).
+2. **Angle 2 #1** — ADR-0003:79-82 and the changelog both cite a README security note; `README.md` is one line and contains no "admin"/"token"/"auth".
+3. **Angle 1 #6 (upgraded)** — the weights-sum invariant is enforced on the write path only; a malformed stored row is an intermittent 500 on `POST /api/visitors`, proven reachable above.
+4. **Angle 1 #2** — `eslint.config.mjs:32-35` blanket-disables `no-restricted-syntax` where the documented `pureFunctionTestSyntaxSelectors` composition would have passed unchanged (verified: no violation in either file in the glob).
+5. **Angle 2 #2** — ADR-0003's "belt and braces" cookie is never read by any server code.
+6. **Angle 3 #1** — `d466631`'s hybrid `test+impl … + chore` subject contradicts the plan it ships beside.
+
+All other findings stand exactly as delivered in my first report.
+
+
+---
+
+## 2b. frontend — completion pass (resumed with context intact, verbatim)
+
+> NOTE: this pass added three findings (16, 17, 18), two of them serious, and demonstrated the
+> builder-aliasing finding that the first pass could only reason about. Mutation scoreboard went
+> from 6 run / 5 killed to 20 run / 16 killed.
+
+S3 frontend review — completion pass.
+
+**Did my report end where I intended?** Yes, plainly. The sweep was finished and all 15 findings plus the clean-category list were delivered; nothing was half-written or dropped when I stopped. The three items you named were ones I deliberately labelled open/uncertain rather than ones I ran out of room for. Closing them was worth it: it materially upgraded two findings and surfaced **three new ones**, two of which are serious.
+
+---
+
+## Item 1 — what actually happens on a non-409 PATCH failure
+
+I drove four failure shapes through the real component (temp test, since `given.theSaveFails` is unused). The operator sees the **raw backend string, verbatim**:
+
+| PATCH response | what the operator reads |
+|---|---|
+| 500 `{ error: 'update_feature_flag: could not reach the database' }` | `update_feature_flag: could not reach the database` |
+| 500, non-house body (e.g. nginx HTML) | `request failed with status 500` |
+| 400 `{ error: 'update_feature_flag: variant weights must sum to 100, got 149' }` | `update_feature_flag: variant weights must sum to 100, got 149` |
+
+**Is that the intended surface? No — it is inconsistent with the rest of the same state machine.** `MISSING_TOKEN_MESSAGE` ("Paste the admin token above before saving.") and `CONFLICT_MESSAGE` ("This flag changed somewhere else… Reload the page, then apply your change") are written as operator copy. The failure branch is the only one that isn't: it pipes a message written under the "error messages are on-call docs" rule — function-name prefix, expected-vs-found, meant for a log read at 2am — straight onto a product surface. The backend is doing the right thing; `Admin.tsx:170` is routing it to the wrong audience.
+
+Two things I confirmed are fine: the Save button **is** correctly re-enabled after a failure (no dead-end), and `describeError`'s fallback handles a non-JSON proxy body without crashing.
+
+Note the 400 row is finding 7 landing: the frontend already knows via `hasCompleteSplit` that the split is invalid, sends anyway, and then renders the backend's phrasing of what it could have said itself.
+
+Minimal fix: give `SaveStatus.Failed` operator copy in `Admin.utils.ts` alongside the other two, and log the backend detail rather than render it. And use `given.theSaveFails` — it already exists.
+
+## Item 2 — the builder seed: I broke it
+
+Upgraded from "CONFIRMED (latent), reasoned" to **demonstrated**. Three assertions:
+
+1. **The sharing is real and directly observable** (passed): two independent `aFeatureFlagDTO().build()` calls return different top-level objects but `a.variants === b.variants`, `a.variants[0] === b.variants[0]`, and `a.variants[0].config === b.variants[0].config`. Same for `aVisitorDTO().build().assignments`.
+2. **One in-place touch corrupts every other build in the process** (broke as designed): `a.variants.reverse()` flipped `b.variants[0].key` from `calm` to `urgent` — on a DTO built by a separate builder instance, for a different test.
+3. **The model layer is clean** (passed): `fromDTO` → `toUpdatePayload` copies at every level, so no production path reaches the shared objects today.
+
+I then grepped every in-place mutator across `frontend/src` (`sort|reverse|push|pop|shift|unshift|splice|fill|copyWithin`): three hits, all on `fake-http`'s own `routes`/`requests` arrays, and the one `reverse()` copies first. **So: no live trigger — it stays latent.** But the accurate statement is "one `.sort()` away from cross-test corruption", not "probably fine", and the builder's own header comment claims immunity it only has at the top level. Minimal fix: deep-copy the seed in the field initialiser.
+
+## Item 3 — the mutations I hadn't run
+
+I had queued more and reached none of them. Ran 14 more (M7–M20). **Scoreboard: 20 mutations, 16 killed, 4 survived.**
+
+Killed: StrictMode single-flight ref · `setLockToken` round trip · 404→create recovery · `storeVisitorId` · `toUpdatePayload` field set · `variantFor` assignment lookup · `setVariantCopy` immutability · `replaceFlag` · missing-token guard · `hasCompleteSplit` · `fromDTO` lock token · `normaliseNulls` · the 409 branch · `toggleEnabled` · the admin-token header · `readStoredVisitorId`.
+
+Three **new** findings from the survivors, continuing the numbering:
+
+### 16. CONFIRMED — `Admin.tsx:142-144, 181-187` — the enabled checkbox is wired to nothing and the suite does not notice
+Mutation M17 replaced `handleToggleEnabled` with an empty body: **59/59 still pass.** This is the single most consequential control on the page — whether the experiment runs at all — and it has zero component-level coverage. `toggleEnabled` is tested as a pure function (`featureFlag.test.ts:95`), but nothing proves the checkbox is connected to it.
+Scenario: operator unchecks "Running", clicks Save, reads "Saved." — and the experiment keeps assigning visitors. (The controlled `checked={flag.isEnabled}` would snap the box back, so a careful human might catch it; no test would.)
+Minimal fix: a driver `click.enabled()` + `assert.saveCarried({ isEnabled: false })`.
+
+### 17. CONFIRMED — `Admin.tsx:200` — `disabled={isSaving(save)}` is load-bearing and untested
+Mutation M12 replaced it with `disabled={false}`: **59/59 still pass.** I then proved the guard is what does the work today: with the PATCH adapter gated, three rapid clicks produce exactly **one** PATCH carrying token `T1`, button `disabled: true`.
+Why this matters more than a normal untested guard: it is the only thing preventing overlapping saves of one flag, and finding 1 makes overlap actively destructive — three clicks would send three PATCHes all carrying `T1`, the first wins, the second and third 409, and each resolving `.then` replays its own stale snapshot over the operator's later edits.
+Minimal fix: a test that clicks twice against a gated save and asserts one PATCH.
+
+### 18. CONFIRMED — `api/feature-flags.ts:24` — `encodeURIComponent` on the flag key is untested (low)
+Mutation M20 removed it: **59/59 still pass.** A no-op today (keys are backend-issued snake_case), so severity is low — but it is a fourth untested production line.
+
+### Also worth a line — coverage resting on a builder ordering coincidence
+M7 (`variantFor` ignores the visitor's assignment and always serves `variants[0]`) killed only the two tests that assert the **urgent** headline. Both `calm` tests pass a `variantFor` that ignores assignments entirely, because `calm` happens to be `variants[0]` in the builder seed. Reorder the seed array and coverage silently shifts — another consequence of finding 6 (hardcoded builder defaults).
+
+---
+
+**Untested production branches, consolidated:** the `cancelled` unmount guard (`Admin.tsx:56-71`, M3), the save-disabled guard (M12), the enabled-checkbox wiring (M17), `encodeURIComponent` (M20), and the entire non-409 save-failure path (item 1, `given.theSaveFails` unused). All five sit inside `FlagEditor` — which is finding 14: the component that owns the save state machine has no file, driver or test of its own.
+
+**Verification state:** all mutations reverted, all temp files deleted, `pnpm vitest run` 59/59 green, `eslint . --max-warnings 0` clean.
+
