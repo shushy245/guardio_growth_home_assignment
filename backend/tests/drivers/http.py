@@ -51,6 +51,7 @@ class HttpDriver:
         self.given = _Given(self)
         self.get = _Get(self)
         self.post = _Post(self)
+        self.patch = _Patch(self)
         self.when = _When(self)
         self.then = _Then(self)
 
@@ -154,6 +155,16 @@ class _Post:
 
     def empty(self, path: str) -> None:
         self._driver._perform(lambda client: client.post(path))
+
+
+class _Patch:
+    def __init__(self, driver: HttpDriver) -> None:
+        self._driver = driver
+
+    def json(
+        self, path: str, body: dict[str, Any], *, headers: dict[str, str] | None = None
+    ) -> None:
+        self._driver._perform(lambda client: client.patch(path, json=body, headers=headers))
 
 
 class _When:
