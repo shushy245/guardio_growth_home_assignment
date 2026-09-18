@@ -4,6 +4,7 @@ import { ReactElement } from 'react';
 import { useNavigate } from 'react-router';
 
 import { Column, MainColumn } from '~/ui/box';
+import { Wordmark } from '~/components/Wordmark';
 import { useTrackOnce } from '~/hooks/useTrackOnce';
 import { FunnelEventName } from '~/models/funnelEvent';
 import { useAnalytics } from '~/providers/AnalyticsProvider';
@@ -23,7 +24,7 @@ export const Landing = (): ReactElement => {
 
     return (
         <MainColumn className={styles.page} data-testid={LandingTestIds.Page}>
-            <span className={styles.wordmark}>{`Guardio`}</span>
+            <Wordmark />
             <Column className={styles.hero}>
                 <h1 className={styles.headline}>{`Find out if you've been breached`}</h1>
                 <p className={styles.lead}>

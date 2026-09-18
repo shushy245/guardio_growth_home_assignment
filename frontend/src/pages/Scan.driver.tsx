@@ -6,15 +6,14 @@ import { cleanup, fireEvent, screen } from '@testing-library/react';
 
 import { Scan } from '~/pages/Scan';
 import { FunnelEventName } from '~/models/funnelEvent';
-import { isPlainObject } from '~/api/http-client.utils';
 import { FunnelProviders } from '~/providers/FunnelProviders';
 import { SCAN_MOMENT_MS, ScanTestIds } from '~/pages/Scan.utils';
 import { ErrorStateTestIds } from '~/components/ErrorState.utils';
 import { aBreachDTO, aBreachSummaryDTO } from '~/testkit/builders';
 import { renderWithProviders } from '~/testkit/renderWithProviders';
+import { postedSteps, respondToFunnelEvents } from '~/testkit/funnel-events';
 import { fakeHttp, HttpMethod, type RecordedRequest } from '~/testkit/fake-http';
 
-const EVENTS_PATH = '/funnel-events';
 const SUMMARY_PATH = '/breaches/summary';
 const LIST_PATH = '/breaches';
 const HTTP_SERVICE_UNAVAILABLE = 503;
@@ -56,7 +55,7 @@ export const makeScanDriver = (): ScanDriver => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
     let releaseCatalog: (() => void) | undefined = undefined;
 
-    fakeHttp.respond({ method: HttpMethod.Post, path: EVENTS_PATH, status: 201, body: {} });
+    respondToFunnelEvents();
     fakeHttp.respond({ method: HttpMethod.Get, path: SUMMARY_PATH, status: 200, body: aBreachSummaryDTO().build() });
     fakeHttp.respond({
         method: HttpMethod.Get,
@@ -64,15 +63,6 @@ export const makeScanDriver = (): ScanDriver => {
         status: 200,
         body: { items: [aBreachDTO().build()], total: 1, page: 1, limit: 20 },
     });
-
-    const nameOf = (request: RecordedRequest): unknown =>
-        isPlainObject(request.body) ? request.body['name'] : undefined;
-
-    const postsNamed = (name: FunnelEventName): RecordedRequest[] =>
-        fakeHttp
-            .requests()
-            .filter((request) => request.method === HttpMethod.Post && request.path === EVENTS_PATH)
-            .filter((request) => nameOf(request) === name);
 
     const catalogRequests = (): RecordedRequest[] =>
         fakeHttp.requests().filter((request) => request.method === HttpMethod.Get && request.path === SUMMARY_PATH);
@@ -171,7 +161,7 @@ export const makeScanDriver = (): ScanDriver => {
                 expect(screen.getByTestId(ErrorStateTestIds.Retry)).toBeInTheDocument();
             },
             stepsPosted: (name: FunnelEventName, count: number): void => {
-                expect(postsNamed(name)).toHaveLength(count);
+                expect(postedSteps(name)).toHaveLength(count);
             },
             catalogRequested: (times: number): void => {
                 expect(catalogRequests()).toHaveLength(times);

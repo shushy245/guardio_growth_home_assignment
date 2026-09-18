@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router';
 import { type ReactElement, useCallback, useState } from 'react';
 
 import { Column, MainColumn } from '~/ui/box';
+import { Wordmark } from '~/components/Wordmark';
 import { ErrorState } from '~/components/ErrorState';
 import { generateUniqueId } from '~/shared/ids.utils';
 import { useScanMoment } from '~/hooks/useScanMoment';
@@ -40,7 +41,7 @@ export const Scan = (): ReactElement => {
 
     return (
         <MainColumn className={styles.page} data-testid={ScanTestIds.Page}>
-            <span className={styles.wordmark}>{`Guardio`}</span>
+            <Wordmark />
             {hasCatalogFailed({ summary, list }) ? (
                 <ErrorState
                     title={SCAN_FAILED_TITLE}

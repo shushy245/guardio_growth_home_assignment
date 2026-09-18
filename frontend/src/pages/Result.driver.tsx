@@ -9,14 +9,13 @@ import { Result } from '~/pages/Result';
 import { Tone } from '~/models/featureFlag';
 import type { VisitorDTO } from '~/models/visitor';
 import { FunnelEventName } from '~/models/funnelEvent';
-import { isPlainObject } from '~/api/http-client.utils';
+import { fakeHttp, HttpMethod } from '~/testkit/fake-http';
 import { FunnelProviders } from '~/providers/FunnelProviders';
 import { ResultTestIds, toneClassMap } from '~/pages/Result.utils';
 import { aBreachDTO, aBreachSummaryDTO } from '~/testkit/builders';
 import { renderWithProviders } from '~/testkit/renderWithProviders';
-import { fakeHttp, HttpMethod, type RecordedRequest } from '~/testkit/fake-http';
+import { postedSteps, respondToFunnelEvents } from '~/testkit/funnel-events';
 
-const EVENTS_PATH = '/funnel-events';
 const SUMMARY_PATH = '/breaches/summary';
 const LIST_PATH = '/breaches';
 const HTTP_SERVER_ERROR = 500;
@@ -51,7 +50,7 @@ export type ResultDriver = {
 export const makeResultDriver = (): ResultDriver => {
     const user = userEvent.setup();
 
-    fakeHttp.respond({ method: HttpMethod.Post, path: EVENTS_PATH, status: 201, body: {} });
+    respondToFunnelEvents();
     fakeHttp.respond({ method: HttpMethod.Get, path: SUMMARY_PATH, status: 200, body: aBreachSummaryDTO().build() });
     fakeHttp.respond({
         method: HttpMethod.Get,
@@ -59,15 +58,6 @@ export const makeResultDriver = (): ResultDriver => {
         status: 200,
         body: { items: [aBreachDTO().build()], total: 1, page: 1, limit: 20 },
     });
-
-    const nameOf = (request: RecordedRequest): unknown =>
-        isPlainObject(request.body) ? request.body['name'] : undefined;
-
-    const postsNamed = (name: FunnelEventName): RecordedRequest[] =>
-        fakeHttp
-            .requests()
-            .filter((request) => request.method === HttpMethod.Post && request.path === EVENTS_PATH)
-            .filter((request) => nameOf(request) === name);
 
     const cta = (): HTMLElement => screen.getByTestId(ResultTestIds.Cta);
 
@@ -139,7 +129,7 @@ export const makeResultDriver = (): ResultDriver => {
             },
             stepsPosted: async (name: FunnelEventName, count: number): Promise<void> => {
                 await waitFor(() => {
-                    expect(postsNamed(name)).toHaveLength(count);
+                    expect(postedSteps(name)).toHaveLength(count);
                 });
             },
             signupRouteIsShown: async (): Promise<void> => {

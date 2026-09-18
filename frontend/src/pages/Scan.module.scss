@@ -14,13 +14,6 @@
     box-sizing: border-box;
 }
 
-.wordmark {
-    font-size: tokens.$text-300;
-    font-weight: tokens.$weight-bold;
-    color: tokens.$color-brand;
-    letter-spacing: -0.01em;
-}
-
 .scanning {
     align-items: center;
     gap: tokens.$sp-5;
