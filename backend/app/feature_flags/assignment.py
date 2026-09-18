@@ -43,6 +43,12 @@ def assign_variant(*, visitor_id: str, flag_key: str, variants: Sequence[Weighte
 
     `sha256`, not `hash()`: Python salts `hash()` per process, so the same visitor would land in
     a different bucket on every worker and after every restart.
+
+    Raises `ValueError` only when the weights sum to *less* than 100 and the bucket falls past the
+    last slice. Weights summing to more than 100 do not raise: the slices past the hundredth
+    bucket are simply unreachable, so the trailing variants never get a visitor. Both shapes are
+    rejected before they reach here — by the update schema on write and by `list_enabled_splits`
+    on read — and this is the backstop, not the check.
     """
     bucket = bucket_for(visitor_id=visitor_id, flag_key=flag_key)
     upper = 0
@@ -65,7 +71,9 @@ def weights_cover_every_bucket(variants: Sequence[WeightedVariant]) -> bool:
 
 
 def duplicated_variant_keys(variants: Sequence[WeightedVariant]) -> list[str]:
-    """Every key that appears more than once, in first-seen order; empty when all are unique."""
+    """Every key that appears more than once, ordered by where its *second* appearance falls;
+    empty when all are unique. The order is good enough for a message listing them and is not
+    the order the keys were first seen in."""
     seen: set[str] = set()
     duplicated: list[str] = []
     for variant in variants:

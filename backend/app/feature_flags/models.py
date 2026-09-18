@@ -23,8 +23,10 @@ class FeatureFlagRow(Base):
     key: Mapped[str] = mapped_column(Text, primary_key=True)
     description: Mapped[str] = mapped_column(Text)
     is_enabled: Mapped[bool] = mapped_column(Boolean)
-    # Raw JSON at this layer: the repository narrows it through the variant schema, so nothing
-    # past the boundary ever works with an unvalidated dict.
+    # Raw JSON at this layer, narrowed by whichever boundary reads it: `list_enabled_splits`
+    # through the variant schema, and the list endpoint through `FeatureFlagResponse`. Nothing
+    # past either works with an unvalidated dict — but the narrowing is the readers' job, not
+    # the row's, and a new reader has to do it too.
     variants: Mapped[list[object]] = mapped_column(JSONB)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

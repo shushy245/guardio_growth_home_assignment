@@ -249,7 +249,9 @@ You will struggle to validate details, so here is what to look for:
   because constructing one compiles a validator and this runs on every visitor creation.
 - **`@field_validator("variants")` returning the value** (`app/feature_flags/schemas.py`): the
   same Zod-`.refine()` analogue as S1's, but on a list field, and it must **return** the value it
-  validated — a validator that falls off the end returns `None` and silently empties the field.
+  validated — a validator that falls off the end returns `None`, and Pydantic then stores `None`
+  in a field whose declared type is `list[...]`. Not an empty list: a value the type says cannot
+  be there, which every later reader will trip over instead of quietly seeing nothing.
 - **ruff `S105`**: bandit flags a *name* containing `TOKEN`/`PASSWORD` assigned a string literal
   as a hardcoded credential. `ADMIN_TOKEN_HEADER = "X-Admin-Token"` trips it even though the value
   is a header name. The fix is the name (`ADMIN_HEADER_NAME`), never a suppression comment.

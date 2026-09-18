@@ -67,8 +67,10 @@ class CorrelationIdMiddleware(BaseHTTPMiddleware):
 
 
 def client_ip(request: Request) -> str:
-    """`request.client` is None when the transport does not report a peer (an in-process ASGI
-    call); `unknown` keeps the field present in every line rather than absent in some."""
+    """`client` is optional in the ASGI scope — a server or transport may leave it out — and
+    Starlette reports that as `None`; `unknown` keeps the field present in every line rather than
+    absent in some. Both harnesses here do report a peer, so this branch is not one the suite
+    covers: it is a guard against a scope shape, not a case anything reproduces."""
     if request.client is None:
         return "unknown"
 

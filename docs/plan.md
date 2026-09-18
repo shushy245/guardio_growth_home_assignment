@@ -560,8 +560,8 @@ Commits:
 - C5 `[test+impl B7, B8]` `GET /api/visitors/{id}`
 - C6 `[test+impl B9]` `GET /api/feature-flags`
 - C7 `[test+impl B13, B20]` `require_admin_token` dependency (constant-time compare against config); `admin_token` setting re-added red-first
-- C7b `[test+impl B10, B11, B12, B18, B19]` `PATCH` with optimistic lock (single write, `WHERE updated_at = :token … RETURNING updated_at`, stamped with `clock_timestamp()`)
-- C8 `[refactor]` extract `feature_flags/repository.py`; router is a thin shell
+- C7b `[test+impl B4, B10, B11, B12, B18, B19]` `PATCH` with optimistic lock (single write, `WHERE updated_at = :token … RETURNING updated_at`, stamped with `clock_timestamp()`); B4's 400 is asserted here, where the route exists
+- ~~C8 `[refactor]` extract `feature_flags/repository.py`; router is a thin shell~~ — **never happened, and did not need to:** the repository was written as its own module from C6, so there was nothing left in the router to extract. Recorded rather than deleted, because a plan entry that silently disappears is indistinguishable from one that was skipped.
 - C9 `[test+impl F1]` frontend `models/featureFlag`, `models/visitor`
 - C10 `[test+impl F2, F3, F4, F7, F8]` `VisitorProvider` (driver first) + `api/visitors`
 - C11 `[test+impl F5, F6, F9]` Admin page (driver first): table, inline inputs, Save, 409 handling
