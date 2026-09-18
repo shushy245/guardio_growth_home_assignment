@@ -23,6 +23,7 @@ from tests.drivers.breaches_api import BreachesApiDriver
 from tests.drivers.catalog_refresh import CatalogRefreshDriver
 from tests.drivers.db import DbDriver
 from tests.drivers.feature_flags_api import FeatureFlagsApiDriver
+from tests.drivers.flag_splits import FlagSplitsDriver
 from tests.drivers.http import HttpDriver
 from tests.drivers.visitors_api import VisitorsApiDriver
 
@@ -69,6 +70,11 @@ def driver(db_session: Session) -> HttpDriver:
     http_driver = HttpDriver()
     http_driver.given.database_session(db_session)
     return http_driver
+
+
+@pytest.fixture
+def flag_splits(db_session: Session) -> FlagSplitsDriver:
+    return FlagSplitsDriver(db_session)
 
 
 @pytest.fixture

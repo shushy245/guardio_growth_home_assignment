@@ -7,7 +7,7 @@ from pydantic import TypeAdapter
 from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
-from app.feature_flags.assignment import FlagSplit
+from app.feature_flags.assignment import BUCKET_COUNT, FlagSplit, weights_cover_every_bucket
 from app.feature_flags.models import FeatureFlagRow
 from app.feature_flags.schemas import FeatureFlagUpdate, FeatureFlagVariant, to_weighted_variants
 
@@ -21,13 +21,29 @@ def list_enabled_splits(*, session: Session) -> list[FlagSplit]:
         select(FeatureFlagRow).where(FeatureFlagRow.is_enabled).order_by(FeatureFlagRow.key)
     ).scalars()
 
-    return [
-        FlagSplit(
-            key=row.key,
-            variants=tuple(to_weighted_variants(_stored_variants.validate_python(row.variants))),
+    return [_split_of(row) for row in rows]
+
+
+def _split_of(row: FeatureFlagRow) -> FlagSplit:
+    """The stored split, checked as a whole before anything is assigned from it.
+
+    The update schema enforces the same invariant, but a row can also arrive from a migration or
+    a psql prompt, which write JSONB straight past Pydantic. Without this the per-variant
+    validation passes, and a split summing to 90 raises inside `assign_variant` for the tenth of
+    visitors whose bucket lands past the last weight — an intermittent 500 on the funnel's
+    entry point, a long way from the row that caused it. Refusing here fails once, loudly, and
+    names the flag.
+    """
+    variants = to_weighted_variants(_stored_variants.validate_python(row.variants))
+    if not weights_cover_every_bucket(variants):
+        total = sum(variant.weight for variant in variants)
+        msg = (
+            f"list_enabled_splits: stored split of flag {row.key!r} does not cover the buckets "
+            f"— expected weights summing to {BUCKET_COUNT}, found {total}"
         )
-        for row in rows
-    ]
+        raise ValueError(msg)
+
+    return FlagSplit(key=row.key, variants=tuple(variants))
 
 
 def list_flags(*, session: Session) -> list[FeatureFlagRow]:
