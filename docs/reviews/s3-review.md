@@ -25,7 +25,8 @@ session costs the triage and not the review. Triage decisions follow in `docs/pl
 - [x] conventions — arrived, pasted verbatim below
 - [x] visual — arrived, pasted verbatim below
 
-All four arrived in full and are recorded below. Each agent handed back its complete report and
+All four arrived in full and are recorded below, each followed by a completion pass after the
+agents were resumed with context intact (see 1b, 2b, 3b, 4b). Each agent handed back its complete report and
 only then hit the account's session rate limit, so nothing was cut short and nothing needs re-running.
 
 ---
@@ -695,4 +696,132 @@ M7 (`variantFor` ignores the visitor's assignment and always serves `variants[0]
 **Untested production branches, consolidated:** the `cancelled` unmount guard (`Admin.tsx:56-71`, M3), the save-disabled guard (M12), the enabled-checkbox wiring (M17), `encodeURIComponent` (M20), and the entire non-409 save-failure path (item 1, `given.theSaveFails` unused). All five sit inside `FlagEditor` — which is finding 14: the component that owns the save state machine has no file, driver or test of its own.
 
 **Verification state:** all mutations reverted, all temp files deleted, `pnpm vitest run` 59/59 green, `eslint . --max-warnings 0` clean.
+
+
+---
+
+## 4b. visual — states pass (resumed with context intact, verbatim)
+
+> NOTE: this pass drove the seven interaction states the first pass could never reach. It
+> independently confirms two findings the frontend reviewer raised from the code side (raw server
+> strings on the operator surface; Save stays enabled on an invalid split) and adds several that
+> only a rendered page could show — the below-the-fold save result, the 2.58:1 disabled-Save
+> contrast that Lighthouse structurally cannot catch, and the complete absence of announcement.
+
+## Visual review — states pass (completing pass A + pass B)
+
+Every state listed as unchecked has now been driven and measured at 390x844x3 mobile/touch · 768x1024x2 · 1280x800x1. Plus the three contrast pairs and keyboard activation. Nothing below is inferred from source; all of it is read off the running page.
+
+**Environment handling.** `docker compose stop backend` then `docker compose start backend` (not `up --build`, so no container was recreated; db and frontend were never touched). Backend is running again and `/api/health` returns 200. I saved several test values into `result_screen_tone` while driving the states and restored all eight fields to their original values, verified by reading them back: `50 / Known breaches / Here's the public record of data breaches. / Protect me` and `50 / You're exposed! / 17.7B accounts have leaked. Yours could be among them. / Protect me now`. The flag row's lock token changed as a result, so any admin tab left open elsewhere now holds a stale one.
+
+**One intrusive step, reverted before it touched any measurement.** I briefly patched `XMLHttpRequest` to hold the response open so the in-flight state would sit still for a screenshot. That fabricates a hang rather than measuring one, so I reloaded to clear it and reached the state genuinely instead. No number or screenshot in this report comes from the patched page.
+
+---
+
+## MEASURED
+
+### Overflow and tap targets — unchanged in every state
+`documentElement.scrollWidth` equals `visualViewport.width` in all seven states at all three viewports: **no horizontal overflow, `offenders` empty**. The only tap target under 44x44 remains `input._checkbox_` at **20x20 at 390, 768 and 1280**. The Save button measures **308x48 at 390**, **670x48 at 768**, **686x48 at 1280** — passes in every state including disabled.
+
+### No token → Save
+Message: **"Paste the admin token above before saving."** — `rgb(20,32,46)` (#14202e), **14px**.
+- 390: **43 chars** · 768: **94 chars** · 1280: **96 chars** (all outside 45–75 except 390's, which is just under)
+- Save stays **enabled** (`disabled:false`, `#16508f`, cursor `pointer`) at all three viewports.
+
+### Rejected token ("wrong-token-xyz" / "nope-wrong") → Save
+Message: **"a valid X-Admin-Token header is required to change a feature flag"** — #14202e, **14px**. This is the backend's error string surfaced verbatim, HTTP header name included.
+- 390: **43 chars**, message top **869** against `innerHeight` **844**
+- 768: **94 chars**, top **827** against 1024
+- 1280: **96 chars**, top **827** against 800, `scrollY` **0**
+- Save stays **enabled** in all three.
+
+### Traffic-split warning (share changed to 60, then 70)
+Warning: **"The weights add up to 110%, not 100% — saving will be rejected."** (and 120% at 70/50) — `rgb(138,75,0)` (**#8a4b00**), **14px**, weight 400. It **replaces** the "Traffic split: 100% assigned." line rather than adding to it.
+- 390: **43 chars**, wraps to **2 lines** · 768: **94 chars** · 1280: **96 chars**
+- Save stays **enabled** (`#16508f`, `pointer`) at all three, despite the text saying saving will be rejected.
+
+**The warning's claim holds.** Saving at 120% with the correct token returns a rejection. The rejection message is the raw validation string: **"variants: Value error, variant weights must sum to 100; these sum to 120"** — #14202e, 14px.
+
+### Saving (in flight)
+Captured by sampling every animation frame from the click. Distinct rendered state at all three viewports:
+`disabled: true` · background **`rgb(147,163,181)` = #93a3b5** · color `#ffffff` · cursor **`not-allowed`** · height **48** · label **still "Save"** (no text change) · the message area **clears to empty** for the duration.
+- Measured duration against the local backend at 1280: **~36 ms** (first frame 123612, resolved 123648).
+- `aria-busy`: **null**. `aria-disabled`: **null**.
+
+### Saved
+Message: **"Saved."** — #14202e, **14px**. Save returns to `disabled:false` / `#16508f` / `pointer`.
+- 390: top **869** against `innerHeight` **844** · 768: top **827** against 1024 · 1280: top **827** against 800
+
+### 409 conflict (tab A loaded, tab B saved, tab A saved)
+Message: **"This flag changed somewhere else while you were editing. Reload the page, then apply your change to the current version."** — #14202e, **14px**.
+- 390: **43 chars**, **3 lines**, top **869** vs innerHeight 844
+- 768: **94 chars**, top **827** vs 1024
+- 1280: **96 chars**, top **827** vs 800, `scrollY` 0
+- The form **keeps the user's unsaved edit** (the headline still read "Known breaches STALE" / "Stale at 390" / "Stale at 768" after the rejection); nothing is rolled back or refreshed.
+
+### Loading, and failed load (backend stopped)
+With `backend` stopped, the page first renders **"Loading flags…"** in the same `._message_` slot (#14202e, 14px) and then, on failure, **"Could not load the flags: request failed with status 502"** — #14202e, **14px**, the raw axios error string with the status code.
+- 390: **48 chars** · 768: **99 chars** · 1280: **101 chars**
+- **`querySelectorAll('a,button,input,select,textarea').length` is 0** in both the loading and the failed state, at all three viewports — the admin-token field, all nine inputs, the checkbox and Save are all unmounted. Only `h1` "Feature flags" and the intro paragraph remain. There is **no retry control**.
+- Console in the failed state: **`[error] Failed to load resource: the server responded with a status of 502 (Bad Gateway) [3 times]`**. No other errors.
+- **Recovery:** after `docker compose start backend` and `/api/health` returning 200, the already-open page **did not recover on its own** — waited 6 s, still `"Could not load the flags: request failed with status 502"` and 0 interactive elements. After a reload it recovered fully: 9 inputs, message empty, flag data intact.
+
+### The three contrast pairs
+Computed from the rendered states (WCAG relative-luminance formula), with the background resolved by walking up to the first non-transparent ancestor:
+
+| pair | foreground | background | ratio | text |
+|---|---|---|---|---|
+| **disabled Save** | `#ffffff` | **`#93a3b5`** | **2.58:1** | 16px, weight 600 |
+| **warning** | **`#8a4b00`** | `#f7f9fc` | **6.45:1** | 14px, weight 400 |
+| **save message** | `#14202e` | `#f7f9fc` | **15.61:1** | 14px, weight 400 |
+| save message (failed-load, on white) | `#14202e` | `#ffffff` | **16.46:1** | 14px |
+| enabled Save (for reference) | `#ffffff` | `#16508f` | **8.15:1** | 16px, weight 600 |
+
+**Lighthouse `snapshot` audit run with the warning, the error message and the enabled Save all on screen: `color-contrast` scores 1, zero items.** The only accessibility failures it reports in that state are the same two from pass A — `label` (the checkbox) and `landmark-one-main`. Note what the audit does and does not cover here: axe's `color-contrast` rule skips disabled controls, so the audit's pass does **not** speak to the 2.58:1 pair. 16px at weight 600 is below the WCAG large-text threshold (18.66px bold), so the normal-text 4.5:1 minimum is the one that would apply to it were it not disabled.
+
+### Keyboard activation
+- **Space on the checkbox**: `checked` went **true → false** (`toggled: true`), focus retained on the input. A second Space returned it to **true**.
+- **Enter on Save**: message went from **""** to **"Saved."**, and the edited value persisted. First attempt was inconclusive because that tab held a stale lock token (a real Enter-save and a dead key both leave the 409 text on screen); re-ran it with a fresh token to get a clean result.
+- **Space on Save**: the value "Space key test" **persisted across a reload**, so Space activated it.
+- Side finding: that second save from the same tab succeeded **without a 409**, so the page **does refresh its lock token after a successful save**.
+
+### Announcement of every one of these states
+`document.querySelectorAll('[aria-live],[role=status],[role=alert]').length` is **0**. The `._message_` element has `role: null`, `aria-live: null`, `aria-atomic: null`, no `id`. The Save button has `aria-busy: null`, `aria-disabled: null`, `aria-describedby: null`, `type="button"`. Every state transition above — saving, saved, rejected token, 409, validation rejection, load failure — changes only unannounced text.
+
+### Reduced motion, re-checked in these states
+`document.getAnimations()` returns **0** in the saving, saved, warning, conflict and failed-load states — consistent with the served CSS containing no `transition` or `animation` declaration.
+
+### Token field
+`type="password"`, `autocomplete="off"`, no `name`, no `id`.
+
+---
+
+## OBSERVED
+
+- **At 390 and 1280 the result of clicking Save lands below the fold and the page does not scroll to it.** At 1280x800 the Save button's own bottom edge is at 811 and the message box occupies 827–848 with `scrollY` 0 — click Save and nothing visibly changes in the viewport. At 390x844 the message top is 869. At 768x1024 it is visible. This holds for all four post-save messages (saved, rejected token, validation rejection, 409).
+- **Every message renders in the same slot, at the same size, in the same colour.** "Saved.", "Paste the admin token above before saving.", the token rejection, the validation rejection and the 409 are all #14202e 14px in the same position; nothing in the rendering distinguishes success from failure. The traffic-split warning is the one exception — it is the only state that renders in a different colour (#8a4b00), and it sits in a different place (above Save, where the "Traffic split" line normally is).
+- **Three of the messages are raw server strings.** "a valid X-Admin-Token header is required to change a feature flag" names an HTTP header; "variants: Value error, variant weights must sum to 100; these sum to 120" carries a Pydantic field path and its "Value error," prefix; "Could not load the flags: request failed with status 502" carries the axios wording and the status code. The no-token, saved and 409 messages are written in plain language by contrast.
+- **The saving state is not labelled.** The button keeps the word "Save" and changes only colour, `disabled` and cursor; there is no spinner, no "Saving…", and the message area goes blank for the duration. Against a local backend the whole state lasts ~36 ms.
+- **The failed-load screen drops the admin-token field along with the form.** A reviewer who typed a token and then hit a backend outage loses it, and the screen offers no way back other than a browser reload.
+- **The 409 screen tells the user to reload but leaves their edit in the form**, so the instruction and the visible state disagree about what happens to the typed change.
+- The token input masks to dots and the rendered dot count tracks the typed length (9 dots for `change-me`, 15 for `wrong-token-xyz`).
+- At 390 the split warning wraps to two lines and pushes Save down; no overlap or clipping results.
+
+---
+
+## UNCERTAIN
+
+- **No screenshot of the disabled Save.** Its computed values were captured three separate times at genuine in-flight moments (390, 768, 1280), but the state lasts ~36 ms locally and every screenshot round-trip landed after it resolved. `Slow 3G` throttling did not lengthen it usefully on loopback. The 2.58:1 figure is computed from values read off the button while `disabled` was genuinely true — it is a measurement, not a capture.
+- **A tooling trap worth recording: calling `emulate` with only `networkConditions` silently cleared the viewport override** (innerWidth dropped to 1200, dpr 2). One screenshot taken in that window is not a 1280 capture; I discarded it and re-ran with viewport and network passed in the same call. Anything reported here as 390/768/1280 had its `visualViewport.width` read back in the same script.
+- **The `alarm` vs `urgent` variant name from the earlier run is still unexplained.** Throughout this session the second variant's `h3` read `urgent` consistently. I have no account of the earlier reading.
+- **Whether the 502 is the only failure shape.** I produced the failed-load state by stopping the backend behind the frontend's proxy, which yields 502. A true network outage, a timeout, or a 500 from a running backend may render differently; I did not test those.
+- **Not tested:** saving with the checkbox unchecked; values long enough to overflow the inputs; a flag list with more than one flag; going offline mid-save (distinct from the backend being down); what a screen reader actually announces (I read attributes, not AT output); and whether the 36 ms saving state is perceptible on a real network.
+- Repo is clean — `git status --porcelain` returns nothing. I wrote no files.
+
+### Coordinator note on the one open item above
+
+The `alarm` variant name the first pass saw is explained, and not by anything the visual reviewer
+could have known: the **backend** reviewer renamed `urgent` → `alarm` through the live API to
+reproduce its finding 4 (a variant rename orphaning stored assignments), then restored it. The two
+reviews overlapped on the same running stack. Nothing was wrong with the page.
 
