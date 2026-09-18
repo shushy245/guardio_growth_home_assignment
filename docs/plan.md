@@ -1207,10 +1207,7 @@ Each stretch story gets its own Cases/Commits block when opened; the TDD contrac
 - [ ] S9 — Bayesian read (P(urgent > calm), expected loss) beside the frequentist one
 - [ ] S10 — Guardrail metric on the dashboard with its own CI
 - [ ] S11 — Cypress e2e for the critical funnel path against the real stack
-- [ ] S12 — Deployed demo (Fly.io/Railway backend + Postgres, Vercel frontend)
-- [ ] S13 — Richer breach UX: data-class chips with counts, per-breach detail sheet, logos
 - [ ] S14 — Peeking warning on the dashboard when read before the required sample
-- [ ] S15 — Admin flag history via an append-only `feature_flag_change` table
 
 ## Assumptions (confirm at review, not blocking)
 
