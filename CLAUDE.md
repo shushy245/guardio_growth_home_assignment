@@ -8,6 +8,21 @@
 `test+impl`, `refactor`, or `chore` as defined in `docs/plan.md` → TDD contract. Untested code is a
 defect, not a shortcut.**
 **Stop at plan stage D1 (before S5) and hand Shalev a Claude Design prompt; never build funnel UI without it.**
+**VISUAL PASS — before writing review findings, run `git diff --name-only HEAD` and
+`git ls-files -o --exclude-standard`. If any path matches `frontend/` and is not `*.test.*` /
+`*.driver.*`, the change has a rendered surface. The path check is mechanical on purpose — don't
+judge for yourself whether something "counts as UI".
+- At `/code-review medium` and above, at `/story-done`, and before calling any UI change done: open
+  `~/.claude/docs/visual-review.md` and follow it — **first confirm the running app actually contains
+  the change** (`docker compose up -d --build`; plain `up -d` serves nginx with a stale baked image,
+  so source edits are invisible and the review silently passes UI that was never rendered), then
+  capture 390x844 / 768x1024 / 1280x800 and run its measurement script.
+- At `/code-review low`, which is one-pass by design, don't run it — but say in the output that the
+  visual pass was not run and that no claim has captures behind it. A silent skip is the failure;
+  a stated one is fine.
+Don't wait for `visual-review.md` to be injected — hook injection does not reach a forked reviewer.
+Open it yourself. Never write "responsive" / "renders correctly" / "looks right" without captures
+behind them; font size, tap-target size and line length are measured, never eyeballed.**
 
 ## Recipes
 - **First run on a clone:** `docker compose up -d --build` works with no `.env` (compose inlines the non-secret defaults). `cp .env.example .env` is still the first step for local work: `pnpm test` needs it (`test:backend` passes `--env-file ../.env`) plus the db on host port 5433 for the integration tests.
