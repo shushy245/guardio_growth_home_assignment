@@ -1,0 +1,96 @@
+@use '~/styles/tokens' as tokens;
+@use '~/styles/fields' as fields;
+
+.list {
+    gap: tokens.$sp-4;
+}
+
+.rows {
+    display: flex;
+    flex-direction: column;
+    gap: tokens.$sp-3;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.loadMore {
+    @include fields.button-secondary;
+    align-self: center;
+
+    &:disabled {
+        color: tokens.$color-text-secondary;
+        border-color: tokens.$color-border;
+        cursor: progress;
+    }
+}
+
+// A skeleton row has the shape of a real one: the initial's square and two lines.
+.skeletonRow {
+    display: flex;
+    gap: tokens.$sp-4;
+    padding: tokens.$sp-4;
+    border: 1px solid tokens.$color-border;
+    border-radius: tokens.$radius-md;
+    background: tokens.$color-surface;
+}
+
+.skeletonInitial {
+    @include fields.skeleton-block;
+    width: tokens.$control-height;
+    height: tokens.$control-height;
+    border-radius: tokens.$radius-sm;
+    flex: 0 0 auto;
+}
+
+.skeletonBody {
+    flex: 1 1 0;
+    justify-content: center;
+    gap: tokens.$sp-2;
+}
+
+.skeletonTitle {
+    @include fields.skeleton-block;
+    width: 40%;
+    height: tokens.$text-200;
+}
+
+.skeletonMeta {
+    @include fields.skeleton-block;
+    width: 60%;
+    height: tokens.$text-100;
+}
+
+// Dashed and round where the error state is solid and square: "nothing matched" must never read
+// as "something broke".
+.empty {
+    align-items: center;
+    text-align: center;
+    gap: tokens.$sp-2;
+    padding: tokens.$sp-9 tokens.$sp-5;
+    border: 1px dashed tokens.$color-border;
+    border-radius: tokens.$radius-md;
+}
+
+.emptyMark {
+    width: tokens.$tap-target;
+    height: tokens.$tap-target;
+    border: 2px solid tokens.$color-text-secondary;
+    border-radius: tokens.$radius-pill;
+    margin-bottom: tokens.$sp-2;
+}
+
+.emptyTitle {
+    font-size: tokens.$text-200;
+    font-weight: tokens.$weight-semibold;
+    margin: 0;
+}
+
+.emptyDescription {
+    @include fields.note;
+    margin-bottom: tokens.$sp-3;
+}
+
+.clear {
+    @include fields.button-secondary;
+}

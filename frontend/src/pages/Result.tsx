@@ -6,6 +6,7 @@ import type { ReactElement } from 'react';
 
 import { Column, MainColumn } from '~/ui/box';
 import { joinClassNames } from '~/ui/box.utils';
+import { BreachList } from '~/components/BreachList';
 import { useVisitor } from '~/providers/VisitorProvider';
 import { BreachSummary } from '~/components/BreachSummary';
 import { BreachFilters } from '~/components/BreachFilters';
@@ -29,6 +30,7 @@ export const Result = (): ReactElement => {
             <Column className={styles.body}>
                 <BreachSummary tone={copy.tone} />
                 <BreachFilters />
+                <BreachList />
             </Column>
             <Column className={styles.stickyBar} data-testid={ResultTestIds.StickyBar}>
                 <button className={styles.cta} type="button" data-testid={ResultTestIds.Cta}>
