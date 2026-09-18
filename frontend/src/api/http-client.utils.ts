@@ -1,6 +1,6 @@
 // The boundary where JSON null becomes undefined: application code never sees null (house rule),
 // so every response body passes through here before anything else reads it.
-const isPlainObject = (value: unknown): value is Record<string, unknown> =>
+export const isPlainObject = (value: unknown): value is Record<string, unknown> =>
     typeof value === 'object' && value !== null && !Array.isArray(value);
 
 export const normaliseNulls = (value: unknown): unknown => {

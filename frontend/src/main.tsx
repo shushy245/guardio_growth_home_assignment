@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router';
 import { createRoot } from 'react-dom/client';
 
 import { App } from '~/App';
+import { VisitorProvider } from '~/providers/VisitorProvider';
 
 const container = document.getElementById('root');
 if (container === null) {
@@ -13,7 +14,9 @@ if (container === null) {
 createRoot(container).render(
     <StrictMode>
         <BrowserRouter>
-            <App />
+            <VisitorProvider>
+                <App />
+            </VisitorProvider>
         </BrowserRouter>
     </StrictMode>,
 );

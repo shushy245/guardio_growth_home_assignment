@@ -35,9 +35,14 @@ export default [
     },
 
     // ── Boundary files that must speak null: the axios seam normalises JSON null, the composition
-    //    root reads the DOM ──
+    //    root reads the DOM, the storage wrapper reads localStorage (getItem returns null) ──
     {
-        files: ['**/api/http-client.utils.ts', '**/api/http-client.utils.test.ts', '**/main.tsx'],
+        files: [
+            '**/api/http-client.utils.ts',
+            '**/api/http-client.utils.test.ts',
+            '**/main.tsx',
+            '**/storage/visitor-id.ts',
+        ],
         rules: { 'no-restricted-syntax': 'off' },
     },
 
@@ -50,5 +55,8 @@ export default [
             ],
         },
     },
-    { files: ['**/api/http-client.ts'], rules: { 'no-restricted-imports': 'off' } },
+    // Two wrapper files, one exemption each (lint-index: "one entry + one override exemption per
+    // wrapper file"): the production seam, and the test-side fake transport that must speak
+    // axios's adapter contract to stand in for the network.
+    { files: ['**/api/http-client.ts', '**/testkit/fake-http.ts'], rules: { 'no-restricted-imports': 'off' } },
 ];
