@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.db.session import get_session
 from app.feature_flags import repository
+from app.feature_flags.admin import require_admin_token
 from app.feature_flags.schemas import FeatureFlagResponse, FeatureFlagUpdate, FeatureFlagUpdated
 
 log = structlog.get_logger()
@@ -27,7 +28,11 @@ def list_feature_flags(
     ]
 
 
-@router.patch("/feature-flags/{key}", response_model=FeatureFlagUpdated)
+@router.patch(
+    "/feature-flags/{key}",
+    response_model=FeatureFlagUpdated,
+    dependencies=[Depends(require_admin_token)],
+)
 def update_feature_flag(
     key: Annotated[str, Path(min_length=1, max_length=64)],
     changes: FeatureFlagUpdate,

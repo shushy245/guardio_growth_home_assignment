@@ -2,7 +2,7 @@
 optimistic lock. Every save is built from a flag the driver read first, so the token in play is
 the one the API handed out."""
 
-from tests.drivers.feature_flags_api import FeatureFlagsApiDriver
+from tests.drivers.feature_flags_api import SEEDED_DESCRIPTION, FeatureFlagsApiDriver
 
 
 def test_a_save_with_the_current_token_persists_the_change_and_returns_the_new_token(
@@ -68,6 +68,26 @@ def test_a_save_whose_weights_do_not_sum_to_a_hundred_is_rejected_before_anythin
     flags.when.the_flag_is_saved_with_weights(50, 40)
 
     flags.then.the_save_was_rejected()
-    flags.then.the_description_is_still(
-        "Tone of the result screen: calm framing vs urgent framing of the same data."
-    )
+    flags.then.the_description_is_still(SEEDED_DESCRIPTION)
+
+
+def test_a_save_without_the_admin_token_is_refused_and_changes_nothing(
+    flags: FeatureFlagsApiDriver,
+) -> None:
+    flags.given.the_flag_was_read()
+
+    flags.when.the_flag_is_saved_without_a_token()
+
+    flags.then.the_save_was_refused_as_unauthorised()
+    flags.then.the_description_is_still(SEEDED_DESCRIPTION)
+
+
+def test_a_save_with_a_wrong_admin_token_is_refused_and_changes_nothing(
+    flags: FeatureFlagsApiDriver,
+) -> None:
+    flags.given.the_flag_was_read()
+
+    flags.when.the_flag_is_saved_with_a_wrong_token()
+
+    flags.then.the_save_was_refused_as_unauthorised()
+    flags.then.the_description_is_still(SEEDED_DESCRIPTION)

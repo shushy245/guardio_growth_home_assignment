@@ -14,6 +14,7 @@ from tests.builders.settings import TEST_ADMIN_TOKEN
 from tests.drivers.http import HttpDriver
 
 RESULT_SCREEN_TONE = "result_screen_tone"
+SEEDED_DESCRIPTION = "Tone of the result screen: calm framing vs urgent framing of the same data."
 ADMIN_TOKEN_HEADER = "X-Admin-Token"
 FLAG_UPDATE_FIELDS = ("description", "isEnabled", "variants", "updatedAt")
 
