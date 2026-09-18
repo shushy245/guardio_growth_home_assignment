@@ -13,6 +13,8 @@ from sqlalchemy import engine_from_config, pool
 
 from app.breaches.models import BreachRow  # noqa: F401 — imported so autogenerate sees it
 from app.db.base import Base
+from app.feature_flags.models import FeatureFlagRow  # noqa: F401
+from app.visitors.models import VisitorAssignmentRow, VisitorRow  # noqa: F401
 
 config = context.config
 
