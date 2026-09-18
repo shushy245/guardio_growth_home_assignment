@@ -1,5 +1,6 @@
 import { beforeEach, describe, it } from 'vitest';
 
+import { FunnelEventName } from '~/models/funnelEvent';
 import { AppDriver, makeAppDriver } from '~/App.driver';
 
 describe('App', () => {
@@ -26,6 +27,19 @@ describe('App', () => {
         await driver.when.created();
         driver.assert.adminIsShown();
         driver.assert.visitorsCreated(0);
+    });
+
+    it('records the visit once when the funnel is opened', async () => {
+        driver.given.route('/');
+        await driver.when.created();
+        await driver.assert.stepsPosted(FunnelEventName.LandingView, 1);
+    });
+
+    it('records no step when the admin page is opened', async () => {
+        driver.given.route('/admin');
+        await driver.when.created();
+        driver.assert.adminIsShown();
+        await driver.assert.stepsPosted(FunnelEventName.LandingView, 0);
     });
 
     it('fetches the flag list once on the admin page', async () => {
