@@ -68,6 +68,16 @@ describe('AnalyticsProvider and the mount effect', () => {
         await driver.assert.eventsPosted(1);
     });
 
+    it('posts nothing further when the page re-renders the step without remounting it', async () => {
+        // The id is minted once per mount, so a filter change or a count-up on the page that
+        // owns the step cannot turn one visit into several.
+        await driver.when.created();
+        await driver.assert.eventsPosted(1);
+        await driver.click.rerenderTheStep();
+        await driver.click.rerenderTheStep();
+        await driver.assert.eventsPosted(1);
+    });
+
     it('posts the step again, under a new id, when it is shown again', async () => {
         // Revisiting the landing page is a second visit; the dedupe is per mount, never per name.
         await driver.when.created();

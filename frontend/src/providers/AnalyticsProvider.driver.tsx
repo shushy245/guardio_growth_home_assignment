@@ -20,16 +20,19 @@ import { fakeHttp, HttpMethod, type RecordedRequest } from '~/testkit/fake-http'
 export enum AnalyticsProbeTestIds {
     TrackScanStarted = 'AnalyticsProbeTestIds.TrackScanStarted',
     ShowTheStepAgain = 'AnalyticsProbeTestIds.ShowTheStepAgain',
+    RerenderTheStep = 'AnalyticsProbeTestIds.RerenderTheStep',
 }
 
 const EVENTS_PATH = '/funnel-events';
 const HTTP_SERVER_ERROR = 500;
 const A_MINUTE_MS = 60_000;
 
-const MountedStep = ({ name }: { name: FunnelEventName }): ReactElement => {
+// `revision` is state the page owns; a change to it re-renders the step without remounting it —
+// what a filter, a sort or a count-up does on a real funnel page.
+const MountedStep = ({ name, revision }: { name: FunnelEventName; revision: number }): ReactElement => {
     useTrackOnce(name);
 
-    return <span>{name}</span>;
+    return <span>{`${name} ${revision}`}</span>;
 };
 
 // A step that exists only once the visitor is known — what a page gated on the session does.
@@ -39,12 +42,13 @@ const StepShownOnceReady = ({ name }: { name: FunnelEventName }): ReactElement |
     const visitor = useVisitor();
     if (!isReady(visitor)) return undefined;
 
-    return <MountedStep name={name} />;
+    return <MountedStep name={name} revision={0} />;
 };
 
 const AnalyticsProbe = ({ readyOnlyStep }: { readyOnlyStep: FunnelEventName | undefined }): ReactElement => {
     const { track } = useAnalytics();
     const [stepMount, setStepMount] = useState(0);
+    const [revision, setRevision] = useState(0);
 
     const handleTrackScanStarted = (): void => {
         track(FunnelEventName.ScanStarted);
@@ -52,16 +56,22 @@ const AnalyticsProbe = ({ readyOnlyStep }: { readyOnlyStep: FunnelEventName | un
     const handleShowTheStepAgain = (): void => {
         setStepMount((count) => count + 1);
     };
+    const handleRerenderTheStep = (): void => {
+        setRevision((count) => count + 1);
+    };
 
     return (
         <div>
-            <MountedStep key={stepMount} name={FunnelEventName.LandingView} />
+            <MountedStep key={stepMount} name={FunnelEventName.LandingView} revision={revision} />
             {readyOnlyStep === undefined ? undefined : <StepShownOnceReady name={readyOnlyStep} />}
             <button type="button" data-testid={AnalyticsProbeTestIds.TrackScanStarted} onClick={handleTrackScanStarted}>
                 {`track`}
             </button>
             <button type="button" data-testid={AnalyticsProbeTestIds.ShowTheStepAgain} onClick={handleShowTheStepAgain}>
                 {`again`}
+            </button>
+            <button type="button" data-testid={AnalyticsProbeTestIds.RerenderTheStep} onClick={handleRerenderTheStep}>
+                {`rerender`}
             </button>
         </div>
     );
@@ -83,6 +93,7 @@ export type AnalyticsProviderDriver = {
     click: {
         trackScanStarted: () => Promise<void>;
         showTheStepAgain: () => Promise<void>;
+        rerenderTheStep: () => Promise<void>;
     };
     assert: {
         eventsPosted: (count: number) => Promise<void>;
@@ -203,6 +214,9 @@ export const makeAnalyticsProviderDriver = (): AnalyticsProviderDriver => {
             },
             showTheStepAgain: async (): Promise<void> => {
                 await user.click(screen.getByTestId(AnalyticsProbeTestIds.ShowTheStepAgain));
+            },
+            rerenderTheStep: async (): Promise<void> => {
+                await user.click(screen.getByTestId(AnalyticsProbeTestIds.RerenderTheStep));
             },
         },
         assert: {
