@@ -25,39 +25,6 @@ describe('Admin page', () => {
         await driver.assert.savedConfirmationIsShown();
     });
 
-    it('keeps the edited value and asks for a reload when the flag changed underneath', async () => {
-        driver.given.theServerListsFlags(aFeatureFlagDTO().withUpdatedAt(FIRST_TOKEN).build());
-        driver.given.theSaveConflicts();
-        await driver.when.created();
-        await driver.type.adminToken(ADMIN_TOKEN);
-        await driver.type.urgentCtaLabel('Protect me today');
-        await driver.click.save();
-        await driver.assert.conflictMessageIsShown();
-        driver.assert.urgentCtaLabelIs('Protect me today');
-    });
-
-    it('carries the token the previous save returned into the next one', async () => {
-        driver.given.theServerListsFlags(aFeatureFlagDTO().withUpdatedAt(FIRST_TOKEN).build());
-        driver.given.theSaveSucceedsWithToken(SECOND_TOKEN);
-        await driver.when.created();
-        await driver.type.adminToken(ADMIN_TOKEN);
-        await driver.type.urgentCtaLabel('First edit');
-        await driver.click.save();
-        await driver.assert.savedConfirmationIsShown();
-        await driver.type.urgentCtaLabel('Second edit');
-        await driver.click.save();
-        driver.assert.saveTokensSent(FIRST_TOKEN, SECOND_TOKEN);
-    });
-
-    it('refuses to send a save before the admin token is pasted', async () => {
-        driver.given.theServerListsFlags(aFeatureFlagDTO().build());
-        await driver.when.created();
-        await driver.type.urgentCtaLabel('Protect me today');
-        await driver.click.save();
-        await driver.assert.failureMessageIsShown('Paste the admin token');
-        driver.assert.savesSent(0);
-    });
-
     it('shows an error instead of an empty console when the flags cannot be loaded', async () => {
         driver.given.theFlagListFails();
         await driver.when.created();

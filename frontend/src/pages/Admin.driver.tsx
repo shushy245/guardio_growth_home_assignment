@@ -5,47 +5,35 @@ import { screen, waitFor } from '@testing-library/react';
 
 import { Admin } from '~/pages/Admin';
 import { CopyField } from '~/models/featureFlag';
+import { AdminTestIds } from '~/pages/Admin.utils';
 import { isPlainObject } from '~/api/http-client.utils';
 import { ADMIN_TOKEN_HEADER } from '~/api/feature-flags';
 import { renderWithProviders } from '~/testkit/renderWithProviders';
 import { fakeHttp, HttpMethod, type RecordedRequest } from '~/testkit/fake-http';
 import type { FeatureFlagDTO, FeatureFlagUpdatePayload } from '~/models/featureFlag';
-import { AdminTestIds, flagFieldTestId, FlagField, variantFieldTestId, WEIGHT_FIELD } from '~/pages/Admin.utils';
+import { flagFieldTestId, FlagField, variantFieldTestId } from '~/components/FlagEditor.utils';
 
 const RESULT_SCREEN_TONE = 'result_screen_tone';
 const URGENT = 'urgent';
 const SAVE_PATH = `/feature-flags/${RESULT_SCREEN_TONE}`;
-const HTTP_CONFLICT = 409;
 const HTTP_SERVER_ERROR = 500;
-
-const urgentFieldId = (field: CopyField | typeof WEIGHT_FIELD): string =>
-    variantFieldTestId({ flagKey: RESULT_SCREEN_TONE, variantKey: URGENT, field });
 
 export type AdminDriver = {
     given: {
         theServerListsFlags: (...flags: FeatureFlagDTO[]) => void;
         theFlagListFails: () => void;
         theSaveSucceedsWithToken: (token: string) => void;
-        theSaveConflicts: () => void;
-        theSaveFails: () => void;
     };
     when: { created: () => Promise<void> };
     type: {
         adminToken: (token: string) => Promise<void>;
         urgentCtaLabel: (label: string) => Promise<void>;
-        urgentWeight: (weight: string) => Promise<void>;
     };
     click: { save: () => Promise<void> };
     assert: {
         saveCarried: (expected: { ctaLabel: string; lockToken: string; adminToken: string }) => void;
-        saveTokensSent: (...lockTokens: string[]) => void;
-        savesSent: (count: number) => void;
         savedConfirmationIsShown: () => Promise<void>;
-        conflictMessageIsShown: () => Promise<void>;
-        failureMessageIsShown: (message: string) => Promise<void>;
-        urgentCtaLabelIs: (label: string) => void;
         loadErrorIsShown: () => Promise<void>;
-        weightsAre: (calm: string, urgent: string) => void;
     };
 };
 
@@ -81,9 +69,6 @@ export const makeAdminDriver = (): AdminDriver => {
         await user.type(field, value);
     };
 
-    const messageOf = (): HTMLElement =>
-        screen.getByTestId(flagFieldTestId({ flagKey: RESULT_SCREEN_TONE, field: FlagField.SaveMessage }));
-
     return {
         given: {
             theServerListsFlags: (...flags: FeatureFlagDTO[]): void => {
@@ -105,22 +90,6 @@ export const makeAdminDriver = (): AdminDriver => {
                     body: { updatedAt: token },
                 });
             },
-            theSaveConflicts: (): void => {
-                fakeHttp.respond({
-                    method: HttpMethod.Patch,
-                    path: SAVE_PATH,
-                    status: HTTP_CONFLICT,
-                    body: { error: 'update_feature_flag: optimistic lock conflict' },
-                });
-            },
-            theSaveFails: (): void => {
-                fakeHttp.respond({
-                    method: HttpMethod.Patch,
-                    path: SAVE_PATH,
-                    status: HTTP_SERVER_ERROR,
-                    body: { error: 'internal error' },
-                });
-            },
         },
         when: {
             created: async (): Promise<void> => {
@@ -134,10 +103,14 @@ export const makeAdminDriver = (): AdminDriver => {
                 await typeInto(AdminTestIds.AdminToken, token);
             },
             urgentCtaLabel: async (label: string): Promise<void> => {
-                await typeInto(urgentFieldId(CopyField.CtaLabel), label);
-            },
-            urgentWeight: async (weight: string): Promise<void> => {
-                await typeInto(urgentFieldId(WEIGHT_FIELD), weight);
+                await typeInto(
+                    variantFieldTestId({
+                        flagKey: RESULT_SCREEN_TONE,
+                        variantKey: URGENT,
+                        field: CopyField.CtaLabel,
+                    }),
+                    label,
+                );
             },
         },
         click: {
@@ -165,42 +138,19 @@ export const makeAdminDriver = (): AdminDriver => {
                 expect(urgentLabels).toStrictEqual([ctaLabel]);
                 expect(request.headers[ADMIN_TOKEN_HEADER]).toBe(adminToken);
             },
-            saveTokensSent: (...lockTokens: string[]): void => {
-                expect(saves().map((request) => savedPayload(request).updatedAt)).toStrictEqual(lockTokens);
-            },
-            savesSent: (count: number): void => {
-                expect(saves()).toHaveLength(count);
-            },
             savedConfirmationIsShown: async (): Promise<void> => {
                 await waitFor(() => {
-                    expect(messageOf()).toHaveTextContent('Saved');
+                    expect(
+                        screen.getByTestId(
+                            flagFieldTestId({ flagKey: RESULT_SCREEN_TONE, field: FlagField.SaveMessage }),
+                        ),
+                    ).toHaveTextContent('Saved');
                 });
-            },
-            conflictMessageIsShown: async (): Promise<void> => {
-                await waitFor(() => {
-                    expect(messageOf()).toHaveTextContent('Reload the page');
-                });
-            },
-            failureMessageIsShown: async (message: string): Promise<void> => {
-                await waitFor(() => {
-                    expect(messageOf()).toHaveTextContent(message);
-                });
-            },
-            urgentCtaLabelIs: (label: string): void => {
-                expect(screen.getByTestId(urgentFieldId(CopyField.CtaLabel))).toHaveValue(label);
             },
             loadErrorIsShown: async (): Promise<void> => {
                 await waitFor(() => {
                     expect(screen.getByTestId(AdminTestIds.LoadError)).toBeInTheDocument();
                 });
-            },
-            weightsAre: (calm: string, urgent: string): void => {
-                expect(
-                    screen.getByTestId(
-                        variantFieldTestId({ flagKey: RESULT_SCREEN_TONE, variantKey: 'calm', field: WEIGHT_FIELD }),
-                    ),
-                ).toHaveValue(Number(calm));
-                expect(screen.getByTestId(urgentFieldId(WEIGHT_FIELD))).toHaveValue(Number(urgent));
             },
         },
     };

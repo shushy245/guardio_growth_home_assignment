@@ -1,0 +1,96 @@
+@use '~/styles/tokens' as tokens;
+@use '~/styles/fields' as fields;
+
+// Built at 390 first: one column of full-width variant cards, tap targets a thumb can hit. At
+// md+ the two variants sit side by side so a split can be read without scrolling.
+.flag {
+    gap: 16px;
+    padding: 16px;
+    border: 1px solid #dbe3ec;
+    border-radius: 12px;
+    background: #f7f9fc;
+}
+
+.flagName {
+    font-size: 18px;
+    margin: 0;
+}
+
+.note {
+    @include fields.note;
+}
+
+.toggle {
+    gap: 10px;
+    align-items: center;
+    min-height: 44px;
+    font-size: 14px;
+}
+
+.checkbox {
+    width: 20px;
+    height: 20px;
+}
+
+.variant {
+    gap: 12px;
+    padding: 12px;
+    border: 1px solid #dbe3ec;
+    border-radius: 10px;
+    background: #fff;
+}
+
+.variantName {
+    font-size: 15px;
+    font-weight: 700;
+    margin: 0;
+}
+
+.field {
+    @include fields.field;
+}
+
+.label {
+    @include fields.label;
+}
+
+.input {
+    @include fields.input;
+}
+
+.save {
+    font: inherit;
+    font-weight: 600;
+    min-height: 48px;
+    padding: 0 20px;
+    border: 0;
+    border-radius: 8px;
+    background: #16508f;
+    color: #fff;
+    cursor: pointer;
+}
+
+.save:disabled {
+    background: #93a3b5;
+    cursor: not-allowed;
+}
+
+.message {
+    @include fields.message;
+}
+
+.warning {
+    @include fields.message;
+    color: #8a4b00;
+}
+
+@media (min-width: tokens.$breakpoint-md) {
+    .variants {
+        flex-direction: row;
+        gap: 16px;
+    }
+
+    .variant {
+        flex: 1 1 0;
+    }
+}

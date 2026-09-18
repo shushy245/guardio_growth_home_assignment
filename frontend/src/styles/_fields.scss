@@ -1,0 +1,36 @@
+// Form and prose primitives shared by the admin page and the flag editor it renders. One home
+// for each, so "what an input looks like" is not a decision made twice and drifted once. D1's
+// design tokens replace the literals here.
+
+@mixin field {
+    gap: 6px;
+    font-size: 14px;
+}
+
+@mixin label {
+    font-weight: 600;
+}
+
+@mixin input {
+    font: inherit;
+    padding: 10px 12px;
+    min-height: 44px;
+    border: 1px solid #b6c2cf;
+    border-radius: 8px;
+    background: #fff;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+@mixin note {
+    font-size: 14px;
+    line-height: 1.5;
+    margin: 0;
+    color: #4a5a6a;
+}
+
+@mixin message {
+    font-size: 14px;
+    line-height: 1.5;
+    margin: 0;
+}
