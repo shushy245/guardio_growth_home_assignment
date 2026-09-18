@@ -31,6 +31,9 @@ class _SettingsBuilder:
     def with_frontend_origin(self, frontend_origin: str) -> _SettingsBuilder:
         return replace(self, frontend_origin=frontend_origin)
 
+    def with_env(self, env: Env) -> _SettingsBuilder:
+        return replace(self, env=env)
+
     def build(self) -> Settings:
         return Settings(
             env=self.env,

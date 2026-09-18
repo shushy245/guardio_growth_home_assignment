@@ -23,6 +23,7 @@ from tests.drivers.breaches_api import BreachesApiDriver
 from tests.drivers.catalog_refresh import CatalogRefreshDriver
 from tests.drivers.db import DbDriver
 from tests.drivers.http import HttpDriver
+from tests.drivers.visitors_api import VisitorsApiDriver
 
 
 def _test_database_url() -> str:
@@ -82,3 +83,8 @@ def breaches(driver: HttpDriver, db_session: Session) -> BreachesApiDriver:
 @pytest.fixture
 def refresh(db_session: Session) -> CatalogRefreshDriver:
     return CatalogRefreshDriver(db_session)
+
+
+@pytest.fixture
+def visitors(driver: HttpDriver, db_session: Session) -> VisitorsApiDriver:
+    return VisitorsApiDriver(driver, db_session)

@@ -24,6 +24,7 @@ from app.health.router import router as health_router
 from app.logging import configure_logging
 from app.middleware.correlation_id import CorrelationIdMiddleware
 from app.ports.breach_catalog import BreachCatalogPort
+from app.visitors.router import router as visitors_router
 
 
 def create_app(settings: Settings, *, catalog: BreachCatalogPort) -> FastAPI:
@@ -40,6 +41,7 @@ def create_app(settings: Settings, *, catalog: BreachCatalogPort) -> FastAPI:
         yield
 
     app = FastAPI(title="Breach Scan API", lifespan=lifespan)
+    app.state.settings = settings
     app.state.session_factory = session_factory
     app.state.catalog_refresher = CatalogRefresher(catalog=catalog)
     app.add_middleware(CorrelationIdMiddleware)
@@ -53,4 +55,5 @@ def create_app(settings: Settings, *, catalog: BreachCatalogPort) -> FastAPI:
     register_exception_handlers(app)
     app.include_router(health_router, prefix="/api")
     app.include_router(breaches_router, prefix="/api")
+    app.include_router(visitors_router, prefix="/api")
     return app

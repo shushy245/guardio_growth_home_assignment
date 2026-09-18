@@ -20,6 +20,24 @@ class WeightedVariant:
     weight: int
 
 
+@dataclass(frozen=True)
+class FlagSplit:
+    """An enabled flag as the assignment rule sees it: its key and how it splits visitors."""
+
+    key: str
+    variants: tuple[WeightedVariant, ...]
+
+
+def assign_all(*, visitor_id: str, splits: Sequence[FlagSplit]) -> dict[str, str]:
+    """One assignment per enabled flag, keyed by flag key."""
+    return {
+        split.key: assign_variant(
+            visitor_id=visitor_id, flag_key=split.key, variants=split.variants
+        )
+        for split in splits
+    }
+
+
 def assign_variant(*, visitor_id: str, flag_key: str, variants: Sequence[WeightedVariant]) -> str:
     """The variant whose slice of `[0, 100)` holds this visitor's bucket, in variant order.
 

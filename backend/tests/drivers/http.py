@@ -24,6 +24,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from structlog.testing import capture_logs
 from structlog.typing import EventDict
 
+from app.config import Env
 from app.db.session import get_session
 from app.main import create_app
 from app.middleware.correlation_id import CORRELATION_ID_HEADER
@@ -118,6 +119,9 @@ class _Given:
     def frontend_origin(self, origin: str) -> None:
         self._driver._settings = self._driver._settings.with_frontend_origin(origin)
 
+    def env(self, env: Env) -> None:
+        self._driver._settings = self._driver._settings.with_env(env)
+
     def a_route_that_raises(self) -> None:
         """Mounted by the test, never by the app.
 
@@ -147,6 +151,9 @@ class _Post:
         self, path: str, body: dict[str, Any], *, headers: dict[str, str] | None = None
     ) -> None:
         self._driver._perform(lambda client: client.post(path, json=body, headers=headers))
+
+    def empty(self, path: str) -> None:
+        self._driver._perform(lambda client: client.post(path))
 
 
 class _When:
