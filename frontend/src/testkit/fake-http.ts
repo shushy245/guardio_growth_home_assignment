@@ -23,6 +23,9 @@ export type RecordedRequest = {
     query: Record<string, string>;
     body: unknown;
     headers: Record<string, string>;
+    // Whether the caller abandoned the request by aborting its signal — the observable half of
+    // "navigating away mid-fetch", which no rendered state can show.
+    isAborted: () => boolean;
 };
 
 type FakeRoute = {
@@ -111,7 +114,15 @@ const lastRouteFor = ({ method, path }: { method: HttpMethod; path: string }): F
 httpClient.defaults.adapter = async (config: InternalAxiosRequestConfig): Promise<AxiosResponse> => {
     const method = methodOf(config);
     const path = config.url ?? '';
-    requests.push({ method, path, query: queryOf(path), body: bodyOf(config), headers: headersOf(config) });
+    const { signal } = config;
+    requests.push({
+        method,
+        path,
+        query: queryOf(path),
+        body: bodyOf(config),
+        headers: headersOf(config),
+        isAborted: (): boolean => signal !== undefined && signal.aborted === true,
+    });
 
     const route = lastRouteFor({ method, path });
     if (route === undefined) {

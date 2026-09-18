@@ -18,15 +18,19 @@ import { logger } from '~/logging/logger';
 import { describeError, isCancelled } from '~/api/http-client';
 import { fetchBreaches, fetchBreachSummary } from '~/api/breaches';
 import {
+    awaitPage,
     type CatalogFilters,
     type CatalogRequest,
     enableRequest,
     IDLE_REQUEST,
     type ListState,
     ListStatus,
+    nextPage,
+    receivePage,
     retryRequest,
     type SummaryState,
     SummaryStatus,
+    toListQuery,
     withFilters,
 } from '~/providers/BreachCatalogProvider.utils';
 
@@ -37,6 +41,7 @@ type BreachCatalogContextValue = {
     load: () => void;
     retry: () => void;
     setFilters: (filters: CatalogFilters) => void;
+    loadMore: () => void;
 };
 
 const BreachCatalogContext = createContext<BreachCatalogContextValue | undefined>(undefined);
@@ -73,25 +78,24 @@ export const BreachCatalogProvider = ({ children }: { children: ReactNode }): Re
         };
     }, [request.isEnabled, request.attempt]);
 
-    // The list answers the filters too. Its cleanup aborts the page in flight, which is what
-    // stops a response to an older filter landing over a newer one.
+    // The list answers the filters and the page too. Its cleanup aborts the page in flight, which
+    // is what stops a response to an older filter landing over a newer one.
     useEffect(() => {
         if (!request.isEnabled) return;
         const controller = new AbortController();
         const { signal } = controller;
-        setList({ status: ListStatus.Loading });
+        setList((current) => awaitPage({ current, request }));
 
-        fetchBreaches({ filters: request.filters, signal })
+        fetchBreaches({ filters: toListQuery(request), signal })
             .then((page) => {
-                if (!signal.aborted) {
-                    setList({ status: ListStatus.Ready, items: page.items, total: page.total, page: page.page });
-                }
+                if (!signal.aborted) setList((current) => receivePage({ current, page, request }));
             })
             .catch((error: unknown) => {
                 if (isCancelled(error)) return;
                 logger.error('BreachCatalogProvider: the breach list could not be loaded', {
                     attempt: request.attempt,
                     filters: request.filters,
+                    page: request.page,
                     detail: describeError(error),
                 });
                 setList({ status: ListStatus.Failed });
@@ -100,7 +104,7 @@ export const BreachCatalogProvider = ({ children }: { children: ReactNode }): Re
         return (): void => {
             controller.abort();
         };
-    }, [request.isEnabled, request.attempt, request.filters]);
+    }, [request]);
 
     const load = useCallback((): void => {
         setRequest(enableRequest);
@@ -114,9 +118,13 @@ export const BreachCatalogProvider = ({ children }: { children: ReactNode }): Re
         setRequest((current) => withFilters(current, filters));
     }, []);
 
+    const loadMore = useCallback((): void => {
+        setRequest(nextPage);
+    }, []);
+
     const value = useMemo<BreachCatalogContextValue>(
-        () => ({ summary, list, filters: request.filters, load, retry, setFilters }),
-        [summary, list, request.filters, load, retry, setFilters],
+        () => ({ summary, list, filters: request.filters, load, retry, setFilters, loadMore }),
+        [summary, list, request.filters, load, retry, setFilters, loadMore],
     );
 
     return <BreachCatalogContext.Provider value={value}>{children}</BreachCatalogContext.Provider>;
