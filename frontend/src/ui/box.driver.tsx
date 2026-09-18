@@ -3,7 +3,7 @@ import { act, ReactElement } from 'react';
 import { screen } from '@testing-library/react';
 
 import { renderWithProviders } from '~/testkit/renderWithProviders';
-import { Box, Column, FullBox, FullColumn, FullRow, Row } from '~/ui/box';
+import { Box, Column, FullBox, FullColumn, FullRow, MainColumn, Row } from '~/ui/box';
 
 // The primitive under test is a test concern only: production code imports the components.
 export enum Primitive {
@@ -13,6 +13,7 @@ export enum Primitive {
     FullRow = 'fullRow',
     FullColumn = 'fullColumn',
     FullBox = 'fullBox',
+    MainColumn = 'mainColumn',
 }
 
 const TEST_ID = 'primitive-under-test';
@@ -24,6 +25,7 @@ const primitiveElementMap: Record<Primitive, ReactElement> = {
     [Primitive.FullRow]: <FullRow data-testid={TEST_ID}>{`child`}</FullRow>,
     [Primitive.FullColumn]: <FullColumn data-testid={TEST_ID}>{`child`}</FullColumn>,
     [Primitive.FullBox]: <FullBox data-testid={TEST_ID}>{`child`}</FullBox>,
+    [Primitive.MainColumn]: <MainColumn data-testid={TEST_ID}>{`child`}</MainColumn>,
 };
 
 export type BoxDriver = {
@@ -32,6 +34,7 @@ export type BoxDriver = {
     assert: {
         hasClass: (className: string) => void;
         hasNoLayoutClass: () => void;
+        isTheMainLandmark: () => void;
         rendersChildren: () => void;
     };
 };
@@ -55,6 +58,9 @@ export const makeBoxDriver = (): BoxDriver => {
         assert: {
             hasClass: (className: string): void => {
                 expect(screen.getByTestId(TEST_ID)).toHaveClass(className);
+            },
+            isTheMainLandmark: (): void => {
+                expect(screen.getByRole('main')).toBe(screen.getByTestId(TEST_ID));
             },
             hasNoLayoutClass: (): void => {
                 expect(screen.getByTestId(TEST_ID).className).toBe('');

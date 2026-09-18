@@ -39,6 +39,18 @@ describe('layout primitives', () => {
         driver.assert.hasClass('fullBox');
     });
 
+    it('MainColumn is the page’s main landmark', async () => {
+        driver.given.primitive(Primitive.MainColumn);
+        await driver.when.created();
+        driver.assert.isTheMainLandmark();
+    });
+
+    it('MainColumn lays its children out vertically', async () => {
+        driver.given.primitive(Primitive.MainColumn);
+        await driver.when.created();
+        driver.assert.hasClass('column');
+    });
+
     it('Box adds no layout class of its own', async () => {
         driver.given.primitive(Primitive.Box);
         await driver.when.created();

@@ -10,6 +10,7 @@ export enum AdminTestIds {
     Loading = 'AdminTestIds.Loading',
     LoadError = 'AdminTestIds.LoadError',
     AdminToken = 'AdminTestIds.AdminToken',
+    Retry = 'AdminTestIds.Retry',
 }
 
 export enum LoadStatus {

@@ -41,6 +41,23 @@
     @include fields.message;
 }
 
+.flags {
+    gap: 24px;
+}
+
+.retry {
+    font: inherit;
+    font-weight: 600;
+    align-self: flex-start;
+    min-height: 44px;
+    padding: 0 20px;
+    border: 1px solid #16508f;
+    border-radius: 8px;
+    background: #fff;
+    color: #16508f;
+    cursor: pointer;
+}
+
 @media (min-width: tokens.$breakpoint-md) {
     .page {
         max-width: 720px;

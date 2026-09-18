@@ -29,11 +29,16 @@ export type AdminDriver = {
         adminToken: (token: string) => Promise<void>;
         urgentCtaLabel: (label: string) => Promise<void>;
     };
-    click: { save: () => Promise<void> };
+    click: {
+        save: () => Promise<void>;
+        retry: () => Promise<void>;
+    };
     assert: {
         saveCarried: (expected: { ctaLabel: string; lockToken: string; adminToken: string }) => void;
         savedConfirmationIsShown: () => Promise<void>;
         loadErrorIsShown: () => Promise<void>;
+        adminTokenFieldIsShown: () => void;
+        flagIsShown: () => Promise<void>;
     };
 };
 
@@ -62,6 +67,9 @@ export const makeAdminDriver = (): AdminDriver => {
 
         return request.body;
     };
+
+    const saveButton = (): HTMLElement =>
+        screen.getByTestId(flagFieldTestId({ flagKey: RESULT_SCREEN_TONE, field: FlagField.Save }));
 
     const typeInto = async (testId: string, value: string): Promise<void> => {
         const field = screen.getByTestId(testId);
@@ -115,9 +123,10 @@ export const makeAdminDriver = (): AdminDriver => {
         },
         click: {
             save: async (): Promise<void> => {
-                await user.click(
-                    screen.getByTestId(flagFieldTestId({ flagKey: RESULT_SCREEN_TONE, field: FlagField.Save })),
-                );
+                await user.click(saveButton());
+            },
+            retry: async (): Promise<void> => {
+                await user.click(screen.getByTestId(AdminTestIds.Retry));
             },
         },
         assert: {
@@ -150,6 +159,14 @@ export const makeAdminDriver = (): AdminDriver => {
             loadErrorIsShown: async (): Promise<void> => {
                 await waitFor(() => {
                     expect(screen.getByTestId(AdminTestIds.LoadError)).toBeInTheDocument();
+                });
+            },
+            adminTokenFieldIsShown: (): void => {
+                expect(screen.getByTestId(AdminTestIds.AdminToken)).toBeInTheDocument();
+            },
+            flagIsShown: async (): Promise<void> => {
+                await waitFor(() => {
+                    expect(saveButton()).toBeInTheDocument();
                 });
             },
         },

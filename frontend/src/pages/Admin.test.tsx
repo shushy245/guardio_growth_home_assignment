@@ -30,4 +30,20 @@ describe('Admin page', () => {
         await driver.when.created();
         await driver.assert.loadErrorIsShown();
     });
+
+    it('keeps the admin token field and offers a retry when the flags cannot be loaded', async () => {
+        driver.given.theFlagListFails();
+        await driver.when.created();
+        await driver.assert.loadErrorIsShown();
+        driver.assert.adminTokenFieldIsShown();
+    });
+
+    it('recovers without a reload when the backend comes back', async () => {
+        driver.given.theFlagListFails();
+        await driver.when.created();
+        await driver.assert.loadErrorIsShown();
+        driver.given.theServerListsFlags(aFeatureFlagDTO().build());
+        await driver.click.retry();
+        await driver.assert.flagIsShown();
+    });
 });
