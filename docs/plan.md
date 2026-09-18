@@ -523,21 +523,49 @@ Cases:
 - F4. `VisitorProvider`: creation failure surfaces an error state, never a default variant (driver)
 - F5. Admin page: editing the urgent CTA label and clicking Save calls PATCH with the flag's current `updatedAt` (driver)
 - F6. Admin page: a 409 response shows a "reload and retry" message and keeps the edited value (driver)
+- Pre-mortem (added at /story-start, 2026-09-18):
+  - B16. `assign_variant` for a pinned input returns a pinned variant: the bucket comes from a
+    stable digest (`sha256`), never Python's `hash()`, which is salted per process — an
+    assignment reasoned about from a log line or the simulator must be reproducible on any worker
+  - B17. variants with a duplicated key are rejected (400): two `calm`s would make an assignment
+    ambiguous and the dashboard would merge two configs under one label
+  - B18. the `updatedAt` a `GET /api/feature-flags` returns, sent back verbatim on PATCH, is
+    accepted — the wire round trip (microseconds, `Z` vs `+00:00`) must not turn every honest
+    save into a 409
+  - B19. two consecutive PATCHes in one session both succeed when the second carries the token
+    the first returned, and the token advances each time — Postgres `now()` is the transaction
+    start time, so a token stamped with it would not move inside one transaction (which is
+    exactly what the savepoint harness runs a test in); the write uses `clock_timestamp()`
+  - B20. `ADMIN_TOKEN` is a required, non-empty setting (BF6 removed it as unused; BF18's lesson
+    is that an empty token would boot "healthy" and then accept an empty header)
+  - F7. `VisitorProvider` under `StrictMode` — the effect runs, is cleaned up and runs again —
+    creates exactly one visitor (driver renders inside `StrictMode`); the interleaving case
+  - F8. `VisitorProvider` with a stored id the server no longer knows (404: the database was
+    reset while the browser kept its mirror) creates a new visitor instead of surfacing an error
+  - F9. Admin page: a second Save after a successful one sends the token the first save returned,
+    not the original — otherwise every second save is a 409 against the page's own write
+  - (recorded, not a test) the page reads the visitor id from the response body and mirrors it
+    in `localStorage`; the cookie is `HttpOnly`, so the page can never read it. Both name the
+    same visitor; the cookie is the server-side belt to the client-side braces. ADR-0003.
+  - (recorded) B15's premise is narrower than it reads: the `Secure` attribute is decided by
+    `ENV`, not by the scheme uvicorn sees, so the cookie is correct behind the proxy without the
+    forwarded headers. What they fix is `request.client` and `request.url.scheme` in the
+    request log — a `[chore]`, verified on the running stack, not a unit test.
 
 Commits:
-- C1 `[test+impl B1, B2, B3]` `assignment.py` pure hash → bucket → weighted pick
+- C1 `[test+impl B1, B2, B3, B16]` `assignment.py` pure hash → bucket → weighted pick
 - C2 `[chore]` migrations for `feature_flag`, `visitor`, `visitor_assignment`; seed migration for `result_screen_tone`
-- C3 `[test+impl B4]` `FeatureFlagVariant` / `FeatureFlagUpdate` Pydantic schemas with weight-sum validator
+- C3 `[test+impl B4, B17]` `FeatureFlagVariant` / `FeatureFlagUpdate` Pydantic schemas with weight-sum and unique-key validators (schema-level; the HTTP 400 is asserted in C7b once the route exists)
 - C4 `[test+impl B5, B6, B14]` `POST /api/visitors` (create, assign per enabled flag, hardened cookie)
 - C5 `[test+impl B7, B8]` `GET /api/visitors/{id}`
 - C6 `[test+impl B9]` `GET /api/feature-flags`
-- C7 `[test+impl B13]` `require_admin_token` dependency (constant-time compare against config)
-- C7b `[test+impl B10, B11, B12]` `PATCH` with optimistic lock (single write, `WHERE updated_at = :token`)
+- C7 `[test+impl B13, B20]` `require_admin_token` dependency (constant-time compare against config); `admin_token` setting re-added red-first
+- C7b `[test+impl B10, B11, B12, B18, B19]` `PATCH` with optimistic lock (single write, `WHERE updated_at = :token … RETURNING updated_at`, stamped with `clock_timestamp()`)
 - C8 `[refactor]` extract `feature_flags/repository.py`; router is a thin shell
 - C9 `[test+impl F1]` frontend `models/featureFlag`, `models/visitor`
-- C10 `[test+impl F2, F3, F4]` `VisitorProvider` (driver first) + `api/visitors`
-- C11 `[test+impl F5, F6]` Admin page (driver first): table, inline inputs, Save, 409 handling
-- C12 `[chore]` ADR-0003 server-side stored assignment
+- C10 `[test+impl F2, F3, F4, F7, F8]` `VisitorProvider` (driver first) + `api/visitors`
+- C11 `[test+impl F5, F6, F9]` Admin page (driver first): table, inline inputs, Save, 409 handling
+- C12 `[chore]` B15 nginx forwarded headers + uvicorn `--proxy-headers`; ADR-0003 server-side stored assignment; python-primer section
 
 ### S4 — funnel-events (~0.5h)
 
