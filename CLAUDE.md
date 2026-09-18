@@ -108,9 +108,11 @@ Full history: `docs/changelog.md`; commit-level record: `git log`.
   tests green.
 
 ## What's next
-**D1 — the pause point. Nothing to build.** S4 closed; the next step is `docs/plan.md` → "D1 —
-Claude Design handoff": I write the Claude Design prompt and hand it to Shalev; **never build
-funnel UI without it.** D1's exit criteria carry three measured findings from the S3 visual
+**D1 — the pause point. Nothing to build.** S4 closed. The Claude Design prompt is written at
+`docs/design/d1-claude-design-prompt.md` (2026-09-18); Shalev runs it in Claude Design and brings
+back tokens, the component inventory and the screens at 390/768/1280. Then I translate the output
+into `frontend/src/styles/tokens.scss` and the inventory, listing deviations. **Never build funnel
+UI without it.** D1's exit criteria carry three measured findings from the S3 visual
 passes, to be answered by a token rather than a one-off override: the disabled Save at 2.58:1,
 14px body text against the 16px floor, and a 96–101 character measure at 768 and 1280.
 
