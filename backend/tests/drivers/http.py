@@ -20,7 +20,7 @@ import httpx2 as httpx
 import structlog
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, sessionmaker
 from structlog.testing import capture_logs
 from structlog.typing import EventDict
 
@@ -91,6 +91,12 @@ class HttpDriver:
             if self._session_override is not None:
                 session = self._session_override
                 app.dependency_overrides[get_session] = lambda: session
+                # The background refresh opens its own transaction from this factory. Bound to
+                # the test's connection it lands in the savepoint; left on the real engine it
+                # would commit for real and leak rows into the test database.
+                app.state.session_factory = sessionmaker(
+                    bind=session.connection(), join_transaction_mode="create_savepoint"
+                )
             self._built_app = app
         return self._built_app
 

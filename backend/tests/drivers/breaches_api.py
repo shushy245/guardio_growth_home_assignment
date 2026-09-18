@@ -11,8 +11,10 @@ through HTTP is also proving the `get_session` override seam.
 from datetime import UTC, date, datetime, timedelta
 from urllib.parse import quote
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.breaches.models import BreachRow
 from app.breaches.repository import upsert_many
 from app.ports.breach_catalog import Breach
 from tests.builders.breach import a_breach
@@ -30,6 +32,7 @@ class BreachesApiDriver:
         self._http = http
         self._session = session
         self._now = datetime.now(UTC)
+        self._seeded_at = self._now - SEEDED_AGE
         self._seeded: list[str] = []
         self._held: list[Breach] = []
         self._listed_names: list[str] = []
@@ -37,8 +40,9 @@ class BreachesApiDriver:
         self.when = _When(self)
         self.then = _Then(self)
 
-    def _seed(self, breaches: list[Breach]) -> None:
-        upsert_many(session=self._session, breaches=breaches, fetched_at=self._now - SEEDED_AGE)
+    def _seed(self, breaches: list[Breach], *, age: timedelta = SEEDED_AGE) -> None:
+        self._seeded_at = self._now - age
+        upsert_many(session=self._session, breaches=breaches, fetched_at=self._seeded_at)
         self._session.flush()
         self._held = list(breaches)
         self._seeded.extend(breach.name for breach in breaches)
@@ -72,6 +76,15 @@ class _Given:
 
     def breaches(self, *breaches: Breach) -> None:
         self._driver._seed(list(breaches))
+
+    def breaches_stored_hours_ago(self, hours: int, *breaches: Breach) -> None:
+        """A copy old enough (or not) to be past the sync TTL — the age is the point."""
+        self._driver._seed(list(breaches), age=timedelta(hours=hours))
+
+    def the_catalog_source_offers(self, *breaches: Breach) -> None:
+        """What HIBP would answer if asked. Distinct from what is stored: a refresh is proved by
+        the difference between the two."""
+        self._driver._http._catalog.holds(list(breaches))
 
     def the_catalog_source_is_unreachable(self) -> None:
         """HIBP is down. The endpoints never call it, and this test is what says so."""
@@ -161,14 +174,24 @@ class _Then:
         actual = {key: body.get(key) for key in expected}
         assert actual == expected, f"expected {expected}, got {actual}"
 
-    def the_summary_was_synced_when_the_rows_were_seeded(self) -> None:
+    def the_summary_reports_the_seeded_sync_time(self) -> None:
         """`syncedAt` is an ISO instant on the wire; compared as a datetime, not as a string,
         because `Z` and `+00:00` are the same instant spelled two ways."""
         raw = self._driver._body["syncedAt"]
         assert isinstance(raw, str), f"syncedAt must be an ISO string, got {raw!r}"
         actual = datetime.fromisoformat(raw)
-        expected = self._driver._now - SEEDED_AGE
+        expected = self._driver._seeded_at
         assert actual == expected, f"expected syncedAt={expected.isoformat()}, got {raw}"
+
+    def the_catalog_source_was_fetched(self, times: int) -> None:
+        actual = self._driver._http._catalog.fetch_count
+        assert actual == times, f"expected {times} catalog fetch(es), got {actual}"
+
+    def the_stored_catalog_holds(self, *expected: str) -> None:
+        """Read through the test's own session: a refresh that committed anywhere else — the
+        real engine, say — would not be visible here, and would have leaked."""
+        stored = self._driver._session.execute(select(BreachRow.name)).scalars()
+        assert sorted(stored) == sorted(expected)
 
     def the_summary_highlights(self, *, largest: str, most_recent: str) -> None:
         body = self._driver._body

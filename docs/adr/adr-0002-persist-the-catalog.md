@@ -1,6 +1,6 @@
 # ADR-0002 — Persist the HIBP catalog rather than proxy it per request
 
-Date: 2026-09-18 · Status: accepted · Story: S2
+Date: 2026-09-18 · Status: accepted, amended by S2b (below) · Story: S2
 
 ## Context
 
@@ -58,3 +58,32 @@ explicitly: nothing on the result screen changes meaning inside a day.
 SQL. That is a deliberate trade at 1,036 rows — the `unnest`-and-group form of the data-class
 ranking is materially harder to read and to test — and is recorded in
 `repository.list_breach_facts` as the thing to revisit if the catalog grows an order of magnitude.
+
+## Amendment — S2b (2026-09-18): refresh from the request path
+
+The decision above checked the TTL only at boot. A container that stayed up served an ageing
+copy with no upper bound — "up to 24 hours stale" was true only across restarts. Three ways to
+close it were weighed:
+
+1. **Periodic job** (a scheduler thread in the process, or a separate worker). The production
+   shape: traffic-independent, one writer by construction. Rejected *for now* because its only
+   wiring is the lifespan, which no test in this harness reaches (BF21 found exactly that gap), and
+   a second process is more infrastructure than a one-worker compose stack earns.
+2. **Stale-while-revalidate from the request path.** Every breach request answers from the
+   database and, when the copy is past the TTL, schedules one refresh after its response
+   (FastAPI `BackgroundTasks`, scheduled at the top of each handler — after its parameters have
+   validated, which a router-level dependency would run before). Single-flight per process and a
+   retry interval so a down HIBP is attempted once per interval, not once per visitor.
+3. **Call through when stale.** Rejected: it makes a stale-catalog request exactly as slow and as
+   available as HIBP — the thing the original decision exists to avoid.
+
+**Chosen: 2**, because the HTTP driver proves it end to end and it self-heals an empty catalog
+after a boot that found HIBP down. `syncedAt` on the summary makes the age visible on the screen
+rather than a fact only the logs know.
+
+**Consequences.** A catalog is refreshed only while there is traffic — acceptable for a funnel,
+and the boot sync still covers a cold start. The refresh holds a database connection for the
+length of the HIBP call (the idle-in-transaction note in `sync_catalog_in_own_transaction`
+applies; single-flight keeps it to one). **When this app runs more than one worker, or must stay
+current through days without traffic, move to option 1** and keep the request path as the
+visibility only.

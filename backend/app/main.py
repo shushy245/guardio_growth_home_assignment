@@ -14,6 +14,7 @@ from datetime import UTC, datetime
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.breaches.refresh import CatalogRefresher
 from app.breaches.router import router as breaches_router
 from app.breaches.sync import sync_catalog_in_own_transaction
 from app.config import Settings
@@ -40,6 +41,7 @@ def create_app(settings: Settings, *, catalog: BreachCatalogPort) -> FastAPI:
 
     app = FastAPI(title="Breach Scan API", lifespan=lifespan)
     app.state.session_factory = session_factory
+    app.state.catalog_refresher = CatalogRefresher(catalog=catalog)
     app.add_middleware(CorrelationIdMiddleware)
     app.add_middleware(
         CORSMiddleware,

@@ -105,4 +105,4 @@ def test_the_summary_reports_when_the_catalog_was_synced(breaches: BreachesApiDr
 
     breaches.when.the_summary_was_requested()
 
-    breaches.then.the_summary_was_synced_when_the_rows_were_seeded()
+    breaches.then.the_summary_reports_the_seeded_sync_time()
