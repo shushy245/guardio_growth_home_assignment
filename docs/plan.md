@@ -46,7 +46,7 @@ structured logging, functional core, TDD) carries over unchanged.
 | Admin protection | none / env token / full auth | **Env-configured admin token** (`X-Admin-Token`) required on flag PATCH → 401 otherwise. Full auth is out of scope; an open write endpoint is not acceptable for a security company's take-home. **Delivery:** `/admin` has no login screen — the operator pastes the token into a field on the page and it lives in React state for that session only. Never in the Vite build (`VITE_*` ships it to every visitor) and never in `localStorage`. Reads (`GET /api/feature-flags`) stay open; only the write is gated, so an unauthenticated page is a harmless one. |
 | Cookies & CORS | defaults / explicit | Visitor cookie `HttpOnly; SameSite=Lax; Secure` outside dev. CORS allow-list = configured frontend origin only. |
 | DB / runtime | Postgres in docker-compose / SQLite | **Postgres 16 via docker-compose.** One `docker compose up` runs db + backend + frontend. |
-| Breach data | Proxy per request / in-memory cache / persist | **Persist to a `breach` table** with `fetched_at`, synced on startup and on a 24h TTL. Enables server-side sort/filter/summary and keeps the funnel alive if HIBP is slow. If HIBP fails *and* the table is empty, the scan fails visibly (`503 { error }`), never fake data. |
+| Breach data | Proxy per request / in-memory cache / persist | **Persist to a `breach` table** with `fetched_at`, synced on startup and refreshed stale-while-revalidate from the request path once it is 24h old (S2b: single-flight per process, 5-minute retry interval, `syncedAt` on the summary). Enables server-side sort/filter/summary and keeps the funnel alive if HIBP is slow. If HIBP fails *and* the table is empty, the scan fails visibly (`503 { error }`), never fake data. |
 | Feature flag home | DB + admin page / GrowthBook container / DB only | **DB table + barely-designed `/admin` page.** Fowler taxonomy: an *Experiment* toggle, product-owned, medium lifetime. |
 | Variant assignment | Client hash / server hash / random + store | **Server-side, stored.** `POST /api/visitors` creates the visitor, hashes `visitor_id:flag_key` into [0,100) against the flag's live weights, persists the assignment. Stable across refreshes via cookie + DB row; changing weights only affects *new* visitors (documented). |
 | Password check | Client → HIBP directly / backend proxy | **Browser hashes with Web Crypto SHA-1, backend proxies the range call** with `Add-Padding`. Full hash never leaves the browser; proxy gives structured logging and a fail-visible seam. |
@@ -375,6 +375,64 @@ Case coverage: every planned case (B1–B21, F1, F2, plus B1c/B1d/B3b–B3d/F1b 
 named test. Two deliberate notes, not gaps: B14's conjunction "empty table **and** HIBP failing" is
 behaviourally identical to "empty table", because the endpoints never consult HIBP; and C12's hooks
 plus the API layer are explicitly deferred to S5 rather than dropped.
+
+### S2b — catalog-refresh (~45m)
+
+Objective: the stored catalog refreshes itself while the process is up, and the screen can say
+how old it is. S2 left the refresh gated only by the boot-time sync, so a container that stays
+up for a week serves a week-old copy — the 24h TTL held only across restarts. Fix shape:
+**stale-while-revalidate** at the request boundary — every breach request serves the stored
+rows immediately and, when the copy has aged past the TTL, schedules one background refresh
+after the response. Single-flight per process and a retry interval so a down HIBP is not
+re-fetched on every request. `syncedAt` on the summary makes the age visible rather than
+silent. A separate periodic job is what production would run; here the request path is the
+only trigger that the existing HTTP driver can prove end-to-end (a lifespan loop would be the
+zero-coverage wiring BF21 just fixed).
+
+Cases:
+- R1. (pure) `should_retry(last_attempt_at, now)`: never attempted → retry; inside the retry
+  interval (5 min) → no; at or past it → yes
+- R2. (pure) the summary reports `synced_at` as the newest `fetched_at` among its facts
+- R3. `GET /api/breaches/summary` reports `syncedAt` on the wire as an ISO instant
+- R4. a list or summary request while the stored catalog is older than the TTL fetches the
+  catalog once after answering, and `fetched_at` advances
+- R5. a request while the stored catalog is younger than the TTL does not fetch
+- R6. the request that triggers a refresh answers from the stored rows first: its own
+  `syncedAt` is the old one, never the visitor waiting on HIBP
+- R7. a refresh already in flight is not started a second time: the second call returns at once
+  and the catalog is fetched once (in-process single-flight, proved with a blocking fake)
+- R8. a refresh that fails is not retried inside the retry interval and is retried after it
+- R9. a failed refresh never reaches the visitor: the triggering request is still 200 over the
+  stored rows, and the failure is logged with the reason
+- F3. `summaryFromDTO` parses `syncedAt` as an instant (`new Date(iso)`), not a calendar day —
+  it is a timestamp, the opposite of F1b's breach date
+- Pre-mortem (added at /story-start): see below.
+
+Commits:
+- C1 `[refactor]` `BreachesApiDriver` seeds `fetched_at` relative to the real clock (fresh by
+  default) instead of a fixed date — a fixed seed silently crosses the TTL the day after it is
+  written and would start triggering refreshes under unrelated tests
+- C2 `[refactor]` rename `sync_catalog_on_boot` → `sync_catalog_in_own_transaction` and
+  `sync_catalog_at_startup` → `sync_catalog_best_effort`: the refresher becomes their second
+  caller and neither is boot-specific any more
+- C3 `[test+impl R1]` `should_retry` in `staleness.py` beside `should_sync`
+- C4 `[test+impl R2, R3]` `fetched_at` joins `BreachFacts`; `synced_at` on `BreachSummary` and
+  `BreachSummaryResponse`; facts builder default
+- C5 `[test+impl R4, R5, R6]` `app/breaches/refresh.py` `CatalogRefresher` (a class: the
+  in-flight lock and last-attempt time are private state no caller may bypass), built in
+  `create_app` onto `app.state`; `revalidate_catalog` dependency on the breaches router using
+  FastAPI `BackgroundTasks`; driver `given.breaches_last_synced(hours_ago=…)`,
+  `then.the_catalog_source_was_fetched(times)`. ADR-0002 and README amended in the same commit.
+- C6 `[test+impl R7]` non-blocking `threading.Lock` single-flight
+- C7 `[test+impl R8, R9]` retry interval and the logged failure path
+- C8 `[test+impl F3]` frontend `syncedAt` in DTO, model, translator and builder
+- C9 `[chore]` python-primer section (`threading.Lock(blocking=False)`, `BackgroundTasks`,
+  router-level `dependencies=[Depends(…)]`, `threading.Event` in a test); changelog entry
+
+Deliberately not done: a scheduler / periodic job (production shape; recorded in the ADR
+amendment as the step to take when the app runs more than one worker or sees no traffic for
+days), a cross-process lock (compose runs one worker; the upsert is idempotent so a second
+worker's duplicate fetch is waste, not corruption).
 
 ### S3 — feature-flags (~1.5h)
 
