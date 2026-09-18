@@ -46,6 +46,18 @@ class BreachDTOBuilder {
         return this;
     }
 
+    verified(): this {
+        this.state = { ...this.state, isVerified: true };
+
+        return this;
+    }
+
+    unverified(): this {
+        this.state = { ...this.state, isVerified: false };
+
+        return this;
+    }
+
     build(): BreachDTO {
         return this.state;
     }

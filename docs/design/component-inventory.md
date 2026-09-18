@@ -67,7 +67,7 @@ Names are the design's, and they are what S5–S7 name their components and driv
 | `ToggleField` | off · on | S5 | Verified only |
 | `SegmentedControl` | one selected | S5 | Sort: Newest · Most accounts · Name (F8). Segments 44px tall, not the design's 36 (deviation 3) |
 | `ResultsLine` | with / without Clear | S5 | "Showing 20 of 1,031" (F15) |
-| `BreachRow` | collapsed · expanded · skeleton · no-logo | S5 | Expanded reveals the description (F21, new) |
+| `BreachRow` | collapsed · expanded · skeleton · no-logo | S5 | Expanded reveals the description (F21, new). The no-logo state is not built: the design's mock renders an initial in a square rather than the HIBP image, and every record carries a title, so the `?` case for an unnamed source cannot arise from the data (S5, YAGNI) |
 | `DataClassBadge` | plain · passwords | S5 | Passwords in the danger pair (F17) |
 | `VerifiedMark` | — | S5 | |
 | `LoadMoreButton` | idle · loading | S5 | F10 |

@@ -1,0 +1,136 @@
+@use '~/styles/tokens' as tokens;
+
+.row {
+    list-style: none;
+    padding: tokens.$sp-4;
+    border: 1px solid tokens.$color-border;
+    border-radius: tokens.$radius-md;
+    background: tokens.$color-surface;
+}
+
+.main {
+    gap: tokens.$sp-4;
+    align-items: flex-start;
+}
+
+// The design's logo square: the brand colour with the initial in it.
+.initial {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: tokens.$control-height;
+    height: tokens.$control-height;
+    border-radius: tokens.$radius-sm;
+    background: tokens.$color-brand;
+    color: tokens.$tone-calm-on-accent;
+    font-size: tokens.$text-200;
+    font-weight: tokens.$weight-bold;
+    flex: 0 0 auto;
+}
+
+.body {
+    flex: 1 1 0;
+    min-width: 0;
+    gap: tokens.$sp-2;
+}
+
+.titleLine {
+    align-items: center;
+    flex-wrap: wrap;
+    gap: tokens.$sp-2;
+}
+
+.title {
+    font-size: tokens.$text-200;
+    font-weight: tokens.$weight-semibold;
+    overflow-wrap: anywhere;
+}
+
+.meta {
+    font-size: tokens.$text-100;
+    color: tokens.$color-text-secondary;
+}
+
+.badges {
+    flex-wrap: wrap;
+    gap: tokens.$sp-2;
+}
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    padding: 0 tokens.$sp-3;
+    border-radius: tokens.$radius-pill;
+    background: tokens.$color-surface-sunken;
+    color: tokens.$color-text-secondary;
+    font-size: tokens.$text-100;
+}
+
+// Passwords in the danger pair: the one class that means a credential is out there.
+.badgeDanger {
+    background: tokens.$color-danger-tint;
+    color: tokens.$color-danger;
+    font-weight: tokens.$weight-semibold;
+}
+
+.verified {
+    display: inline-flex;
+    align-items: center;
+    gap: tokens.$sp-1;
+    font-size: tokens.$text-100;
+    font-weight: tokens.$weight-semibold;
+    color: tokens.$color-success;
+}
+
+.verifiedMark {
+    width: tokens.$sp-4;
+    height: tokens.$sp-4;
+    border-radius: tokens.$radius-pill;
+    background: tokens.$color-success;
+    // A check drawn from the mask, so the mark keeps the success colour at any size.
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='8' fill='black'/%3E%3Cpath d='M4.5 8.5l2.2 2.2L11.5 6' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+        center / contain no-repeat;
+}
+
+.description {
+    font-size: tokens.$text-100;
+    line-height: tokens.$leading-relaxed;
+    color: tokens.$color-text-secondary;
+    margin: tokens.$sp-1 0 0;
+}
+
+.toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: tokens.$tap-target;
+    height: tokens.$tap-target;
+    border: 0;
+    border-radius: tokens.$radius-sm;
+    background: transparent;
+    color: tokens.$color-text-secondary;
+    cursor: pointer;
+    flex: 0 0 auto;
+}
+
+// A chevron from two borders, pointing down; rotated to point up when the row is open.
+.chevron {
+    display: block;
+    width: tokens.$sp-2;
+    height: tokens.$sp-2;
+    border-right: 2px solid currentcolor;
+    border-bottom: 2px solid currentcolor;
+    transform: translateY(-2px) rotate(45deg);
+    transition: transform 0.15s ease;
+}
+
+.chevronUp {
+    transform: translateY(2px) rotate(225deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .chevron {
+        transition: none;
+    }
+}
