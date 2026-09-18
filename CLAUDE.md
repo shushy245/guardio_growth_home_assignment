@@ -90,12 +90,16 @@ Full history: `docs/changelog.md`; commit-level record: `git log`.
   tsc + eslint + vitest + ruff + mypy + pytest. 45 tests green.
 
 ## What's next
-`/story-start S3` (feature-flags). Carry into it: the forwarded S1 case that nginx must pass
-`X-Forwarded-For`/`X-Forwarded-Proto` before the `Secure` cookie logic (B14) can be trusted behind
-the proxy, and the S2 note that the `/admin` token is pasted into the page and held in React state
-only — never `VITE_*`, never localStorage.
+**S3 (feature-flags) is implemented and reviewed but NOT closed: 23 review fixes are written up
+and not started.** Start at `docs/plan.md` → "S3 — review fixes: execution order" — six ordered
+phases, nothing begun. Phase 1 (extracting `FlagEditor` with its own driver) must come first:
+five of the other fixes live inside that component and have no driver to reach them through.
 
-Before S5, two carried items: the urgent variant's copy says "17.8B accounts have leaked" but the
-servable total the API reports is **17.7B** (17,713,315,945) — match the copy to the number the
-summary actually returns; and `api/breaches` (hooks *and* `fetchBreaches`/`fetchBreachSummary`) is
-deferred there to be written red-first.
+Full findings verbatim in `docs/reviews/s3-review.md` (827 lines, four independent reviewers);
+classification in `docs/plan.md` → "S3 — review triage".
+
+Carry into S5/D1: the urgent variant's copy and the servable total are now consistent at 17.7B
+(resolved in S3's seed migration); `api/breaches` (hooks *and* `fetchBreaches`/`fetchBreachSummary`)
+is still deferred there to be written red-first; and three presentation findings from the S3
+visual pass (disabled-Save contrast 2.58:1, 14px body text, 94–101 char line lengths) belong in
+D1's exit criteria so they are fixed once against the real design tokens.

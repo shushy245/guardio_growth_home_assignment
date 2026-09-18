@@ -723,6 +723,97 @@ finished from the outside and is not.
   writes the live experiment's copy, which is behaviour, and nothing asserts the seeded shape.
   Going forward keep the three kinds pure.
 
+### S3 — review fixes: execution order (a fresh session starts here)
+
+Nothing below is started. The tree is clean at the last `chore` commit, 146 backend + 59 frontend
+tests green, lint and types clean. Run these in order — the order is the point, because the first
+item is what makes five of the others testable at all.
+
+Every item keeps the house TDD contract: a failing test first, minimum code to green, one commit
+per item, `Story: S3` in the trailer. The reviewers' own reproductions are written into the
+findings above and are the fastest route to each red test.
+
+**Phase 1 — the enabler (do this first).**
+- [ ] **BF45** extract `FlagEditor` from `Admin.tsx` into `src/components/FlagEditor.tsx` with
+  `FlagEditor.utils.ts` (its test ids, the `SaveState` machine, `saveMessage`, the operator copy
+  constants, `HTTP_CONFLICT`, `copyLabelMap`) and a `FlagEditor.driver.tsx` written before the
+  tests that use it. `Admin.utils.ts` keeps only `AdminTestIds` and the load state. A `[refactor]`
+  commit: structure only, all 59 tests stay green, no behaviour change.
+  *Why first:* BF24, BF25, BF39, BF43 and BF44 are all inside this component and there is no
+  driver to reach them through. Doing it first turns five awkward fixes into five ordinary ones.
+  *While moving it, also take the RF items that live in the moved code:* the `handleVariantChange`
+  pass-through whose parameter is named `variant` but typed `FeatureFlagModel`, and
+  `saveMessageMap`'s runtime guard for a case its own indexing rules out (type the map per
+  variant). Leaving a known-misleading name in a file you are creating is worse than batching.
+
+**Phase 2 — behaviour fixes through the new driver, each red first.**
+- [ ] **BF43** `click.enabled()` + `assert.saveCarried({ isEnabled: false })`. Red proof: emptying
+  `handleToggleEnabled` must fail the new test (today it leaves 59/59 green).
+- [ ] **BF44** two rapid clicks against a gated save send exactly one PATCH. Red proof:
+  `disabled={false}` must fail it.
+- [ ] **BF24** an edit typed while a save is in flight survives the response. Gate the PATCH
+  behind a manual promise, type after the click, assert the field holds the later value. Fix:
+  `onSaved(flagKey, lockToken)` applied by the parent inside the functional `setState` — never a
+  replayed snapshot. Delete the "the values on screen are the ones we just sent" comment, which
+  asserts the property the bug breaks.
+- [ ] **BF25** typing after a successful save clears "Saved.".
+- [ ] **BF39** Save is disabled when the split does not total 100, when the token is empty, and
+  while saving — via one named `canSave({ save, flag, adminToken })` predicate in
+  `FlagEditor.utils.ts`. Clamp the weight input to 0–100.
+- [ ] **BF38** give `SaveStatus.Failed` operator copy instead of rendering the backend's on-call
+  string; log the detail rather than show it. Use `given.theSaveFails`, which already exists and
+  is called by nothing.
+
+**Phase 3 — backend, where the data corruption is.**
+- [ ] **BF26** read the `visitor_id` cookie in `create_visitor`; an existing visitor returns its
+  stored assignments rather than minting a second identity. Red test: two POSTs carrying the
+  cookie yield one visitor row. Then amend ADR-0003, whose "belt and braces" paragraph describes
+  a mechanism that cannot currently happen.
+- [ ] **BF30** reuse `weights_cover_every_bucket` in `list_enabled_splits` so a malformed stored
+  row is rejected once at load, naming the flag, instead of raising for ~10% of visitors. Keep the
+  `ValueError`. Two red tests: a 90-sum row and an empty-variants row.
+- [ ] **BF31** reject a flag update whose variant keys are not a superset of the keys already
+  assigned for that flag, naming the orphans.
+- [ ] **BF27** `proxy_set_header X-Forwarded-For $remote_addr` — overwrite at the edge instead of
+  appending. Verify on the running stack that a forged header no longer reaches the log.
+- [ ] **BF28** bind the published ports to `127.0.0.1`, drop the committed `ADMIN_TOKEN` default
+  so a missing token fails the boot, correct the comment. **Carry:** this breaks testing from a
+  phone on the LAN — if a device check is wanted, do it before this lands or bind deliberately.
+
+**Phase 4 — the lint rule (HARD RULE 3, not optional).**
+- [ ] **BF33** delete the `visitor-id.ts` exemption (it covers a violation that does not exist)
+  and replace the models-test blanket `off` with the documented
+  `['error', ...pureFunctionTestSyntaxSelectors]` composition. Both verified by reviewers to pass
+  unchanged.
+
+**Phase 5 — the rendered surface. Re-run the `visual-reviewer` after these, never before.**
+- [ ] **BF29** give `.variants` a base rule (column, with a gap) and keep the md query as the
+  actual change. Today it has none, so the media query is a no-op and the reflow is inverted.
+- [ ] **BF34** wrap the enabled checkbox in its label and give the control a 44x44 hit area.
+- [ ] **BF35** a live region on the message slot so saved / rejected / conflict / load-failure are
+  announced at all.
+- [ ] **BF37** bring the save result into view — the message currently lands below the fold at 390
+  and 1280 with no scroll, so clicking Save appears to do nothing.
+- [ ] **BF40** keep the admin-token field mounted when the load fails, and offer a retry.
+- [ ] **BF41** a `main` landmark on both pages.
+- [ ] **BF32** scope `VisitorProvider` to the funnel routes so opening `/admin` neither enrols the
+  operator in the experiment nor fetches the flag list twice.
+
+**Phase 6 — documentation, last, so it describes what shipped.**
+- [ ] **BF46** write the admin-gate security paragraph into `README.md` (two documents already
+  cite it and it does not exist), then correct the docstrings listed in the triage above and
+  reconcile the plan's own C8 and C7b entries.
+
+**Carried into D1 rather than fixed here** — they are presentation on a page the plan calls
+"barely designed", and the design tokens land at D1 before S5, so fixing them now means doing
+them twice: **BF36** (disabled Save at 2.58:1), **BF42** (14px body text against the 16px floor),
+and the 94–101 character line lengths at 768 and 1280. Add them to D1's exit criteria so they are
+checked against the real tokens.
+
+**Closing the story.** After Phase 5, re-run the `visual-reviewer` (pass A and pass B) against
+`http://localhost:5173/admin` — `docker compose up -d --build` first, since compose serves a baked
+image. Then the remaining `/story-done` steps: case-coverage diff, TL;DR, and state updates.
+
 ### S4 — funnel-events (~0.5h)
 
 Objective: every funnel step recorded idempotently, tagged with flag and variant.
