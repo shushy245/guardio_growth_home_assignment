@@ -866,6 +866,10 @@ Cases:
   decisions, the component inventory agreed in chat, and the three carried findings above answered
   by a token rather than a one-off override.
 
+**Carried from the S3 visual review:** the landing route is a placeholder with no `max-width`, so
+its content box grows to the full viewport (1232px at 1280) where `/admin` caps at 768. Harmless
+with one heading on it; the real screen needs a reading-width cap.
+
 ### S5 — funnel-ui (~2.5h; the result screen is the heart of the exercise and gets the most care; implements D1's design)
 
 Objective: Landing → Scan moment → Result (summary, sortable/filterable list, variant copy) → CTA,
