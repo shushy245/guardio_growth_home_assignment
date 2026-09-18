@@ -1,0 +1,12 @@
+@use '~/styles/tokens' as tokens;
+
+// The tone classes the result root carries. Each sets the `--tone-*` custom properties from its
+// token set; the buttons and chips below read them, so switching the variant is switching one
+// class on one ancestor.
+.toneCalm {
+    @include tokens.tone-calm;
+}
+
+.toneUrgent {
+    @include tokens.tone-urgent;
+}
