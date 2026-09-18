@@ -368,15 +368,16 @@ Deferred with its precondition recorded (RF-backlog):
 - The boot-time HIBP call happens inside the transaction that reads `fetched_at`, so the connection
   is idle-in-transaction for up to `HIBP_TIMEOUT_SECONDS` — the doctrine's "never hold locks across
   business logic". Harmless while compose runs one worker and this is the only boot-time writer.
-  The precondition is recorded in `sync_catalog_on_boot`'s docstring so that adding a worker
-  resurfaces it rather than silently voiding the dismissal.
+  The precondition is recorded in the docstring of `sync_catalog_in_own_transaction` (S2b's name
+  for `sync_catalog_on_boot`) so that adding a worker resurfaces it rather than silently voiding
+  the dismissal.
 
 Case coverage: every planned case (B1–B21, F1, F2, plus B1c/B1d/B3b–B3d/F1b added mid-story) has a
 named test. Two deliberate notes, not gaps: B14's conjunction "empty table **and** HIBP failing" is
 behaviourally identical to "empty table", because the endpoints never consult HIBP; and C12's hooks
 plus the API layer are explicitly deferred to S5 rather than dropped.
 
-### S2b — catalog-refresh (~45m)
+### S2b — catalog-refresh (~45m) — **closed 2026-09-18**
 
 Objective: the stored catalog refreshes itself while the process is up, and the screen can say
 how old it is. S2 left the refresh gated only by the boot-time sync, so a container that stays
@@ -432,7 +433,8 @@ Commits:
   in-flight lock and last-attempt time are private state no caller may bypass), built in
   `create_app` onto `app.state`; `revalidate_catalog` dependency on the breaches router using
   FastAPI `BackgroundTasks`; driver `given.breaches_last_synced(hours_ago=…)`,
-  `then.the_catalog_source_was_fetched(times)`. ADR-0002 and README amended in the same commit.
+  `then.the_catalog_source_was_fetched(times)`. ADR-0002 amended in the same commit (the README is
+  still the S1 stub; nothing there to keep in step).
 - C6 `[test+impl R7]` non-blocking `threading.Lock` single-flight
 - C7 `[test+impl R8, R9]` retry interval and the logged failure path
 - C7b `[test+impl R10]` (pre-mortem) `carry_background_tasks` in `app/errors.py`: the `HTTPException`
@@ -445,6 +447,55 @@ Deliberately not done: a scheduler / periodic job (production shape; recorded in
 amendment as the step to take when the app runs more than one worker or sees no traffic for
 days), a cross-process lock (compose runs one worker; the upsert is idempotent so a second
 worker's duplicate fetch is waste, not corruption).
+
+### S2b — review triage (Opus, separate agent, 2026-09-18) — **all closed 2026-09-18**
+
+Fourteen findings; each fixed one was reproduced first. Live check before the review: a
+25-hour-old dev catalog was served in 16 ms, refreshed after the response under the request's
+correlation id (1,036 records, ~1 s), and the next summary reported the new `syncedAt`.
+
+Correctness / robustness / testing (fixed):
+- [x] BF22 `CatalogRefresher.refresh` re-checked only the lock, never `should_retry`; a cohort of
+  requests that all passed the gate before the first attempt failed each fetched a fast-failing
+  HIBP (the reviewer's throwaway test: 5 requests → 5 fetches). The task now re-checks under the
+  lock; a refresh a minute after a failure fetches nothing.
+- [x] BF23 `the_failed_refresh_was_logged` asserted only the event name — downgrading the line to
+  `log.info` stayed green while the reason vanished with `exc_info`. Both best-effort branches bind
+  `reason=str(error)` and the driver asserts it.
+- [x] hygiene refactor: the fake's `fetch_count` (the single-flight evidence) is lock-guarded; the
+  two R10 tests keep GWT phases (a `given.a_request_already_triggered_the_refresh()`);
+  `carry_background_tasks` sits next to `add_task`; both shared-connection drivers name the
+  never-two-threads invariant the harness rests on.
+- [x] comments: `synced_at`'s "partially failed sync" mechanism was impossible (one statement, one
+  transaction) — the real one is a breach the source stopped listing; `refresh` runs on a pool
+  thread, not "the request's worker thread"; two plan lines still carried the pre-rename name.
+
+Dismissed on a stated precondition, artifact left:
+- `latest_fetched_at` reads the whole table while every serving read filters to servable rows, so
+  a catalog of only retired/fabricated rows is a 503 the refresher calls fresh. A re-fetch would
+  return the same rows, so filtering buys one HIBP call per retry interval and no healing. Recorded
+  in the function's docstring; revisit if a sync ever writes a partial payload.
+
+Visual pass: run by the `visual-reviewer` agent on the three matched paths
+(`models/breach/model.ts`, `translator.ts`, `testkit/builders/breach.ts`) at 390 / 768 / 1280.
+Step 0 could not be satisfied for a real reason: the served bundle contains no trace of the changed
+code (tree-shaken; nothing renders `syncedAt` until S5). The landing placeholder measured no
+overflow, no interactive elements, no body text, console empty on first load and reload — every
+pass vacuous, stated as such. chrome-devtools MCP was held by an orphan Chrome; the reviewer used
+the same-origin iframe harness, so DPR/touch emulation at 390 was not exercised.
+
+RF-backlog additions (batched, not now):
+- (S2b review) `revalidate_catalog` collapses fresh / in-flight / retry-wait into one silent
+  `return` — "log at every branch" wants the reason. Return a `RefreshDecision` enum from
+  `wants_refresh` and log the skip (debug for fresh, info for the other two).
+- (S2b review) `CatalogRefresher` is half-injected: `catalog` at construction, `session_factory`
+  per call, so the router reaches into `app.state` twice. Injecting the factory at construction
+  means the HTTP driver rebuilds the refresher instead of swapping `app.state.session_factory`.
+- (S2b review) one `SELECT max(fetched_at)` per breach request over an unindexed column, redundant
+  on the summary path where `list_breach_facts` already carries it. Trivial at 1,031 rows; if S7's
+  simulated traffic shows it, let the refresher remember the `fetched_at` it last wrote.
+- (S2b) `docs/python-primer.md` has no S2 section — the "new constructs per story" rule was missed
+  in S2 (S2b's section covers threading, BackgroundTasks, request.state).
 
 ### S3 — feature-flags (~1.5h)
 

@@ -43,8 +43,8 @@ class CatalogRefresher:
         return should_sync(fetched_at=fetched_at, now=now)
 
     def refresh(self, *, session_factory: sessionmaker[Session], now: datetime) -> None:
-        """Runs after a response, on the request's worker thread, in a transaction of its own —
-        the request's session is closed by the time this starts.
+        """Runs after a response, on a thread from Starlette's worker pool, in a transaction of
+        its own — the request's session is closed by the time this starts.
 
         Non-blocking acquire: a refresh that finds another in flight returns at once rather than
         queueing behind it to fetch the same catalog again the moment it finishes.

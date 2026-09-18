@@ -48,6 +48,24 @@ in-app statistical dashboard.
 ## What's done
 Full history: `docs/changelog.md`; commit-level record: `git log`.
 
+- **S2b — catalog-refresh (closed 2026-09-18).** "Refreshed once a day" was only true across
+  restarts: the copy was re-checked at boot and never again, so a backend that stayed up served an
+  ageing catalog with no bound and nothing on the screen could say how old it was. Now every breach
+  request answers from the stored copy at once and, past 24h, refreshes it in the background after
+  replying; one refresh at a time per process, a down source retried five minutes later, and the
+  summary reports `syncedAt`. Watched live: a 25h-old copy served in 16 ms, refreshed after the
+  response under the same correlation id, next summary current; a boot that found HIBP down now
+  heals on the first visit instead of answering 503 until a restart.
+  Technically: `CatalogRefresher` (single-flight `threading.Lock`, retry gate re-checked under the
+  lock) on `app.state`; `revalidate_catalog` called at the top of each handler (a router-level
+  dependency would run before parameter validation) scheduling `BackgroundTasks`;
+  `carry_background_tasks` so an `HTTPException` response still runs them; `synced_at` on the pure
+  summary via `fetched_at` in `BreachFacts`; HTTP driver rebinds `app.state.session_factory` to the
+  savepoint so background commits cannot leak; API-driver seeds are clock-relative. ADR-0002
+  amended with the periodic-job trigger. Review: 14 findings, BF22–23 + hygiene fixed, one
+  dismissed on a recorded precondition, three batched to RF-backlog. 121 backend + 33 frontend
+  tests green.
+
 - **S2 — breach-catalog (closed 2026-09-18).** The funnel had nothing to show: the breach data
   lived at HIBP, which can be slow or down, and sorting or filtering it would have meant pulling
   all 1,036 records into the browser. We now keep our own copy of the public record, refreshed

@@ -26,6 +26,11 @@ def latest_fetched_at(*, session: Session) -> datetime | None:
 
     One `max()` over the column rather than a row read: every row in a sync shares one
     `fetched_at`, so the newest value is the age of the catalog as a whole.
+
+    Deliberately over the whole table, not only servable rows (the S2b review's finding 3): a
+    catalog whose every row is retired or fabricated is a 503 that this read calls fresh — but a
+    re-fetch would bring back the same unservable rows, so filtering here would buy one HIBP
+    call per retry interval and no healing. Revisit if a sync ever writes a partial payload.
     """
     return session.execute(select(func.max(BreachRow.fetched_at))).scalar_one()
 

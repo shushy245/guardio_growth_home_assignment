@@ -58,8 +58,9 @@ class BreachSummary:
     top_data_classes: tuple[DataClassCount, ...]
     largest_breach: BreachHighlight
     most_recent_breach: BreachHighlight
-    # The age of what the visitor is reading. Every row of one sync shares a `fetched_at`; the
-    # newest is reported so a partially failed sync cannot make the copy look older than it is.
+    # The age of what the visitor is reading. Every row of one sync shares a `fetched_at`, but a
+    # breach the source stopped listing keeps its old stamp (a sync never deletes), so the newest
+    # value is the age of the copy and an old stragglers' stamp is not.
     synced_at: datetime
 
 
