@@ -2,5 +2,6 @@
 import * as breachModel from '~/models/breach';
 import * as visitorModel from '~/models/visitor';
 import * as featureFlagModel from '~/models/featureFlag';
+import * as funnelEventModel from '~/models/funnelEvent';
 
-export { breachModel, featureFlagModel, visitorModel };
+export { breachModel, featureFlagModel, funnelEventModel, visitorModel };
