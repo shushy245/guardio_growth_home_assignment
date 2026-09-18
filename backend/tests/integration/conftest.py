@@ -24,6 +24,7 @@ from tests.drivers.catalog_refresh import CatalogRefreshDriver
 from tests.drivers.db import DbDriver
 from tests.drivers.feature_flags_api import FeatureFlagsApiDriver
 from tests.drivers.flag_splits import FlagSplitsDriver
+from tests.drivers.funnel_events_api import FunnelEventsApiDriver
 from tests.drivers.http import HttpDriver
 from tests.drivers.visitors_api import VisitorsApiDriver
 
@@ -100,3 +101,8 @@ def visitors(driver: HttpDriver, db_session: Session) -> VisitorsApiDriver:
 @pytest.fixture
 def flags(driver: HttpDriver, db_session: Session) -> FeatureFlagsApiDriver:
     return FeatureFlagsApiDriver(driver, db_session)
+
+
+@pytest.fixture
+def funnel_events(driver: HttpDriver, db_session: Session) -> FunnelEventsApiDriver:
+    return FunnelEventsApiDriver(driver, db_session)
