@@ -48,6 +48,28 @@ in-app statistical dashboard.
 ## What's done
 Full history: `docs/changelog.md`; commit-level record: `git log`.
 
+- **S3 — feature-flags (closed 2026-09-18).** The A/B test on the result screen had no machinery
+  behind it: nothing decided which visitor saw which framing, and no product person could change
+  the split or the wording without a developer and a deploy. A visitor now gets an identity on
+  their first visit and is assigned a variant once, on the server, written down and never
+  recalculated; `/admin` retunes the split, the headline, the subheadline and the button, or stops
+  the test, live. A weight change moves new visitors only — what keeps the eventual read honest.
+  **The review round is a third of the story.** What shipped first discarded every edit typed
+  during a save and then displayed "Saved." over the reverted values; two tabs opened together made
+  one person into two visitors under two different variants; and compose published a repo-committed
+  admin token on every interface, reproduced from another machine on the LAN. 21 of the 23 findings
+  are fixed over 25 commits, 2 carried to D1. 153 backend + 82 frontend tests.
+  Technically: pure `assign_variant` on a `sha256` bucket (never `hash()`, salted per process);
+  `feature_flag` / `visitor` / `visitor_assignment` with a seeded flag; PATCH as one
+  `UPDATE … WHERE updated_at = :token RETURNING updated_at` stamped `clock_timestamp()`; the lock
+  token a string end to end. From the review: `POST /api/visitors` reads its own cookie and answers
+  200 with the stored assignments; `list_enabled_splits` refuses a stored split that does not cover
+  the buckets; a rename that would orphan an assignment is a 400 naming it; nginx overwrites
+  `X-Forwarded-For` with `$remote_addr`; every published port binds to loopback and `ADMIN_TOKEN`
+  has no default. `FlagEditor` is its own unit with its own driver — the extraction that made
+  BF24/25/39/43/44 reachable at all; `onSaved` applies only the token, inside the functional
+  update. Two mutation proofs, four visual passes (`docs/reviews/s3-fixes-visual-review.md`).
+
 - **S2b — catalog-refresh (closed 2026-09-18).** "Refreshed once a day" was only true across
   restarts: the copy was re-checked at boot and never again, so a backend that stayed up served an
   ageing catalog with no bound and nothing on the screen could say how old it was. Now every breach
@@ -90,16 +112,21 @@ Full history: `docs/changelog.md`; commit-level record: `git log`.
   tsc + eslint + vitest + ruff + mypy + pytest. 45 tests green.
 
 ## What's next
-**S3 (feature-flags) is implemented and reviewed but NOT closed: 23 review fixes are written up
-and not started.** Start at `docs/plan.md` → "S3 — review fixes: execution order" — six ordered
-phases, nothing begun. Phase 1 (extracting `FlagEditor` with its own driver) must come first:
-five of the other fixes live inside that component and have no driver to reach them through.
+**S4 (funnel-events) — nothing started.** `docs/plan.md` → "S4 — funnel-events": every funnel step
+recorded idempotently and tagged with the visitor's flag and variant. Five backend cases, four
+frontend. Open it with `/story-start S4`.
 
-Full findings verbatim in `docs/reviews/s3-review.md` (827 lines, four independent reviewers);
-classification in `docs/plan.md` → "S3 — review triage".
+**D1 is the pause point after S4 and before S5** — I stop and hand over a Claude Design prompt;
+never build funnel UI without it. Its exit criteria now carry three measured findings from the S3
+visual passes, to be answered by a token rather than a one-off override: the disabled Save at
+2.58:1 (shown for the whole of every save, so it is the element carrying the in-progress signal),
+14px body text against the 16px floor, and a 96–101 character measure at 768 and 1280.
 
-Carry into S5/D1: the urgent variant's copy and the servable total are now consistent at 17.7B
-(resolved in S3's seed migration); `api/breaches` (hooks *and* `fetchBreaches`/`fetchBreachSummary`)
-is still deferred there to be written red-first; and three presentation findings from the S3
-visual pass (disabled-Save contrast 2.58:1, 14px body text, 94–101 char line lengths) belong in
-D1's exit criteria so they are fixed once against the real design tokens.
+Also carried: `api/breaches` (the hooks *and* `fetchBreaches`/`fetchBreachSummary`) is deferred to
+S5 to be written red-first; and the landing placeholder has no `max-width`, so its content box runs
+the full viewport — fine for one heading, not for the real screen S5 replaces it with.
+
+The S3 review record: findings verbatim in `docs/reviews/s3-review.md` (827 lines, four independent
+reviewers), the four visual passes over the fixes in `docs/reviews/s3-fixes-visual-review.md`,
+triage and the six-phase execution order in `docs/plan.md`. **BF36 and BF42 are the only two items
+left open, both deliberately, both now D1 exit criteria.**

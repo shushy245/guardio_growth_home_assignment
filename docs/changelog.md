@@ -25,6 +25,27 @@ code. Commit-level detail lives in `git log`; the plan holds what is still ahead
   against a version someone else has already changed is refused with an explanation instead of
   quietly overwriting their work.
 
+### The review round that closed it
+
+- **Pain** — What shipped first had a save that discarded everything typed while it was saving and
+  then displayed "Saved." over the reverted values; two tabs opened together turned one person into
+  two people under two different variants of the running experiment; and the stack published an
+  admin token committed to this repository on every network interface, reproduced from another
+  machine on the same network.
+- **Fix** — Worked the review's 23 findings as an ordered six-phase list — 21 fixed, 2 carried to
+  the design stage — beginning by pulling the flag editor out of the page into its own unit *(instead
+  of patching the five bugs where they sat, which is what had left them with no test able to reach
+  them)*.
+- **Trade-off** — The stack now listens on this machine only and refuses to start without an admin
+  token you generate yourself, so a first run takes one extra step and checking the site from a
+  phone on the same network needs a deliberate change; both were the price of not shipping a
+  credential that everyone who clones the repository holds.
+- **Result** — 21 of 23 closed over 25 commits; the suites went from 146 + 59 to 153 + 82 tests,
+  two of them proved by deleting the code they cover and watching them fail; four independent
+  visual passes measured the page at 390, 768 and 1280 rather than judging it by eye, and every
+  change to the API, the cookie, the proxy and the compose file was watched working on the running
+  stack before it was called done.
+
 ## S2b — catalog-refresh (closed 2026-09-18)
 
 - **Pain** — "Refreshed once a day" was only true across restarts: the copy of the public record
