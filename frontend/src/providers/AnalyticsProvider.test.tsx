@@ -1,6 +1,5 @@
 import { beforeEach, describe, it } from 'vitest';
 
-import { aVisitorDTO } from '~/testkit/builders';
 import { FunnelEventName } from '~/models/funnelEvent';
 import { type AnalyticsProviderDriver, makeAnalyticsProviderDriver } from '~/providers/AnalyticsProvider.driver';
 
@@ -11,10 +10,9 @@ describe('AnalyticsProvider', () => {
         driver = makeAnalyticsProviderDriver();
     });
 
-    it('posts a step once with its id, the visitor, the name and the time it happened', async () => {
-        driver.given.theServerCreates(aVisitorDTO().withId('vis_known').build());
+    it('posts a step once the visitor is known, with its id, the name and the time it happened', async () => {
         await driver.when.created();
-        await driver.assert.postedEventIsWellFormed({ name: FunnelEventName.LandingView, visitorId: 'vis_known' });
+        await driver.assert.postedEventIsWellFormed({ name: FunnelEventName.LandingView });
     });
 
     it('logs a post the server rejected and carries on', async () => {

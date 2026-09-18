@@ -1,6 +1,7 @@
-// Records funnel steps. Sits inside `VisitorProvider`: an event cannot be posted until the visitor
-// is known, so steps recorded before that wait in order and go out the moment the session is
-// ready. Pages talk to it through `useAnalytics` (the hook is the port, the provider the adapter).
+// Records funnel steps. Sits inside `VisitorProvider`: the server files a step under the visitor
+// cookie, which exists only once the session is ready, so steps recorded before that wait in
+// order and go out the moment it is. Pages talk to it through `useAnalytics` (the hook is the
+// port, the provider the adapter).
 import {
     createContext,
     type ReactElement,
@@ -36,11 +37,12 @@ export const AnalyticsProvider = ({ children }: { children: ReactNode }): ReactE
     // state here, so its step joins the queue behind the steps already waiting instead of jumping
     // ahead of them — the flush below then sends everything in the order it happened.
     const visitorRef = useRef<VisitorState>(visitor);
+    // Grows for the life of the funnel session: one string per step recorded, a handful per visit.
     const recorded = useRef(new Set<string>());
     const queue = useRef<PendingEvent[]>([]);
 
-    const send = useCallback((pending: PendingEvent, visitorId: string): void => {
-        recordFunnelEvent(toFunnelEvent({ pending, visitorId })).catch((error: unknown) => {
+    const send = useCallback((pending: PendingEvent): void => {
+        recordFunnelEvent(toFunnelEvent(pending)).catch((error: unknown) => {
             logger.error('AnalyticsProvider.send: the event could not be recorded', {
                 eventId: pending.id,
                 name: pending.name,
@@ -68,7 +70,7 @@ export const AnalyticsProvider = ({ children }: { children: ReactNode }): ReactE
 
                 return;
             }
-            send(pending, state.session.visitor.id);
+            send(pending);
         },
         [send],
     );
@@ -88,9 +90,7 @@ export const AnalyticsProvider = ({ children }: { children: ReactNode }): ReactE
         }
         if (!isReady(visitor)) return;
         queue.current = [];
-        waiting.forEach((pending) => {
-            send(pending, visitor.session.visitor.id);
-        });
+        waiting.forEach(send);
     }, [visitor, send]);
 
     const analytics = useMemo<Analytics>(

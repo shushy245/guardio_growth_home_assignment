@@ -86,7 +86,7 @@ export type AnalyticsProviderDriver = {
     };
     assert: {
         eventsPosted: (count: number) => Promise<void>;
-        postedEventIsWellFormed: (expected: { name: FunnelEventName; visitorId: string }) => Promise<void>;
+        postedEventIsWellFormed: (expected: { name: FunnelEventName }) => Promise<void>;
         postedEventNamesInOrder: (names: FunnelEventName[]) => Promise<void>;
         postedEventIdsAreDistinct: () => void;
         failureWasLogged: () => Promise<void>;
@@ -112,7 +112,6 @@ export const makeAnalyticsProviderDriver = (): AnalyticsProviderDriver => {
     const isEventPayload = (body: unknown): body is FunnelEventCreateDTO =>
         isPlainObject(body) &&
         typeof body['id'] === 'string' &&
-        typeof body['visitorId'] === 'string' &&
         typeof body['name'] === 'string' &&
         typeof body['occurredAt'] === 'string';
 
@@ -212,12 +211,14 @@ export const makeAnalyticsProviderDriver = (): AnalyticsProviderDriver => {
                     expect(posts()).toHaveLength(count);
                 });
             },
-            postedEventIsWellFormed: async ({ name, visitorId }): Promise<void> => {
+            postedEventIsWellFormed: async ({ name }): Promise<void> => {
                 await waitFor(() => {
                     expect(posts()).toHaveLength(1);
                 });
                 const payload = theOnlyPayload();
-                expect(payload).toMatchObject({ name, visitorId });
+                expect(payload).toMatchObject({ name });
+                // The identity is the cookie the browser carries, never a field a page could set.
+                expect(payload).not.toHaveProperty('visitorId');
                 expect(payload.id).toMatch(/^evt_/);
                 expect(Date.now() - new Date(payload.occurredAt).getTime()).toBeLessThan(A_MINUTE_MS);
             },

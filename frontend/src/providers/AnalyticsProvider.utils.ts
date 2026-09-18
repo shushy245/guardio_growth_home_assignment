@@ -28,15 +28,8 @@ export const toPendingEvent = ({ event, now }: { event: TrackedEvent; now: Date 
     occurredAt: now,
 });
 
-export const toFunnelEvent = ({
-    pending,
-    visitorId,
-}: {
-    pending: PendingEvent;
-    visitorId: string;
-}): FunnelEventModel => ({
+export const toFunnelEvent = (pending: PendingEvent): FunnelEventModel => ({
     id: pending.id,
-    visitorId,
     name: pending.name,
     occurredAt: pending.occurredAt,
 });
