@@ -38,3 +38,40 @@ describe('BreachFilters', () => {
         await driver.assert.lastListQueryWas({ sort: 'name', order: 'asc', dataClass: 'Passwords' });
     });
 });
+
+describe('BreachFilters results line', () => {
+    let driver: BreachFiltersDriver;
+
+    beforeEach(() => {
+        driver = makeBreachFiltersDriver();
+    });
+
+    it('says how much of the record is on screen, and offers to clear filters only once one is set', async () => {
+        driver.given.theSummary(aBreachSummaryDTO().build());
+        driver.given.theListHolds(1036);
+        await driver.when.created();
+        await driver.assert.resultsLineReads('Showing 20 of 1,036');
+        driver.assert.clearFiltersIsNotOffered();
+        await driver.click.dataClass('Passwords');
+        await driver.assert.clearFiltersIsOffered();
+        await driver.click.clearFilters();
+        await driver.assert.lastListQueryWas({});
+        driver.assert.clearFiltersIsNotOffered();
+    });
+
+    it('does not offer to clear filters for a sort alone', async () => {
+        driver.given.theListHolds(1036);
+        await driver.when.created();
+        await driver.click.sort(SortOption.Name);
+        await driver.assert.lastListQueryWas({ sort: 'name', order: 'asc' });
+        driver.assert.clearFiltersIsNotOffered();
+    });
+
+    it('re-queries for verified breaches only when the toggle is on, and for all when it is off again', async () => {
+        await driver.when.created();
+        await driver.click.verifiedOnly();
+        await driver.assert.lastListQueryWas({ verifiedOnly: 'true' });
+        await driver.click.verifiedOnly();
+        await driver.assert.lastListQueryWas({});
+    });
+});

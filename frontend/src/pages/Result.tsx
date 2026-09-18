@@ -8,6 +8,7 @@ import { Column, MainColumn } from '~/ui/box';
 import { joinClassNames } from '~/ui/box.utils';
 import { useVisitor } from '~/providers/VisitorProvider';
 import { BreachSummary } from '~/components/BreachSummary';
+import { BreachFilters } from '~/components/BreachFilters';
 import { resolveResultCopy, ResultTestIds, toneClassMap } from '~/pages/Result.utils';
 
 import styles from '~/pages/Result.module.scss';
@@ -27,6 +28,7 @@ export const Result = (): ReactElement => {
             </Column>
             <Column className={styles.body}>
                 <BreachSummary tone={copy.tone} />
+                <BreachFilters />
             </Column>
             <Column className={styles.stickyBar} data-testid={ResultTestIds.StickyBar}>
                 <button className={styles.cta} type="button" data-testid={ResultTestIds.Cta}>

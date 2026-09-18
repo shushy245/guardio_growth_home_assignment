@@ -35,6 +35,85 @@
     font-weight: tokens.$weight-semibold;
 }
 
+.controls {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: tokens.$sp-3;
+}
+
+// The whole label is the target, not the switch inside it.
+.toggle {
+    display: flex;
+    align-items: center;
+    gap: tokens.$sp-3;
+    min-height: tokens.$tap-target;
+    font-size: tokens.$text-100;
+    cursor: pointer;
+}
+
+.switch {
+    appearance: none;
+    position: relative;
+    width: tokens.$tap-target;
+    height: 26px;
+    margin: 0;
+    border-radius: tokens.$radius-pill;
+    background: tokens.$color-border;
+    cursor: pointer;
+    transition: background 0.15s ease;
+
+    &::after {
+        content: '';
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        width: 20px;
+        height: 20px;
+        border-radius: tokens.$radius-pill;
+        background: tokens.$color-surface;
+        transition: transform 0.15s ease;
+    }
+
+    &:checked {
+        background: var(--tone-accent-strong, #{tokens.$tone-calm-accent-strong});
+
+        &::after {
+            transform: translateX(18px);
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        transition: none;
+
+        &::after {
+            transition: none;
+        }
+    }
+}
+
+.resultsLine {
+    justify-content: space-between;
+    align-items: center;
+    min-height: tokens.$tap-target;
+}
+
+.results {
+    font-size: tokens.$text-100;
+    color: tokens.$color-text-secondary;
+}
+
+.clear {
+    font: inherit;
+    font-size: tokens.$text-100;
+    font-weight: tokens.$weight-semibold;
+    min-height: tokens.$tap-target;
+    padding: 0 tokens.$sp-2;
+    border: 0;
+    background: transparent;
+    color: var(--tone-accent-strong, #{tokens.$tone-calm-accent-strong});
+    cursor: pointer;
+}
+
 .segments {
     display: inline-flex;
     align-self: flex-start;
@@ -78,6 +157,13 @@
 }
 
 @media (min-width: tokens.$breakpoint-md) {
+    .controls {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
     .chips {
         flex-wrap: wrap;
         overflow-x: visible;

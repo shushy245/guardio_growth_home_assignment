@@ -2,27 +2,33 @@
 // ResultsLine — one thumb away from the list. Every control writes the filters in force to the
 // catalog and reads its own state back from them, so the bar can never disagree with the query
 // that was sent. Nothing here narrows or orders anything: the server does, per request.
-import type { ReactElement } from 'react';
+import type { ChangeEvent, ReactElement } from 'react';
 
 import { Column, Row } from '~/ui/box';
 import { joinClassNames } from '~/ui/box.utils';
 import type { DataClassCountModel } from '~/models/breach';
 import { useBreachCatalog } from '~/providers/BreachCatalogProvider';
-import { type CatalogFilters, isSummaryReady } from '~/providers/BreachCatalogProvider.utils';
+import { type CatalogFilters, isListReady, isSummaryReady } from '~/providers/BreachCatalogProvider.utils';
 import {
     activeSortOption,
+    BreachFiltersTestIds,
+    CLEAR_FILTERS_LABEL,
     dataClassChipTestId,
+    formatResultsLine,
+    hasActiveFilters,
     isDataClassSelected,
     SortOption,
     sortLabelMap,
     sortOptionMap,
     sortSegmentTestId,
+    VERIFIED_ONLY_LABEL,
+    withoutFilters,
 } from '~/components/BreachFilters.utils';
 
 import styles from '~/components/BreachFilters.module.scss';
 
 export const BreachFilters = (): ReactElement => {
-    const { summary, filters, setFilters } = useBreachCatalog();
+    const { summary, list, filters, setFilters } = useBreachCatalog();
 
     const handleSort = (option: SortOption): void => {
         setFilters({ ...filters, ...sortOptionMap[option] });
@@ -32,12 +38,50 @@ export const BreachFilters = (): ReactElement => {
         setFilters({ ...filters, dataClass: isDataClassSelected(filters, dataClass) ? undefined : dataClass });
     };
 
+    const handleVerifiedOnly = (event: ChangeEvent<HTMLInputElement>): void => {
+        setFilters({ ...filters, verifiedOnly: event.target.checked ? true : undefined });
+    };
+
+    const handleClearFilters = (): void => {
+        setFilters(withoutFilters(filters));
+    };
+
     return (
         <Column className={styles.bar}>
             {isSummaryReady(summary) ? (
                 <DataClassChips classes={summary.summary.topDataClasses} filters={filters} onToggle={handleDataClass} />
             ) : undefined}
-            <SortControl filters={filters} onSort={handleSort} />
+            <Row className={styles.controls}>
+                <label className={styles.toggle}>
+                    <input
+                        className={styles.switch}
+                        type="checkbox"
+                        role="switch"
+                        checked={filters.verifiedOnly === true}
+                        data-testid={BreachFiltersTestIds.VerifiedOnly}
+                        onChange={handleVerifiedOnly}
+                    />
+                    <span>{VERIFIED_ONLY_LABEL}</span>
+                </label>
+                <SortControl filters={filters} onSort={handleSort} />
+            </Row>
+            {isListReady(list) ? (
+                <Row className={styles.resultsLine}>
+                    <span className={styles.results} data-testid={BreachFiltersTestIds.ResultsLine} role="status">
+                        {formatResultsLine({ shown: list.items.length, total: list.total })}
+                    </span>
+                    {hasActiveFilters(filters) ? (
+                        <button
+                            className={styles.clear}
+                            type="button"
+                            data-testid={BreachFiltersTestIds.ClearFilters}
+                            onClick={handleClearFilters}
+                        >
+                            {CLEAR_FILTERS_LABEL}
+                        </button>
+                    ) : undefined}
+                </Row>
+            ) : undefined}
         </Column>
     );
 };

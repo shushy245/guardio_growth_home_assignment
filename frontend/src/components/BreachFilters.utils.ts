@@ -58,3 +58,12 @@ export const hasActiveFilters = (filters: CatalogFilters): boolean =>
 
 export const formatResultsLine = ({ shown, total }: { shown: number; total: number }): string =>
     `Showing ${formatInteger(shown)} of ${formatInteger(total)}`;
+
+// Clearing keeps the order the visitor chose and drops everything that narrows the record.
+export const withoutFilters = (filters: CatalogFilters): CatalogFilters => ({
+    sort: filters.sort,
+    order: filters.order,
+});
+
+export const VERIFIED_ONLY_LABEL = 'Verified only';
+export const CLEAR_FILTERS_LABEL = 'Clear filters';
