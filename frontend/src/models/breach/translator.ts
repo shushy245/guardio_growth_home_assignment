@@ -49,6 +49,8 @@ export type BreachSummaryDTO = {
     topDataClasses: DataClassCountDTO[];
     largestBreach: BreachHighlightDTO;
     mostRecentBreach: BreachHighlightDTO;
+    // An ISO instant with its offset, unlike the calendar-day breach dates.
+    syncedAt: string;
 };
 
 // `new Date('2013-01-01')` is parsed as UTC midnight, which is 31 December local time anywhere
@@ -82,4 +84,5 @@ export const summaryFromDTO = (dto: BreachSummaryDTO): BreachSummaryModel => ({
     topDataClasses: dto.topDataClasses.map(dataClassCountFromDTO),
     largestBreach: highlightFromDTO(dto.largestBreach),
     mostRecentBreach: highlightFromDTO(dto.mostRecentBreach),
+    syncedAt: new Date(dto.syncedAt),
 });

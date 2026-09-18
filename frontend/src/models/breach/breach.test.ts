@@ -54,4 +54,11 @@ describe('breach.summaryFromDTO', () => {
 
         expect(summary.topDataClasses.map((item) => item.dataClass)).toStrictEqual(['Email addresses', 'Passwords']);
     });
+
+    it('parses syncedAt as an instant, not a calendar day', () => {
+        // The opposite of a breach date: this is a timestamp, and the zone offset is part of it.
+        const summary = summaryFromDTO(aBreachSummaryDTO().withSyncedAt('2026-09-18T08:00:00Z').build());
+
+        expect(summary.syncedAt).toStrictEqual(new Date('2026-09-18T08:00:00Z'));
+    });
 });

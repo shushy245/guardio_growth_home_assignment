@@ -69,6 +69,7 @@ const CATALOG_SUMMARY: BreachSummaryDTO = {
         breachDate: '2026-08-27',
         pwnCount: 8849657,
     },
+    syncedAt: '2026-09-18T08:00:00Z',
 };
 
 class BreachSummaryDTOBuilder {
@@ -76,6 +77,12 @@ class BreachSummaryDTOBuilder {
 
     withTotalBreaches(totalBreaches: number): this {
         this.state = { ...this.state, totalBreaches };
+
+        return this;
+    }
+
+    withSyncedAt(syncedAt: string): this {
+        this.state = { ...this.state, syncedAt };
 
         return this;
     }

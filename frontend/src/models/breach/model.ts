@@ -36,6 +36,8 @@ export type BreachSummaryModel = {
     topDataClasses: DataClassCountModel[];
     largestBreach: BreachHighlightModel;
     mostRecentBreach: BreachHighlightModel;
+    // When the stored copy of the public record was last refreshed — the age of every tile.
+    syncedAt: Date;
 };
 
 export type BreachPageModel = {
