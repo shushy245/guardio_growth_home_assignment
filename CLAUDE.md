@@ -12,20 +12,20 @@ defect, not a shortcut.**
 `git ls-files -o --exclude-standard`. If any path matches `frontend/` and is not `*.test.*` /
 `*.driver.*`, the change has a rendered surface. The path check is mechanical on purpose — don't
 judge for yourself whether something "counts as UI".
-- **The pass belongs to the session driving the review, never to a review subagent.** A forked
-  reviewer runs a capped one-pass recipe and cannot reliably tell which effort level it is in — a
-  `medium` invocation reported itself as `low` and skipped on that basis. Let the subagent review
-  source; you drive the browser yourself and fold its findings in.
-- Open `~/.claude/docs/visual-review.md` and follow it. **First confirm the running app actually
-  contains the change** (`docker compose up -d --build`; plain `up -d` serves nginx with a stale
-  baked image, so source edits are invisible and the review silently passes UI that was never
-  rendered), then capture 390x844 / 768x1024 / 1280x800 and run its measurement script.
-- Required before `/story-done` and before calling any UI change done. If a review closes without
-  it, say so plainly — "visual pass not run; no claim here is backed by a capture". A stated skip is
-  acceptable, a silent one is the bug.
-Don't wait for `visual-review.md` to be injected — hook injection does not reach a forked reviewer.
-Open it yourself. Never write "responsive" / "renders correctly" / "looks right" without captures
-behind them; font size, tap-target size and line length are measured, never eyeballed.**
+- **Never run the pass yourself on code you wrote, and never let the `/code-review` fork do it.**
+  Spawn the `visual-reviewer` agent (`.claude/agents/visual-reviewer.md`) — a separate agent with
+  fresh context, like the code review itself. An author checking their own render is not a review;
+  a forked reviewer runs a capped recipe and cannot tell which effort level it is in (a `medium`
+  invocation reported itself as `low` and skipped on that basis).
+- **Give it the changed file paths and the URL, and nothing else.** No commit message, no story, no
+  description of what the screen is meant to look like — a reviewer told what to expect stops seeing
+  what is there. It reports MEASURED / OBSERVED / UNCERTAIN; it does not propose fixes.
+- Required before `/story-done` and before calling any UI change done. Fold its report into the
+  review verbatim. If it did not run, say so plainly — "visual pass not run; no claim here is backed
+  by a capture" — and if it ran but skipped a viewport, that is a finding, not a footnote. A stated
+  skip is acceptable, a silent one is the bug.
+Never write "responsive" / "renders correctly" / "looks right" without captures behind them; font
+size, tap-target size and line length are measured, never eyeballed.**
 
 ## Recipes
 - **First run on a clone:** `docker compose up -d --build` works with no `.env` (compose inlines the non-secret defaults). `cp .env.example .env` is still the first step for local work: `pnpm test` needs it (`test:backend` passes `--env-file ../.env`) plus the db on host port 5433 for the integration tests.
