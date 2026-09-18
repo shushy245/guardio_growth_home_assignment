@@ -40,6 +40,24 @@ def assign_variant(*, visitor_id: str, flag_key: str, variants: Sequence[Weighte
     raise ValueError(msg)
 
 
+def weights_cover_every_bucket(variants: Sequence[WeightedVariant]) -> bool:
+    """Weights are percentages of one whole: anything but 100 leaves buckets unassigned or
+    double-assigned, and `assign_variant` would raise on the first visitor to land there."""
+    return sum(variant.weight for variant in variants) == BUCKET_COUNT
+
+
+def duplicated_variant_keys(variants: Sequence[WeightedVariant]) -> list[str]:
+    """Every key that appears more than once, in first-seen order; empty when all are unique."""
+    seen: set[str] = set()
+    duplicated: list[str] = []
+    for variant in variants:
+        if variant.key in seen and variant.key not in duplicated:
+            duplicated.append(variant.key)
+        seen.add(variant.key)
+
+    return duplicated
+
+
 def bucket_for(*, visitor_id: str, flag_key: str) -> int:
     digest = hashlib.sha256(f"{visitor_id}:{flag_key}".encode()).digest()
 
