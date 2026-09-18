@@ -3,6 +3,40 @@
 The product diary: one entry per story, newest first, in the words of someone who never saw the
 code. Commit-level detail lives in `git log`; the plan holds what is still ahead.
 
+## S4 — funnel-events (closed 2026-09-18)
+
+- **Pain** — The funnel could not say what a visitor did: no step was recorded anywhere, so the
+  experiment had numbers on paper and none in a table — and the first version of the recorder
+  would have let anyone who knew a visitor's id file a sign-up for them.
+- **Fix** — Every step a page reports is written once, tagged with the variant the visitor was
+  in, under the identity the server's own cookie names *(instead of a visitor id the browser
+  sends, which the review showed lets a stranger file steps for anyone)*.
+- **Trade-off** — Nothing in the request says who sent it, so the traffic simulator must carry
+  a cookie per simulated visitor rather than post ids, and a browser that refuses cookies records
+  nothing.
+- **Result** — 17 backend and 13 frontend cases added (153→170, 82→95 in the test runs), every
+  planned and pre-mortem case named by a test and 11 of them proved by a mutation that fails only
+  them (session record); on the rebuilt stack, one row per step, a replay ignored, and five kinds
+  of bad request refused with the reason in the body.
+
+### The review round that closed it
+
+- **Pain** — What shipped first trusted the browser's word about who it was; a visitor id in the
+  request body was enough to file any step for anyone. It also minted its event ids with a browser
+  function that does not exist on plain http off localhost, where the throw would have happened
+  mid-render and taken the page down.
+- **Fix** — Eleven findings from an independent review worked in one pass: the cookie became the
+  identity and the body field was removed *(instead of keeping the field and checking it against
+  the cookie when present, which would still have trusted a cookieless caller)*; the id seam got a
+  fallback; two guarantees that had no test behind them got one, each proved by a mutation.
+- **Trade-off** — The two-assignment path stays a deliberate loud failure rather than a guess,
+  so enabling a second experiment before the event row can tag both is a visible outage of the
+  recorder, not a silent misfiling.
+- **Result** — 11 of 11 findings closed the same day: 8 fixed red-first, 3 recorded with the
+  precondition that would reopen them written where it will be seen; the visual pass measured the
+  landing route at three widths and found nothing to act on, and said so rather than calling it
+  clean.
+
 ## S3 — feature-flags (closed 2026-09-18)
 
 - **Pain** — The A/B test on the result screen existed only on paper. There was no way to say

@@ -110,7 +110,7 @@ structured logging, functional core, TDD) carries over unchanged.
 | GET | `/api/visitors/{id}` | assignments for an existing visitor (refresh path) |
 | GET | `/api/breaches` | `page`, `limit`, `sort` (`breachDate\|pwnCount\|name`), `order`, `q`, `dataClass`, `verifiedOnly` → `{ items, total, page, limit }` |
 | GET | `/api/breaches/summary` | total breaches, total pwned accounts, breaches last 12 months, largest breach, most recent breach, top data classes, share exposing passwords |
-| POST | `/api/funnel-events` | `201 {}`; body `{ id, visitorId, name, occurredAt, metadata }`; server stamps flag/variant from stored assignment |
+| POST | `/api/funnel-events` | `201 {}`; body `{ id, name, occurredAt, metadata }`; **the visitor is the `visitor_id` cookie** (401 without one, 404 for a cookie naming nobody; a `visitorId` in the body is a 400 — BF47); server stamps flag/variant from the stored assignment |
 | GET | `/api/pwned-passwords/range/{prefix5}` | proxies HIBP, `text/plain`; `503 { error }` on upstream failure |
 | POST | `/api/signups` | `201 { id, createdAt }`; plan ∈ `basic\|family` |
 | GET · PATCH | `/api/feature-flags` · `/api/feature-flags/{key}` | PATCH requires `updatedAt` token → `409` on mismatch, returns `200 { updatedAt }` |
@@ -814,7 +814,7 @@ checked against the real tokens.
 `http://localhost:5173/admin` — `docker compose up -d --build` first, since compose serves a baked
 image. Then the remaining `/story-done` steps: case-coverage diff, TL;DR, and state updates.
 
-### S4 — funnel-events (~0.5h)
+### S4 — funnel-events (~0.5h) — **closed 2026-09-18**
 
 Objective: every funnel step recorded idempotently, tagged with flag and variant.
 
@@ -824,7 +824,7 @@ Cases:
 - B3. unknown visitor id → 404 `{ error }`
 - B4. unknown event name → 400 `{ error }`
 - B5. `occurredAt` in the future beyond 5 minutes → 400 `{ error }` (clock-skew guard)
-- F1. `AnalyticsProvider.track('landing_view')` posts `{ id: evt_…, visitorId, name, occurredAt }` once (driver, API mocked)
+- F1. `AnalyticsProvider.track('landing_view')` posts `{ id: evt_…, name, occurredAt }` once (driver, API mocked) — `visitorId` left the body in the review round (BF47): the cookie is the identity
 - F2. `track` while the visitor is not yet created queues and flushes after creation, in order (driver)
 - F3. a failed post logs and does not throw to the caller (driver)
 - F4. React StrictMode double-invoking the landing effect produces one network call (driver, same event id)
@@ -841,7 +841,10 @@ Cases:
   - F5. events queued while the visitor session was loading are dropped with a log when the
     session fails — never held forever, never posted without a visitor
   - F6. a `track` issued while the queue is flushing lands behind the queued events, not ahead
-    of them: order holds across the interleaving
+    of them: order holds across the interleaving. **As tested (review finding BF56):** the flush
+    is synchronous, so nothing can run *during* it; the reachable interleaving is a step that
+    mounts in the commit that turns the session ready and runs its effect before the provider's
+    flush. That is what the test pins, and a render-time ref update breaks it.
   - F7. a second mount of the same step (navigate away and back) mints a new event id and posts
     again — the StrictMode dedupe is per mount, never per name, so a revisit is still a visit
   - (recorded) one `flag_key` / `variant_key` pair per event tags the visitor's assignment for
@@ -857,6 +860,68 @@ Commits:
 - C4 `[test+impl B3, B4, B5]` validation and not-found paths
 - C5 `[test+impl F1, F3]` `AnalyticsProvider` (driver first) + `api/funnelEvents`
 - C6 `[test+impl F2, F4]` pre-creation queue + stable per-step event id (`useTrackOnce`)
+
+As executed: C1 chore (the first autogenerate stored enum member *names*; regenerated with
+`values_callable`), C2 B1 (+ the pure tagging rule with its own unit tests), C3 B2 + B10, C4
+B3–B9 (B3, B4, B8, B9 were green on arrival — their guards landed with B1's route — and are
+characterization tests, pinned so removing a guard fails; recorded as such, not as red-first),
+C5 F1 + F3 (+ the id seam, the model layer, `api/funnel-events`), C6 F2 + F4–F7 (each proved by
+a mutation that fails only it; one unreachable check deleted in the same commit, which should
+have been its own `refactor`), then a `chore` that mounted the provider in `App.tsx` — a
+behaviour change under a `chore` label, recorded here (review finding BF50); the mount is proved
+in S5 through the App driver rather than contrived now.
+
+### S4 — review triage (Opus, separate agent, 2026-09-18) — **all closed 2026-09-18**
+
+Eleven code findings and one visual pass. Correctness and robustness items were reproduced or
+mutation-proved before they were fixed; every fix went red first.
+
+Correctness (fixed):
+- [x] BF47 `create_funnel_event` trusted a `visitorId` in the body and never read the `HttpOnly`
+  cookie S3 made the identity — **reproduced live**: one curl filed an `activation` for a
+  stranger. The body field is gone (`extra="forbid"` refuses it), the cookie is the identity, no
+  cookie is a 401, a cookie naming a lost visitor stays a 404. The frontend payload dropped
+  `visitorId`; the provider still waits for the session because the cookie exists only once the
+  visitor was created. ADR-0003 amended. **Carry to S7:** the simulator holds a cookie jar per
+  simulated visitor.
+
+Robustness (fixed):
+- [x] BF48 `crypto.randomUUID` is secure-context-only; on plain http to any host but localhost
+  it is `undefined` while `lib.dom` types it present, and the call sat in a `useState`
+  initializer — a throw during render. The id seam reads `crypto` through a type that admits the
+  absence and falls back to a `getRandomValues`-built v4 UUID.
+
+Testing (fixed):
+- [x] BF49 "one id per mount" had no test: minting the id on every render left 7/7 green. A
+  probe that re-renders the step without remounting now fails under that mutation.
+- [x] BF50 the two-assignment decision was proved only on the pure rule; an HTTP case now seeds
+  a second enabled flag and asserts 500 + house body + logged failure + no row (proved by making
+  the rule guess). The App-level mount (`AnalyticsProvider` on the funnel, absent on `/admin`)
+  is an S5 case through the App driver, not a contrived one here.
+
+Style / structure (fixed):
+- [x] BF51 the experiment tag was logged as a dataclass repr — ungreppable by `variant_key`; now
+  two fields. BF52 `insert_event` returned a `bool` (the disguised two-variant union); now the
+  id or `None`, per `python-conventions.md`. BF53 file-header comment split by the import sorter;
+  BF54 the `recorded` set's lifetime stated in a comment.
+
+Recorded with an artifact, not fixed:
+- [x] BF55 no lower bound on `occurredAt`: S7 reads per visitor and per step, never by time
+  bucket, and a queued step is genuinely older than its arrival. Precondition in the
+  `clock_skew.py` docstring: the first time-bucketed read adds `is_implausibly_old`.
+- [x] BF56 F6's wording vs the reachable interleaving — corrected on the case above.
+- [x] BF57 `metadata` is unbounded on a public write while the other three fields are bounded.
+  No client sends it yet; RF-backlog with the precondition.
+
+Visual pass (`visual-reviewer`, pass A + B, 390/768/1280 on `/`): the served bundle carries the
+change (three provider log strings and the `funnel-events` path found in it), no overflow at any
+width, console clean, Lighthouse accessibility 100 on the 8 applicable audits with 58 not
+applicable. Three of the four measurements had nothing to act on — the landing route is one
+heading — so the screen is *unchecked* on tap targets, body text and line length, not clean;
+stated as such. The reviewer's claim that this diff changed `/admin`'s provider tree was a
+misread, dismissed against the diff: only the funnel outlet gained `AnalyticsProvider`; `/admin`
+has sat outside both providers since S3's BF32. The full-bleed `main` at 1280 is the D1 carry
+already recorded.
 
 ### D1 — Claude Design handoff (pause point; no code)
 
@@ -908,6 +973,9 @@ Result-screen product bar (load the `frontend-design` skill before building it):
 - The same screen survives a laptop: one DOM tree, CSS-only reflow, checked at 390 / 768 / 1280.
 
 Cases:
+- F0. (from the S4 review, BF50) through the **App** driver, not a page driver: opening `/`
+  posts `landing_view` once and opening `/admin` posts nothing — the only test that proves the
+  provider mount in `App.tsx`, which S4 shipped under a `chore` with no test behind it
 - F1. Landing renders the scan button and tracks `landing_view` once on mount (driver)
 - F2. tapping "Scan known breaches" tracks `scan_started` and navigates to `/scan` (driver)
 - F3. Scan page shows the scanning state for at least 2s, then tracks `scan_completed` and navigates to `/result` once summary and first page have loaded (driver, fake timers)
@@ -1004,7 +1072,7 @@ Commits:
 - C4 `[test+impl B4, B5]` `recommend` rule with guards
 - C5 `[test+impl B6]` `results.py` distinct-visitor-per-step query
 - C6 `[test+impl B7, B8]` results endpoint assembling the payload
-- C7 `[test+impl B9]` `scripts/simulate_traffic.py` (arg-parsed, httpx against the running API)
+- C7 `[test+impl B9]` `scripts/simulate_traffic.py` (arg-parsed, httpx against the running API; **one cookie jar per simulated visitor** — the event endpoint identifies the browser by its `visitor_id` cookie and refuses a body that names one, BF47)
 - C8 `[test+impl F1]` `models/experimentResult`
 - C9 `[chore]` load `dataviz` skill; apply D1 tokens; `charts/` adapter over Recharts
 - C10 `[test+impl F2, F3, F4]` Dashboard page (driver first): `FunnelChart`, `LiftChart`, recommendation banner
@@ -1045,6 +1113,11 @@ Each stretch story gets its own Cases/Commits block when opened; the TDD contrac
 
 ## RF-backlog
 
+- (S4 review, BF57) `FunnelEventCreate.metadata` is an unbounded `dict[str, object]` on a public
+  write while `id`, `name` and `occurredAt` are all bounded. No client sends it today; bound it
+  (flat, a key cap, a value-length cap) the moment the first one does.
+- (S4 review) the frontend `aFunnelEvent` builder exposes only `withName`/`occurringAt`; add
+  `withId` when a test needs to vary it.
 - (S2 review) `sync_catalog_in_own_transaction` (S2b rename of `sync_catalog_on_boot`) holds its
   transaction across the HIBP HTTP call. Split the staleness read and the write into two
   transactions when a second worker appears; the precondition is recorded in the function's

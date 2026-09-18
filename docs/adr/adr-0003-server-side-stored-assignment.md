@@ -88,3 +88,14 @@ The write is gated on a shared secret in `X-Admin-Token`, compared with `hmac.co
 This is deliberately short of authentication and the README says so: reads stay open, so an
 unauthenticated `/admin` is a harmless page, and the operator pastes the token per session —
 never into the Vite build, which would ship it to every visitor, and never into `localStorage`.
+
+## Amendment (S4, 2026-09-18): the cookie is the identity for funnel events too
+
+`POST /api/funnel-events` first shipped taking a `visitorId` in the body, as the plan's contract
+said. The S4 review reproduced the consequence in one request: with no cookie at all, an
+`activation` was filed for a visitor from another session. The endpoint now identifies the
+browser by the `visitor_id` cookie alone — no cookie is a 401, a cookie naming a visitor the
+database lost is a 404, and a `visitorId` in the body is refused as an unknown field. The page
+never needed to say who it was: the cookie rides on every request already. What this costs is
+that a client without a cookie jar cannot record steps, which is a constraint on the S7 traffic
+simulator (one jar per simulated visitor), not on a browser.

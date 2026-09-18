@@ -48,6 +48,25 @@ in-app statistical dashboard.
 ## What's done
 Full history: `docs/changelog.md`; commit-level record: `git log`.
 
+- **S4 — funnel-events (closed 2026-09-18).** The funnel could not say what a visitor did: no
+  step was recorded anywhere, so the experiment had numbers on paper and none in a table. Every
+  step a page reports is now written once, tagged with the variant the visitor was in, under the
+  identity the server's own cookie names. The review round found that the first version trusted
+  a `visitorId` in the body (one curl filed an `activation` for a stranger) and minted ids with a
+  browser function absent off localhost on plain http; 11 findings, 8 fixed red-first, 3 recorded
+  with their preconditions. 170 backend + 95 frontend tests.
+  Technically: `funnel_event` table (client-minted `evt_` pk, `ON CONFLICT DO NOTHING` +
+  `RETURNING id`, `name` as text under a CHECK carrying wire values via `values_callable`,
+  nullable `flag_key`/`variant_key` copied from the stored assignment); pure `experiment_tag`
+  that refuses two assignments (a logged 500, never a guess); `AwareDatetime` + a 5-minute
+  forward skew guard, no backward bound (precondition in `clock_skew.py`). Frontend:
+  `AnalyticsProvider` inside `VisitorProvider` on the funnel routes — `record({ id, name })` is
+  idempotent on the caller's id, `track(name)` mints one; a queue that flushes in order when the
+  session turns ready and drains with a log when it fails; the `visitorRef` is updated in the
+  provider's *effect*, so a child mounting in the same commit queues behind what is waiting.
+  `useTrackOnce(name)` holds one id per mount in `useState`. `shared/ids.utils.ts` is the id
+  seam with the `getRandomValues` fallback. Reviews: `docs/plan.md` → "S4 — review triage".
+
 - **S3 — feature-flags (closed 2026-09-18).** The A/B test on the result screen had no machinery
   behind it: nothing decided which visitor saw which framing, and no product person could change
   the split or the wording without a developer and a deploy. A visitor now gets an identity on
@@ -88,45 +107,17 @@ Full history: `docs/changelog.md`; commit-level record: `git log`.
   dismissed on a recorded precondition, three batched to RF-backlog. 121 backend + 33 frontend
   tests green.
 
-- **S2 — breach-catalog (closed 2026-09-18).** The funnel had nothing to show: the breach data
-  lived at HIBP, which can be slow or down, and sorting or filtering it would have meant pulling
-  all 1,036 records into the browser. We now keep our own copy of the public record, refreshed
-  daily, and answer every search, sort and page from it in one query — 1,031 servable breaches,
-  17.7B exposed accounts, 65% of them leaking passwords. It keeps serving while HIBP is down, and
-  an empty catalog is a visible error rather than a reassuring empty list.
-  Technically: `breach` table + Alembic migration; `BreachCatalogPort` with an httpx2 HIBP adapter
-  and an in-memory fake; idempotent `upsert_many` (last row per name, update set derived from the
-  table); 24h TTL in a pure `should_sync`; boot-time sync that cannot fail the boot;
-  `GET /api/breaches` with the full list contract (page/limit/sort/order/q/dataClass/verifiedOnly),
-  `name` closing every sort so LIMIT/OFFSET is total, and one filter builder feeding both the count
-  and the page; `GET /api/breaches/summary` over pure maths; 503 on an empty catalog, 200 on an
-  empty filter result; frontend model layer with a calendar-day date parse. 136 tests green.
-
-- **S1 — scaffold (closed 2026-09-17).** The stack starts from a clean clone with no setup step and
-  serves a landing page plus `/api/health`; request tracing, the error contract and both test
-  harnesses are proven rather than assumed. Technically: FastAPI app factory with `create_app(settings)`,
-  `{ error }` on every non-2xx including unhandled exceptions, correlation id per request in
-  structlog contextvars (proved with two concurrent requests), settings validated at startup
-  (including the CORS origin), prefixed time-sortable ids, Alembic baseline migration, savepoint
-  integration harness, Vite/React/Vitest with drivers and layout primitives, husky gate over
-  tsc + eslint + vitest + ruff + mypy + pytest. 45 tests green.
-
 ## What's next
-**S4 (funnel-events) — nothing started.** `docs/plan.md` → "S4 — funnel-events": every funnel step
-recorded idempotently and tagged with the visitor's flag and variant. Five backend cases, four
-frontend. Open it with `/story-start S4`.
-
-**D1 is the pause point after S4 and before S5** — I stop and hand over a Claude Design prompt;
-never build funnel UI without it. Its exit criteria now carry three measured findings from the S3
-visual passes, to be answered by a token rather than a one-off override: the disabled Save at
-2.58:1 (shown for the whole of every save, so it is the element carrying the in-progress signal),
+**D1 — the pause point. Nothing to build.** S4 closed; the next step is `docs/plan.md` → "D1 —
+Claude Design handoff": I write the Claude Design prompt and hand it to Shalev; **never build
+funnel UI without it.** D1's exit criteria carry three measured findings from the S3 visual
+passes, to be answered by a token rather than a one-off override: the disabled Save at 2.58:1,
 14px body text against the 16px floor, and a 96–101 character measure at 768 and 1280.
 
-Also carried: `api/breaches` (the hooks *and* `fetchBreaches`/`fetchBreachSummary`) is deferred to
-S5 to be written red-first; and the landing placeholder has no `max-width`, so its content box runs
-the full viewport — fine for one heading, not for the real screen S5 replaces it with.
+Also carried: `api/breaches` (the hooks *and* `fetchBreaches`/`fetchBreachSummary`) is deferred
+to S5 to be written red-first; the landing placeholder has no `max-width`; S5 gains F0 (the
+provider mount proved through the App driver, BF50); S7's simulator holds one cookie jar per
+simulated visitor (BF47).
 
-The S3 review record: findings verbatim in `docs/reviews/s3-review.md` (827 lines, four independent
-reviewers), the four visual passes over the fixes in `docs/reviews/s3-fixes-visual-review.md`,
-triage and the six-phase execution order in `docs/plan.md`. **BF36 and BF42 are the only two items
-left open, both deliberately, both now D1 exit criteria.**
+Review records: `docs/reviews/s3-review.md`, `docs/reviews/s3-fixes-visual-review.md`, and the
+S4 triage in `docs/plan.md`. **BF36 and BF42 remain open by design as D1 exit criteria.**
