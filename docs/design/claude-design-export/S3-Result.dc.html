@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&family=Source+Code+Pro:wght@500&display=swap" rel="stylesheet">
+<style>body{margin:0;background:oklch(97% 0.004 240);} a{color:oklch(40% 0.13 200);} a:hover{color:oklch(32% 0.13 200);}</style>
+</helmet>
+<div style="font-family:'Source Sans 3',system-ui,sans-serif;padding:48px 32px 120px;color:oklch(22% 0.02 240);">
+
+  <div style="max-width:1120px;margin:0 auto 40px;">
+    <div style="font-size:16px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:oklch(40% 0.13 200);margin-bottom:8px;">Breach Scan — S-3 Result</div>
+    <h1 style="font-size:42px;line-height:1.15;font-weight:700;margin:0 0 12px;">Result screen — centrepiece</h1>
+    <p style="font-size:18px;line-height:1.5;color:oklch(45% 0.015 240);max-width:65ch;margin:0 0 20px;">One layout, one component tree, tone driven purely by the <code style="font-family:'Source Code Pro',monospace;background:oklch(96% 0.006 240);padding:2px 6px;border-radius:4px;font-size:16px;">tone</code> prop on <code style="font-family:'Source Code Pro',monospace;background:oklch(96% 0.006 240);padding:2px 6px;border-radius:4px;font-size:16px;">ResultScreenBody</code>. Tap a row's chevron to expand it — it's live. The urgent accounts-exposed tile counts up once on mount (skips straight to 17.7B under reduced motion).</p>
+    <div style="display:flex;flex-direction:column;gap:6px;font-size:16px;color:oklch(45% 0.015 240);background:oklch(100% 0 0);border:1px solid oklch(87% 0.008 240);border-radius:12px;padding:16px 20px;max-width:65ch;">
+      <div><strong style="color:oklch(22% 0.02 240);">390 → 768:</strong> sticky bottom CTA bar is dropped; the same button moves inline into the header, next to the headline. Tiles go 2×2 → one row of four. Chips stop horizontal-scrolling and wrap.</div>
+      <div><strong style="color:oklch(22% 0.02 240);">768 → 1280:</strong> content gets a 1120px reading-width cap and centres; gutters grow from 32px to 64px. No structural change — same header row, same tile row, same wrapped chips.</div>
+    </div>
+  </div>
+
+  <div style="max-width:1120px;margin:0 auto 16px;font-size:16px;font-weight:700;color:oklch(22% 0.02 240);">Loaded — calm vs. urgent, at each width</div>
+  <div style="display:flex;gap:24px;overflow-x:auto;padding-bottom:24px;">
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <span style="font-size:16px;font-family:'Source Code Pro',monospace;">390 · calm</span>
+      <dc-import name="ResultScreenBody" width="390" tone="calm" state="loaded" hint-size="390px,900px"></dc-import>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <span style="font-size:16px;font-family:'Source Code Pro',monospace;">390 · urgent</span>
+      <dc-import name="ResultScreenBody" width="390" tone="urgent" state="loaded" hint-size="390px,900px"></dc-import>
+    </div>
+  </div>
+  <div style="display:flex;gap:24px;overflow-x:auto;padding-bottom:24px;">
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <span style="font-size:16px;font-family:'Source Code Pro',monospace;">768 · calm</span>
+      <dc-import name="ResultScreenBody" width="768" tone="calm" state="loaded" hint-size="768px,760px"></dc-import>
+    </div>
+  </div>
+  <div style="display:flex;gap:24px;overflow-x:auto;padding-bottom:24px;">
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <span style="font-size:16px;font-family:'Source Code Pro',monospace;">768 · urgent</span>
+      <dc-import name="ResultScreenBody" width="768" tone="urgent" state="loaded" hint-size="768px,760px"></dc-import>
+    </div>
+  </div>
+  <div style="display:flex;gap:24px;overflow-x:auto;padding-bottom:24px;">
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <span style="font-size:16px;font-family:'Source Code Pro',monospace;">1280 · calm</span>
+      <dc-import name="ResultScreenBody" width="1280" tone="calm" state="loaded" hint-size="1280px,720px"></dc-import>
+    </div>
+  </div>
+  <div style="display:flex;gap:24px;overflow-x:auto;padding-bottom:40px;">
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <span style="font-size:16px;font-family:'Source Code Pro',monospace;">1280 · urgent</span>
+      <dc-import name="ResultScreenBody" width="1280" tone="urgent" state="loaded" hint-size="1280px,720px"></dc-import>
+    </div>
+  </div>
+
+  <div style="max-width:1120px;margin:0 auto 16px;font-size:16px;font-weight:700;color:oklch(22% 0.02 240);">Other states — 390, calm tone (tone-agnostic)</div>
+  <div style="display:flex;gap:24px;overflow-x:auto;padding-bottom:40px;">
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <span style="font-size:16px;font-family:'Source Code Pro',monospace;">loading</span>
+      <dc-import name="ResultScreenBody" width="390" tone="calm" state="loading" hint-size="390px,900px"></dc-import>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <span style="font-size:16px;font-family:'Source Code Pro',monospace;">filter → zero results</span>
+      <dc-import name="ResultScreenBody" width="390" tone="calm" state="empty" hint-size="390px,900px"></dc-import>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <span style="font-size:16px;font-family:'Source Code Pro',monospace;">list error</span>
+      <dc-import name="ResultScreenBody" width="390" tone="calm" state="error" hint-size="390px,900px"></dc-import>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <span style="font-size:16px;font-family:'Source Code Pro',monospace;">load-more in progress</span>
+      <dc-import name="ResultScreenBody" width="390" tone="calm" state="loadmore" hint-size="390px,900px"></dc-import>
+    </div>
+  </div>
+
+</div>
+
+</x-dc>
+</body>
+</html>

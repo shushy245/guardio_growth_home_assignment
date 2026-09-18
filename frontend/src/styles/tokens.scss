@@ -1,9 +1,117 @@
-// Design tokens. D1 (the Claude Design handoff) adds colour, spacing and type; the breakpoints
-// are here now because the responsive contract says they are named exactly once, and the admin
-// page is the first screen that reflows.
+// Design tokens, translated on 2026-09-18 from the Claude Design handoff
+// (docs/design/claude-design-export/Tokens.dc.html). The design names its colours in oklch, and
+// most of the saturated ones sit outside the sRGB gamut; each value here is what an sRGB display
+// shows for it (chroma reduced at the same lightness and hue, the CSS Color 4 mapping), written
+// as hex so the review tooling that reads computed rgb() keeps measuring contrast. The oklch
+// source sits beside every colour. Every text-on-fill pair used below measures at or above 6:1;
+// the disabled pair, the S3 review's 2.58:1 finding, is 7.68:1.
 //
-// 390 is the design target (a phone), 768 a tablet, 1280 a laptop. Every screen is built at 390
-// and must hold at the other two.
+// Deviations from the design are listed in docs/design/component-inventory.md, never made here
+// silently.
+
+// Breakpoints — named exactly once (the responsive contract). 390 is the design target, a phone;
+// 768 a tablet; 1280 a laptop. Every screen is built at 390 and must hold at the other two.
 $breakpoint-sm: 390px;
 $breakpoint-md: 768px;
 $breakpoint-lg: 1280px;
+
+// Colour — core
+$color-bg: #f6f9fb; // oklch(98% 0.004 240) — page background
+$color-surface: #ffffff; // oklch(100% 0 0) — cards, fields, header region
+$color-surface-sunken: #eef2f5; // oklch(96% 0.006 240) — info messages, segmented-control track
+$color-skeleton: #e4e8eb; // oklch(93% 0.006 240) — skeleton blocks
+$color-text-primary: #121c23; // oklch(22% 0.02 240)
+$color-text-secondary: #4e575d; // oklch(45% 0.015 240) — notes, meta lines, labels of tiles
+$color-border: #d0d5d9; // oklch(87% 0.008 240)
+$color-brand: #004867; // oklch(38% 0.09 235) — the wordmark only
+$color-focus-ring: #007bab; // oklch(55% 0.16 235)
+
+// Colour — tone sets. Calm and urgent share every name; only the value differs, so the result
+// screen selects a set by class (`toneClassMap`) and never branches on the tone in a rule.
+$tone-calm-accent: #005256; // oklch(40% 0.13 200) — links, selected chip border
+$tone-calm-accent-strong: #003b3e; // oklch(32% 0.13 200) — primary button fill, link text
+$tone-calm-tint: #dcf4f5; // oklch(95% 0.025 200) — selected chip / plan card fill
+$tone-calm-on-accent: #fcfcfc; // oklch(99% 0 0)
+$tone-urgent-accent: #8b2000; // oklch(42% 0.15 35)
+$tone-urgent-accent-strong: #681500; // oklch(34% 0.15 35)
+$tone-urgent-tint: #ffe9e0; // oklch(95% 0.035 45)
+$tone-urgent-on-accent: #fcfcfc; // oklch(99% 0 0)
+
+// The seam the result screen consumes: a tone class sets the custom properties, and every
+// tone-aware rule reads `var(--tone-accent)` and friends. Defined here so the names live once.
+@mixin tone-calm {
+    --tone-accent: #{$tone-calm-accent};
+    --tone-accent-strong: #{$tone-calm-accent-strong};
+    --tone-tint: #{$tone-calm-tint};
+    --tone-on-accent: #{$tone-calm-on-accent};
+}
+
+@mixin tone-urgent {
+    --tone-accent: #{$tone-urgent-accent};
+    --tone-accent-strong: #{$tone-urgent-accent-strong};
+    --tone-tint: #{$tone-urgent-tint};
+    --tone-on-accent: #{$tone-urgent-on-accent};
+}
+
+// Colour — semantic and disabled
+$color-success: #005121; // oklch(38% 0.12 150)
+$color-success-tint: #def1e1; // oklch(94% 0.03 150)
+$color-warning: #423000; // oklch(32% 0.08 85)
+$color-warning-tint: #f7e6c3; // oklch(93% 0.05 85)
+$color-danger: #a30018; // oklch(45% 0.19 25)
+$color-danger-tint: #ffe4e1; // oklch(94% 0.03 25)
+// "Disabled" is read from the fill and the border, never from washing the text out: the text
+// stays at 7.68:1 on the fill, so a button disabled for the whole of a save is still legible.
+$color-disabled-fill: #dee2e5; // oklch(91% 0.006 240)
+$color-disabled-text: #3e4347; // oklch(38% 0.01 240)
+
+// Type. One family for everything, numerals included; the variable font is self-hosted from
+// `@fontsource-variable/source-sans-3` (imported once in main.tsx), so the page never waits on a
+// third-party origin and works offline.
+$font-family: 'Source Sans 3 Variable', 'Source Sans 3', -apple-system, 'Segoe UI', sans-serif;
+$text-100: 16px; // body, labels, captions, helper text — the floor; nothing renders smaller
+$text-200: 18px; // body large, running paragraph text, row titles
+$text-300: 20px; // subhead, wordmark
+$text-400: 24px; // h4, tile numbers
+$text-500: 28px; // h3, section titles, page titles at 390
+$text-600: 34px; // h2, h1 at 390
+$text-700: 42px; // h1 at 768+, hero headline
+$weight-regular: 400;
+$weight-medium: 500;
+$weight-semibold: 600;
+$weight-bold: 700;
+$leading-tight: 1.15; // headlines
+$leading-snug: 1.3; // ui, labels
+$leading-relaxed: 1.5; // body
+
+// Spacing
+$sp-1: 4px;
+$sp-2: 8px;
+$sp-3: 12px;
+$sp-4: 16px;
+$sp-5: 20px;
+$sp-6: 24px;
+$sp-7: 32px;
+$sp-8: 40px;
+$sp-9: 48px;
+$sp-10: 64px;
+$sp-11: 80px;
+
+// Radii and elevation
+$radius-sm: 8px;
+$radius-md: 12px;
+$radius-lg: 16px;
+$radius-pill: 999px;
+$shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
+$shadow-md: 0 8px 24px rgba(0, 0, 0, 0.1);
+$shadow-sticky: 0 -8px 24px rgba(0, 0, 0, 0.06); // the sticky CTA bar, casting upward
+
+// Layout constants
+$prose-measure: 65ch; // max-width of any paragraph block, applied by default in global.scss
+$content-max: 1120px; // reading-width cap for lists and pages at 1280
+$gutter-sm: $sp-4; // 16px at 390
+$gutter-md: $sp-7; // 32px at 768
+$gutter-lg: $sp-10; // 64px at 1280
+$tap-target: 44px; // the floor for anything interactive
+$control-height: 48px; // fields and primary buttons
+$focus-ring: 0 0 0 3px rgba(0, 113, 118, 0.35); // oklch(50% 0.14 200 / 0.35)

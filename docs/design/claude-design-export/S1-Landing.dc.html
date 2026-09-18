@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&family=Source+Code+Pro:wght@500&display=swap" rel="stylesheet">
+<style>body{margin:0;background:oklch(97% 0.004 240);} a{color:oklch(40% 0.13 200);} a:hover{color:oklch(32% 0.13 200);}</style>
+</helmet>
+<div style="font-family:'Source Sans 3',system-ui,sans-serif;padding:48px 32px 120px;color:oklch(22% 0.02 240);">
+  <div style="max-width:1120px;margin:0 auto 32px;">
+    <div style="font-size:16px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:oklch(40% 0.13 200);margin-bottom:8px;">Breach Scan — S-1 Landing</div>
+    <h1 style="font-size:42px;line-height:1.15;font-weight:700;margin:0 0 12px;">Landing</h1>
+    <p style="font-size:18px;line-height:1.5;color:oklch(45% 0.015 240);max-width:65ch;margin:0 0 20px;">Default state only. The CTA sits above the fold at 390 without scrolling.</p>
+    <div style="display:flex;flex-direction:column;gap:6px;font-size:16px;color:oklch(45% 0.015 240);background:oklch(100% 0 0);border:1px solid oklch(87% 0.008 240);border-radius:12px;padding:16px 20px;max-width:65ch;">
+      <div><strong style="color:oklch(22% 0.02 240);">390 → 768:</strong> hero column widens and centres with more side whitespace; type steps up one size; trust points go stacked → one row of three.</div>
+      <div><strong style="color:oklch(22% 0.02 240);">768 → 1280:</strong> same row layout, hero measure capped so lines don't stretch; only whitespace grows.</div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:24px;overflow-x:auto;padding-bottom:24px;">
+
+    <!-- 390 -->
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <span style="font-size:16px;font-family:'Source Code Pro',monospace;">390</span>
+      <div style="width:390px;flex-shrink:0;background:oklch(100% 0 0);border:1px solid oklch(87% 0.008 240);border-radius:16px;overflow:hidden;">
+        <div style="padding:16px;display:flex;flex-direction:column;gap:24px;">
+          <div style="font-size:20px;font-weight:700;color:oklch(38% 0.09 235);letter-spacing:-0.01em;">Guardio</div>
+          <div>
+            <h2 style="font-size:34px;font-weight:700;line-height:1.15;margin:0 0 12px;">Find out if you've been breached</h2>
+            <p style="font-size:18px;line-height:1.5;color:oklch(45% 0.015 240);margin:0 0 20px;">Guardio checks your accounts against 1,031 known breaches. No email address needed.</p>
+            <button style="width:100%;font-family:inherit;font-size:16px;font-weight:600;padding:14px 24px;min-height:48px;border-radius:12px;background:oklch(32% 0.13 200);color:oklch(99% 0 0);border:none;">Scan known breaches</button>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:16px;">
+            <div style="display:flex;align-items:center;gap:12px;"><span style="width:32px;height:32px;border-radius:50%;background:oklch(95% 0.025 200);color:oklch(32% 0.13 200);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0;">✓</span><span style="font-size:16px;">Public breach data, sourced openly</span></div>
+            <div style="display:flex;align-items:center;gap:12px;"><span style="width:32px;height:32px;border-radius:50%;background:oklch(95% 0.025 200);color:oklch(32% 0.13 200);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0;">✓</span><span style="font-size:16px;">No email needed to scan</span></div>
+            <div style="display:flex;align-items:center;gap:12px;"><span style="width:32px;height:32px;border-radius:50%;background:oklch(95% 0.025 200);color:oklch(32% 0.13 200);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0;">✓</span><span style="font-size:16px;">Takes seconds</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 768 -->
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <span style="font-size:16px;font-family:'Source Code Pro',monospace;">768</span>
+      <div style="width:768px;flex-shrink:0;background:oklch(100% 0 0);border:1px solid oklch(87% 0.008 240);border-radius:16px;overflow:hidden;">
+        <div style="padding:64px 48px;display:flex;flex-direction:column;align-items:center;gap:40px;text-align:center;">
+          <div style="font-size:20px;font-weight:700;color:oklch(38% 0.09 235);letter-spacing:-0.01em;">Guardio</div>
+          <div style="max-width:65ch;">
+            <h2 style="font-size:42px;font-weight:700;line-height:1.15;margin:0 0 16px;">Find out if you've been breached</h2>
+            <p style="font-size:18px;line-height:1.5;color:oklch(45% 0.015 240);margin:0 0 24px;">Guardio checks your accounts against 1,031 known breaches. No email address needed.</p>
+            <button style="font-family:inherit;font-size:16px;font-weight:600;padding:14px 32px;min-height:48px;border-radius:12px;background:oklch(32% 0.13 200);color:oklch(99% 0 0);border:none;">Scan known breaches</button>
+          </div>
+          <div style="display:flex;gap:40px;">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:10px;max-width:180px;"><span style="width:32px;height:32px;border-radius:50%;background:oklch(95% 0.025 200);color:oklch(32% 0.13 200);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;">✓</span><span style="font-size:16px;">Public breach data, sourced openly</span></div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:10px;max-width:180px;"><span style="width:32px;height:32px;border-radius:50%;background:oklch(95% 0.025 200);color:oklch(32% 0.13 200);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;">✓</span><span style="font-size:16px;">No email needed to scan</span></div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:10px;max-width:180px;"><span style="width:32px;height:32px;border-radius:50%;background:oklch(95% 0.025 200);color:oklch(32% 0.13 200);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;">✓</span><span style="font-size:16px;">Takes seconds</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 1280 -->
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <span style="font-size:16px;font-family:'Source Code Pro',monospace;">1280</span>
+      <div style="width:1280px;flex-shrink:0;background:oklch(100% 0 0);border:1px solid oklch(87% 0.008 240);border-radius:16px;overflow:hidden;">
+        <div style="padding:96px 64px;display:flex;flex-direction:column;align-items:center;gap:48px;text-align:center;">
+          <div style="font-size:20px;font-weight:700;color:oklch(38% 0.09 235);letter-spacing:-0.01em;">Guardio</div>
+          <div style="max-width:65ch;">
+            <h2 style="font-size:42px;font-weight:700;line-height:1.15;margin:0 0 16px;">Find out if you've been breached</h2>
+            <p style="font-size:18px;line-height:1.5;color:oklch(45% 0.015 240);margin:0 0 24px;">Guardio checks your accounts against 1,031 known breaches. No email address needed.</p>
+            <button style="font-family:inherit;font-size:16px;font-weight:600;padding:14px 32px;min-height:48px;border-radius:12px;background:oklch(32% 0.13 200);color:oklch(99% 0 0);border:none;">Scan known breaches</button>
+          </div>
+          <div style="display:flex;gap:56px;">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:10px;max-width:180px;"><span style="width:32px;height:32px;border-radius:50%;background:oklch(95% 0.025 200);color:oklch(32% 0.13 200);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;">✓</span><span style="font-size:16px;">Public breach data, sourced openly</span></div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:10px;max-width:180px;"><span style="width:32px;height:32px;border-radius:50%;background:oklch(95% 0.025 200);color:oklch(32% 0.13 200);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;">✓</span><span style="font-size:16px;">No email needed to scan</span></div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:10px;max-width:180px;"><span style="width:32px;height:32px;border-radius:50%;background:oklch(95% 0.025 200);color:oklch(32% 0.13 200);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;">✓</span><span style="font-size:16px;">Takes seconds</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</x-dc>
+</body>
+</html>

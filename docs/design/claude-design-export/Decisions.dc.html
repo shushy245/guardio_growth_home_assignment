@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>body{margin:0;background:oklch(97% 0.004 240);}</style>
+</helmet>
+<div style="font-family:'Source Sans 3',system-ui,sans-serif;max-width:800px;margin:0 auto;padding:64px 32px 120px;color:oklch(22% 0.02 240);">
+  <div style="font-size:16px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:oklch(40% 0.13 200);margin-bottom:8px;">Breach Scan — design system</div>
+  <h1 style="font-size:42px;font-weight:700;line-height:1.15;margin:0 0 24px;">Decisions made, not specified</h1>
+  <ol style="font-size:18px;line-height:1.7;padding-left:22px;display:flex;flex-direction:column;gap:16px;">
+    <li>Font: Source Sans 3 for everything, including numerals in the summary tiles — one family, no separate display face.</li>
+    <li>Color base is cool-neutral; brand/accent hue sits at 200° (blue) for calm, 35° (burnt orange, not red) for urgent, same chroma and lightness family so the two tone sets read as siblings.</li>
+    <li>Accent/tone-accent colors are deliberately darker (L≈32–42%) than a typical UI blue, so the same color works as button fill (white text) and as standalone link/text color without a second, separate "text-safe" shade.</li>
+    <li>Row expand/collapse and the urgent count-up are implemented as real interactions in the deliverable, not static mockups, so their motion and end states can be checked directly.</li>
+    <li>The "accounts exposed" summary tile is the element that counts up on the urgent variant — the brief calls out a counting number but doesn't say which one; the tile was the most natural home since it already exists as a value.</li>
+    <li>Landing page and confirmation copy (headline, trust points, next steps) is original copy, since the brief specified exact strings only for the result screen.</li>
+    <li>Given the volume of frames implied (2 variants × 3 widths × 5 states, repeated per screen), each screen shows every state as a frame, but width reflow (390/768/1280) is fully shown for the primary/default state, with secondary states shown once at 390 — states like "loading" or "server error" don't change their internal layout across widths, only their container does, which S-3's reflow notes already cover.</li>
+    <li>The signup form's password-leak count ("3,120,000 leaks") and the experiment's lift numbers are illustrative — swap for live values from HIBP and the analytics pipeline.</li>
+    <li>Admin's disabled Save button uses a light grey fill with a visible border and dark grey text (4.5:1+), rather than the previous washed-out blue, so "saving" reads as an active, expected state rather than a bug.</li>
+    <li>Semantic landmarks (header/main/nav) are shown once per component instance for documentation purposes; a shipped page would have exactly one of each — this spec mounts many instances of each screen side by side to compare states.</li>
+  </ol>
+</div>
+
+</x-dc>
+</body>
+</html>

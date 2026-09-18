@@ -4,15 +4,15 @@
 // Built at 390 first: one column of full-width variant cards, tap targets a thumb can hit. At
 // md+ the two variants sit side by side so a split can be read without scrolling.
 .flag {
-    gap: 16px;
-    padding: 16px;
-    border: 1px solid #dbe3ec;
-    border-radius: 12px;
-    background: #f7f9fc;
+    gap: tokens.$sp-4;
+    padding: tokens.$sp-4;
+    border: 1px solid tokens.$color-border;
+    border-radius: tokens.$radius-md;
+    background: tokens.$color-surface;
 }
 
 .flagName {
-    font-size: 18px;
+    font-size: tokens.$text-200;
     margin: 0;
 }
 
@@ -23,19 +23,20 @@
 .toggle {
     display: flex;
     flex-direction: row;
-    gap: 10px;
+    gap: tokens.$sp-3;
     align-items: center;
     // The whole label is the target, not the 20px box inside it: a checkbox drawn at its
     // native size is under half the 44px a thumb needs.
-    min-height: 44px;
-    padding: 4px 0;
-    font-size: 14px;
+    min-height: tokens.$tap-target;
+    padding: tokens.$sp-1 0;
+    font-size: tokens.$text-100;
     cursor: pointer;
 }
 
 .checkbox {
     width: 24px;
     height: 24px;
+    accent-color: tokens.$tone-calm-accent-strong;
     // The box is 24px; the hit area is the label's 44px, which the padding above completes.
     flex: 0 0 auto;
 }
@@ -46,20 +47,20 @@
 // clipped mid-word.
 .variants {
     flex-direction: column;
-    gap: 12px;
+    gap: tokens.$sp-3;
 }
 
 .variant {
-    gap: 12px;
-    padding: 12px;
-    border: 1px solid #dbe3ec;
-    border-radius: 10px;
-    background: #fff;
+    gap: tokens.$sp-3;
+    padding: tokens.$sp-4;
+    border: 1px solid tokens.$color-border;
+    border-radius: tokens.$radius-md;
+    background: tokens.$color-bg;
 }
 
 .variantName {
-    font-size: 15px;
-    font-weight: 700;
+    font-size: tokens.$text-100;
+    font-weight: tokens.$weight-semibold;
     margin: 0;
 }
 
@@ -76,48 +77,35 @@
 }
 
 .save {
-    font: inherit;
-    font-weight: 600;
-    min-height: 48px;
-    padding: 0 20px;
-    border: 0;
-    border-radius: 8px;
-    background: #16508f;
-    color: #fff;
-    cursor: pointer;
-}
-
-.save:disabled {
-    background: #93a3b5;
-    cursor: not-allowed;
+    @include fields.button-primary;
 }
 
 .message {
     @include fields.message;
     // The scroll that brings an answer into view lands it on the nearest edge, which put it flush
     // against the last pixel row of the viewport with the card's own border below the fold.
-    scroll-margin-block: 24px;
+    scroll-margin-block: tokens.$sp-6;
 }
 
 // A save that did not happen must not read like one that did. Success, conflict and failure were
 // the same colour at the same size, distinguished only by their words.
 .saved {
-    color: #14202e;
+    @include fields.message-success;
 }
 
 .unsaved {
-    color: #8a4b00;
+    @include fields.message-warning;
 }
 
 .warning {
     @include fields.message;
-    color: #8a4b00;
+    @include fields.message-warning;
 }
 
 @media (min-width: tokens.$breakpoint-md) {
     .variants {
         flex-direction: row;
-        gap: 16px;
+        gap: tokens.$sp-4;
     }
 
     .variant {

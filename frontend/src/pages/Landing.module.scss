@@ -1,16 +1,25 @@
 @use '~/styles/tokens' as tokens;
 
 // The page gutter. It used to come from the UA's 8px body margin by accident; the global reset
-// removed that, and a heading flush against the glass is what was left. 16px at every width, per
-// the responsive contract. S5 replaces this file with the real landing screen.
+// removed that, and a heading flush against the glass is what was left. The gutters and the
+// content cap are tokens; S5 replaces this file with the real landing screen.
 .page {
-    gap: 16px;
-    padding: 16px;
+    gap: tokens.$sp-4;
+    padding: tokens.$gutter-sm;
     min-height: 100dvh;
+    max-width: tokens.$content-max;
+    margin: 0 auto;
+    box-sizing: border-box;
 }
 
 @media (min-width: tokens.$breakpoint-md) {
     .page {
-        padding: 32px 24px;
+        padding: tokens.$gutter-md;
+    }
+}
+
+@media (min-width: tokens.$breakpoint-lg) {
+    .page {
+        padding: tokens.$gutter-lg;
     }
 }

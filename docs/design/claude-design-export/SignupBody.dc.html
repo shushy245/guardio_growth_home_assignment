@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>@keyframes bs-signup-spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}</style>
+</helmet>
+<div style="{{ frameStyle }}">
+  <div style="{{ innerStyle }}">
+    <div style="width:100%;max-width:340px;">
+      <h1 style="font-size:28px;font-weight:700;margin:0 0 8px;">Choose your plan</h1>
+      <p style="font-size:16px;color:oklch(45% 0.015 240);margin:0 0 24px;">This is a demo — nothing is charged.</p>
+
+      <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:28px;">
+        <div style="{{ planIdleStyle }}">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;"><span style="font-size:18px;font-weight:600;">Basic</span><span style="width:20px;height:20px;border-radius:50%;border:2px solid oklch(87% 0.008 240);flex-shrink:0;"></span></div>
+          <div style="font-size:16px;color:oklch(45% 0.015 240);margin-bottom:10px;">$4.99/mo</div>
+          <div style="font-size:16px;line-height:1.5;">One device protected<br>Breach monitoring</div>
+        </div>
+        <div style="{{ planSelectedStyle }}">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;"><span style="font-size:18px;font-weight:600;">Family</span><span style="width:20px;height:20px;border-radius:50%;border:6px solid oklch(32% 0.13 200);flex-shrink:0;"></span></div>
+          <div style="font-size:16px;color:oklch(32% 0.13 200);font-weight:600;margin-bottom:10px;">$9.99/mo</div>
+          <div style="font-size:16px;line-height:1.5;">Up to 5 devices<br>Family breach alerts</div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:20px;">
+        <div>
+          <label style="display:block;font-size:16px;font-weight:600;margin-bottom:6px;">Email</label>
+          <div style="{{ emailFieldStyle }}"></div>
+          <sc-if value="{{ showEmailError }}" hint-placeholder-val="{{ false }}">
+            <div style="font-size:16px;color:oklch(45% 0.19 25);margin-top:6px;">Enter a valid email address</div>
+          </sc-if>
+        </div>
+
+        <div>
+          <label style="display:block;font-size:16px;font-weight:600;margin-bottom:6px;">Password</label>
+          <div style="{{ passwordFieldStyle }}">
+            <sc-if value="{{ showChecking }}" hint-placeholder-val="{{ false }}">
+              <span style="width:14px;height:14px;border-radius:50%;border:2px solid oklch(87% 0.008 240);border-top-color:oklch(45% 0.015 240);display:inline-block;animation:bs-signup-spin 0.8s linear infinite;"></span>
+              <span style="font-size:16px;color:oklch(45% 0.015 240);">Checking against known leaks…</span>
+            </sc-if>
+          </div>
+          <sc-if value="{{ showLeaked }}" hint-placeholder-val="{{ false }}">
+            <div style="font-size:16px;color:oklch(32% 0.08 85);background:oklch(93% 0.05 85);padding:10px 14px;border-radius:10px;margin-top:8px;line-height:1.5;">This password appeared in 3,120,000 leaks. You can still continue, but change it where you use it.</div>
+          </sc-if>
+          <sc-if value="{{ showUnchecked }}" hint-placeholder-val="{{ false }}">
+            <div style="font-size:16px;color:oklch(45% 0.015 240);margin-top:8px;">Couldn't check this password right now.</div>
+          </sc-if>
+          <sc-if value="{{ showPwError }}" hint-placeholder-val="{{ false }}">
+            <div style="font-size:16px;color:oklch(45% 0.19 25);margin-top:8px;">Password must be at least 8 characters</div>
+          </sc-if>
+        </div>
+
+        <sc-if value="{{ showServerError }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:12px 16px;border-radius:10px;background:oklch(94% 0.03 25);font-size:16px;color:oklch(45% 0.19 25);font-weight:600;">That email already has an account.</div>
+        </sc-if>
+
+        <button style="{{ submitButtonStyle }}">
+          <sc-if value="{{ showSubmitting }}" hint-placeholder-val="{{ false }}">
+            <span style="width:16px;height:16px;border-radius:50%;border:2px solid oklch(99% 0 0 / 0.4);border-top-color:oklch(99% 0 0);display:inline-block;animation:bs-signup-spin 0.8s linear infinite;margin-right:10px;"></span>
+          </sc-if>
+          {{ submitLabel }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:390,&quot;height&quot;:640},&quot;width&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:390,&quot;tsType&quot;:&quot;number&quot;,&quot;min&quot;:390,&quot;max&quot;:1280},&quot;state&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;default&quot;,&quot;tsType&quot;:&quot;'default'|'checking'|'leaked'|'unchecked'|'validation-error'|'submitting'|'server-error'&quot;,&quot;options&quot;:[&quot;default&quot;,&quot;checking&quot;,&quot;leaked&quot;,&quot;unchecked&quot;,&quot;validation-error&quot;,&quot;submitting&quot;,&quot;server-error&quot;]}}">
+class Component extends DCLogic {
+  renderVals() {
+    const width = this.props.width || 390;
+    const st = this.props.state || 'default';
+    const isMobile = width <= 480;
+    const frameStyle = { width: width + 'px', flexShrink: 0, fontFamily: "'Source Sans 3',system-ui,sans-serif", color: 'oklch(22% 0.02 240)', background: 'oklch(100% 0 0)', border: '1px solid oklch(87% 0.008 240)', borderRadius: '16px', overflow: 'hidden' };
+    const innerStyle = { padding: isMobile ? '32px 24px' : '80px 48px', display: 'flex', justifyContent: 'center' };
+
+    const planCardBase = { flex: '1', padding: '18px', borderRadius: '12px' };
+    const planIdleStyle = { ...planCardBase, border: '1.5px solid oklch(87% 0.008 240)' };
+    const planSelectedStyle = { ...planCardBase, border: '2px solid oklch(32% 0.13 200)', background: 'oklch(95% 0.025 200)' };
+
+    const fieldBase = { height: '48px', borderRadius: '12px', background: 'oklch(100% 0 0)', display: 'flex', alignItems: 'center', padding: '0 16px', gap: '10px' };
+    const showEmailError = st === 'validation-error';
+    const emailFieldStyle = { ...fieldBase, border: showEmailError ? '1px solid oklch(45% 0.19 25)' : '1px solid oklch(87% 0.008 240)' };
+
+    const showChecking = st === 'checking';
+    const showLeaked = st === 'leaked';
+    const showUnchecked = st === 'unchecked';
+    const showPwError = st === 'validation-error';
+    const pwBorderColor = showPwError ? 'oklch(45% 0.19 25)' : 'oklch(87% 0.008 240)';
+    const passwordFieldStyle = { ...fieldBase, border: '1px solid ' + pwBorderColor };
+
+    const showServerError = st === 'server-error';
+    const showSubmitting = st === 'submitting';
+    const submitLabel = showSubmitting ? 'Starting protection…' : 'Start protection';
+    const submitButtonStyle = { fontFamily: 'inherit', fontSize: '16px', fontWeight: 600, padding: '14px 24px', minHeight: '48px', borderRadius: '12px', background: 'oklch(32% 0.13 200)', color: 'oklch(99% 0 0)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' };
+
+    return {
+      frameStyle, innerStyle, planIdleStyle, planSelectedStyle, emailFieldStyle, passwordFieldStyle,
+      showEmailError, showChecking, showLeaked, showUnchecked, showPwError, showServerError, showSubmitting,
+      submitLabel, submitButtonStyle
+    };
+  }
+}
+</script>
+</body>
+</html>

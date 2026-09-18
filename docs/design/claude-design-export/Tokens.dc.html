@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&family=Source+Code+Pro:wght@500&display=swap" rel="stylesheet">
+<style>
+  body{margin:0;background:oklch(98% 0.004 240);}
+  a{color:oklch(40% 0.13 200);}
+  a:hover{color:oklch(32% 0.13 200);}
+</style>
+</helmet>
+<div style="font-family:'Source Sans 3',system-ui,sans-serif;max-width:1120px;margin:0 auto;padding:64px 32px 96px;color:oklch(22% 0.02 240);">
+
+  <div style="margin-bottom:56px;">
+    <div style="font-size:16px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:oklch(40% 0.13 200);margin-bottom:8px;">Breach Scan — Design System</div>
+    <h1 style="font-size:42px;line-height:1.15;font-weight:700;margin:0 0 12px;">Tokens</h1>
+    <p style="font-size:18px;line-height:1.5;color:oklch(45% 0.015 240);max-width:65ch;margin:0;">Flat list of named values. Copy directly into SCSS variables. Tone tokens use the same name in the calm and urgent sets so a <code style="font-family:'Source Code Pro',monospace;background:oklch(96% 0.006 240);padding:2px 6px;border-radius:4px;font-size:16px;">toneClassMap</code> can pick one without branching.</p>
+  </div>
+
+  <!-- COLOR -->
+  <section style="margin-bottom:56px;">
+    <h2 style="font-size:24px;font-weight:700;margin:0 0 20px;border-bottom:1px solid oklch(87% 0.008 240);padding-bottom:12px;">Color — core</h2>
+    <div style="display:flex;flex-direction:column;gap:0;">
+      <!-- rows generated below -->
+      <div style="display:flex;align-items:center;gap:16px;padding:10px 0;border-bottom:1px solid oklch(93% 0.005 240);"><div style="width:48px;height:48px;border-radius:8px;background:oklch(98% 0.004 240);border:1px solid oklch(87% 0.008 240);flex-shrink:0;"></div><span style="width:220px;font-family:'Source Code Pro',monospace;font-size:16px;">$color-bg</span><span style="font-family:'Source Code Pro',monospace;font-size:16px;color:oklch(45% 0.015 240);">oklch(98% 0.004 240)</span></div>
+      <div style="display:flex;align-items:center;gap:16px;padding:10px 0;border-bottom:1px solid oklch(93% 0.005 240);"><div style="width:48px;height:48px;border-radius:8px;background:oklch(100% 0 0);border:1px solid oklch(87% 0.008 240);flex-shrink:0;"></div><span style="width:220px;font-family:'Source Code Pro',monospace;font-size:16px;">$color-surface</span><span style="font-family:'Source Code Pro',monospace;font-size:16px;color:oklch(45% 0.015 240);">oklch(100% 0 0)</span></div>
+      <div style="display:flex;align-items:center;gap:16px;padding:10px 0;border-bottom:1px solid oklch(93% 0.005 240);"><div style="width:48px;height:48px;border-radius:8px;background:oklch(96% 0.006 240);border:1px solid oklch(87% 0.008 240);flex-shrink:0;"></div><span style="width:220px;font-family:'Source Code Pro',monospace;font-size:16px;">$color-surface-sunken</span><span style="font-family:'Source Code Pro',monospace;font-size:16px;color:oklch(45% 0.015 240);">oklch(96% 0.006 240)</span></div>
+      <div style="display:flex;align-items:center;gap:16px;padding:10px 0;border-bottom:1px solid oklch(93% 0.005 240);"><div style="width:48px;height:48px;border-radius:8px;background:oklch(22% 0.02 240);flex-shrink:0;"></div><span style="width:220px;font-family:'Source Code Pro',monospace;font-size:16px;">$color-text-primary</span><span style="font-family:'Source Code Pro',monospace;font-size:16px;color:oklch(45% 0.015 240);">oklch(22% 0.02 240)</span></div>
+      <div style="display:flex;align-items:center;gap:16px;padding:10px 0;border-bottom:1px solid oklch(93% 0.005 240);"><div style="width:48px;height:48px;border-radius:8px;background:oklch(45% 0.015 240);flex-shrink:0;"></div><span style="width:220px;font-family:'Source Code Pro',monospace;font-size:16px;">$color-text-secondary</span><span style="font-family:'Source Code Pro',monospace;font-size:16px;color:oklch(45% 0.015 240);">oklch(45% 0.015 240)</span></div>
+      <div style="display:flex;align-items:center;gap:16px;padding:10px 0;border-bottom:1px solid oklch(93% 0.005 240);"><div style="width:48px;height:48px;border-radius:8px;background:oklch(87% 0.008 240);flex-shrink:0;"></div><span style="width:220px;font-family:'Source Code Pro',monospace;font-size:16px;">$color-border</span><span style="font-family:'Source Code Pro',monospace;font-size:16px;color:oklch(45% 0.015 240);">oklch(87% 0.008 240)</span></div>
+      <div style="display:flex;align-items:center;gap:16px;padding:10px 0;border-bottom:1px solid oklch(93% 0.005 240);"><div style="width:48px;height:48px;border-radius:8px;background:oklch(38% 0.09 235);flex-shrink:0;"></div><span style="width:220px;font-family:'Source Code Pro',monospace;font-size:16px;">$color-brand</span><span style="font-family:'Source Code Pro',monospace;font-size:16px;color:oklch(45% 0.015 240);">oklch(38% 0.09 235) — wordmark</span></div>
+      <div style="display:flex;align-items:center;gap:16px;padding:10px 0;"><div style="width:48px;height:48px;border-radius:8px;background:oklch(55% 0.16 235);flex-shrink:0;"></div><span style="width:220px;font-family:'Source Code Pro',monospace;font-size:16px;">$color-focus-ring</span><span style="font-family:'Source Code Pro',monospace;font-size:16px;color:oklch(45% 0.015 240);">oklch(55% 0.16 235)</span></div>
+    </div>
+  </section>
+
+  <section style="margin-bottom:56px;">
+    <h2 style="font-size:24px;font-weight:700;margin:0 0 8px;border-bottom:1px solid oklch(87% 0.008 240);padding-bottom:12px;">Color — tone sets</h2>
+    <p style="font-size:16px;color:oklch(45% 0.015 240);margin:12px 0 20px;">Calm and urgent share every token name; only the value differs.</p>
+    <div style="display:flex;gap:32px;flex-wrap:wrap;">
+      <div style="flex:1;min-width:320px;">
+        <div style="font-size:16px;font-weight:700;color:oklch(40% 0.13 200);margin-bottom:12px;">tone-calm-*</div>
+        <div style="display:flex;align-items:center;gap:12px;padding:8px 0;"><div style="width:40px;height:40px;border-radius:8px;background:oklch(40% 0.13 200);flex-shrink:0;"></div><span style="font-family:'Source Code Pro',monospace;font-size:16px;">$tone-accent · oklch(40% 0.13 200)</span></div>
+        <div style="display:flex;align-items:center;gap:12px;padding:8px 0;"><div style="width:40px;height:40px;border-radius:8px;background:oklch(32% 0.13 200);flex-shrink:0;"></div><span style="font-family:'Source Code Pro',monospace;font-size:16px;">$tone-accent-strong · oklch(32% 0.13 200)</span></div>
+        <div style="display:flex;align-items:center;gap:12px;padding:8px 0;"><div style="width:40px;height:40px;border-radius:8px;background:oklch(95% 0.025 200);border:1px solid oklch(87% 0.008 240);flex-shrink:0;"></div><span style="font-family:'Source Code Pro',monospace;font-size:16px;">$tone-tint · oklch(95% 0.025 200)</span></div>
+        <div style="display:flex;align-items:center;gap:12px;padding:8px 0;"><div style="width:40px;height:40px;border-radius:8px;background:oklch(99% 0 0);border:1px solid oklch(87% 0.008 240);flex-shrink:0;"></div><span style="font-family:'Source Code Pro',monospace;font-size:16px;">$tone-on-accent · oklch(99% 0 0)</span></div>
+      </div>
+      <div style="flex:1;min-width:320px;">
+        <div style="font-size:16px;font-weight:700;color:oklch(42% 0.15 35);margin-bottom:12px;">tone-urgent-*</div>
+        <div style="display:flex;align-items:center;gap:12px;padding:8px 0;"><div style="width:40px;height:40px;border-radius:8px;background:oklch(42% 0.15 35);flex-shrink:0;"></div><span style="font-family:'Source Code Pro',monospace;font-size:16px;">$tone-accent · oklch(42% 0.15 35)</span></div>
+        <div style="display:flex;align-items:center;gap:12px;padding:8px 0;"><div style="width:40px;height:40px;border-radius:8px;background:oklch(34% 0.15 35);flex-shrink:0;"></div><span style="font-family:'Source Code Pro',monospace;font-size:16px;">$tone-accent-strong · oklch(34% 0.15 35)</span></div>
+        <div style="display:flex;align-items:center;gap:12px;padding:8px 0;"><div style="width:40px;height:40px;border-radius:8px;background:oklch(95% 0.035 45);border:1px solid oklch(87% 0.008 240);flex-shrink:0;"></div><span style="font-family:'Source Code Pro',monospace;font-size:16px;">$tone-tint · oklch(95% 0.035 45)</span></div>
+        <div style="display:flex;align-items:center;gap:12px;padding:8px 0;"><div style="width:40px;height:40px;border-radius:8px;background:oklch(99% 0 0);border:1px solid oklch(87% 0.008 240);flex-shrink:0;"></div><span style="font-family:'Source Code Pro',monospace;font-size:16px;">$tone-on-accent · oklch(99% 0 0)</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section style="margin-bottom:56px;">
+    <h2 style="font-size:24px;font-weight:700;margin:0 0 20px;border-bottom:1px solid oklch(87% 0.008 240);padding-bottom:12px;">Color — semantic &amp; disabled</h2>
+    <div style="display:flex;flex-wrap:wrap;gap:24px;">
+      <div style="display:flex;align-items:center;gap:12px;"><div style="width:40px;height:40px;border-radius:8px;background:oklch(38% 0.12 150);"></div><span style="font-family:'Source Code Pro',monospace;font-size:16px;">$color-success · oklch(38% 0.12 150)</span></div>
+      <div style="display:flex;align-items:center;gap:12px;"><div style="width:40px;height:40px;border-radius:8px;background:oklch(94% 0.03 150);border:1px solid oklch(87% 0.008 240);"></div><span style="font-family:'Source Code Pro',monospace;font-size:16px;">$color-success-tint · oklch(94% 0.03 150)</span></div>
+      <div style="display:flex;align-items:center;gap:12px;"><div style="width:40px;height:40px;border-radius:8px;background:oklch(32% 0.08 85);"></div><span style="font-family:'Source Code Pro',monospace;font-size:16px;">$color-warning · oklch(32% 0.08 85)</span></div>
+      <div style="display:flex;align-items:center;gap:12px;"><div style="width:40px;height:40px;border-radius:8px;background:oklch(93% 0.05 85);border:1px solid oklch(87% 0.008 240);"></div><span style="font-family:'Source Code Pro',monospace;font-size:16px;">$color-warning-tint · oklch(93% 0.05 85)</span></div>
+      <div style="display:flex;align-items:center;gap:12px;"><div style="width:40px;height:40px;border-radius:8px;background:oklch(45% 0.19 25);"></div><span style="font-family:'Source Code Pro',monospace;font-size:16px;">$color-danger · oklch(45% 0.19 25)</span></div>
+      <div style="display:flex;align-items:center;gap:12px;"><div style="width:40px;height:40px;border-radius:8px;background:oklch(94% 0.03 25);border:1px solid oklch(87% 0.008 240);"></div><span style="font-family:'Source Code Pro',monospace;font-size:16px;">$color-danger-tint · oklch(94% 0.03 25)</span></div>
+      <div style="display:flex;align-items:center;gap:12px;"><div style="width:40px;height:40px;border-radius:8px;background:oklch(91% 0.006 240);border:1px solid oklch(87% 0.008 240);"></div><span style="font-family:'Source Code Pro',monospace;font-size:16px;">$color-disabled-fill · oklch(91% 0.006 240)</span></div>
+      <div style="display:flex;align-items:center;gap:12px;"><div style="width:40px;height:40px;border-radius:8px;background:oklch(38% 0.01 240);"></div><span style="font-family:'Source Code Pro',monospace;font-size:16px;">$color-disabled-text · oklch(38% 0.01 240) — 4.5:1+ on disabled-fill</span></div>
+    </div>
+  </section>
+
+  <!-- TYPE -->
+  <section style="margin-bottom:56px;">
+    <h2 style="font-size:24px;font-weight:700;margin:0 0 20px;border-bottom:1px solid oklch(87% 0.008 240);padding-bottom:12px;">Type scale</h2>
+    <div style="font-size:16px;color:oklch(45% 0.015 240);margin-bottom:20px;">family: <code style="font-family:'Source Code Pro',monospace;background:oklch(96% 0.006 240);padding:2px 6px;border-radius:4px;">"Source Sans 3", -apple-system, "Segoe UI", sans-serif</code></div>
+    <div style="display:flex;flex-direction:column;gap:16px;">
+      <div style="display:flex;align-items:baseline;gap:24px;"><span style="width:220px;flex-shrink:0;font-size:16px;font-family:'Source Code Pro',monospace;color:oklch(45% 0.015 240);">$text-100 · 16px</span><span style="font-size:16px;">Body, labels, captions, helper text — the floor.</span></div>
+      <div style="display:flex;align-items:baseline;gap:24px;"><span style="width:220px;flex-shrink:0;font-size:16px;font-family:'Source Code Pro',monospace;color:oklch(45% 0.015 240);">$text-200 · 18px</span><span style="font-size:18px;">Body large, running paragraph text.</span></div>
+      <div style="display:flex;align-items:baseline;gap:24px;"><span style="width:220px;flex-shrink:0;font-size:16px;font-family:'Source Code Pro',monospace;color:oklch(45% 0.015 240);">$text-300 · 20px</span><span style="font-size:20px;">Subhead, tile value support.</span></div>
+      <div style="display:flex;align-items:baseline;gap:24px;"><span style="width:220px;flex-shrink:0;font-size:16px;font-family:'Source Code Pro',monospace;color:oklch(45% 0.015 240);">$text-400 · 24px</span><span style="font-size:24px;font-weight:600;">H4, tile numbers.</span></div>
+      <div style="display:flex;align-items:baseline;gap:24px;"><span style="width:220px;flex-shrink:0;font-size:16px;font-family:'Source Code Pro',monospace;color:oklch(45% 0.015 240);">$text-500 · 28px</span><span style="font-size:28px;font-weight:600;">H3, section titles.</span></div>
+      <div style="display:flex;align-items:baseline;gap:24px;"><span style="width:220px;flex-shrink:0;font-size:16px;font-family:'Source Code Pro',monospace;color:oklch(45% 0.015 240);">$text-600 · 34px</span><span style="font-size:34px;font-weight:700;">H2 / H1 mobile.</span></div>
+      <div style="display:flex;align-items:baseline;gap:24px;"><span style="width:220px;flex-shrink:0;font-size:16px;font-family:'Source Code Pro',monospace;color:oklch(45% 0.015 240);">$text-700 · 42px</span><span style="font-size:42px;font-weight:700;">H1 desktop, hero headline.</span></div>
+    </div>
+    <div style="display:flex;gap:48px;margin-top:28px;flex-wrap:wrap;">
+      <div style="font-size:16px;"><strong>weights</strong><br><span style="color:oklch(45% 0.015 240);">$weight-regular: 400 · $weight-medium: 500 · $weight-semibold: 600 · $weight-bold: 700</span></div>
+      <div style="font-size:16px;"><strong>line-height</strong><br><span style="color:oklch(45% 0.015 240);">$leading-tight: 1.15 (headlines) · $leading-snug: 1.3 (ui/labels) · $leading-relaxed: 1.5 (body)</span></div>
+    </div>
+  </section>
+
+  <!-- SPACING -->
+  <section style="margin-bottom:56px;">
+    <h2 style="font-size:24px;font-weight:700;margin:0 0 20px;border-bottom:1px solid oklch(87% 0.008 240);padding-bottom:12px;">Spacing scale</h2>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div style="display:flex;align-items:center;gap:16px;"><span style="width:120px;font-family:'Source Code Pro',monospace;font-size:16px;">$sp-1 · 4px</span><div style="height:16px;width:4px;background:oklch(50% 0.14 200);"></div></div>
+      <div style="display:flex;align-items:center;gap:16px;"><span style="width:120px;font-family:'Source Code Pro',monospace;font-size:16px;">$sp-2 · 8px</span><div style="height:16px;width:8px;background:oklch(50% 0.14 200);"></div></div>
+      <div style="display:flex;align-items:center;gap:16px;"><span style="width:120px;font-family:'Source Code Pro',monospace;font-size:16px;">$sp-3 · 12px</span><div style="height:16px;width:12px;background:oklch(50% 0.14 200);"></div></div>
+      <div style="display:flex;align-items:center;gap:16px;"><span style="width:120px;font-family:'Source Code Pro',monospace;font-size:16px;">$sp-4 · 16px</span><div style="height:16px;width:16px;background:oklch(50% 0.14 200);"></div></div>
+      <div style="display:flex;align-items:center;gap:16px;"><span style="width:120px;font-family:'Source Code Pro',monospace;font-size:16px;">$sp-5 · 20px</span><div style="height:16px;width:20px;background:oklch(50% 0.14 200);"></div></div>
+      <div style="display:flex;align-items:center;gap:16px;"><span style="width:120px;font-family:'Source Code Pro',monospace;font-size:16px;">$sp-6 · 24px</span><div style="height:16px;width:24px;background:oklch(50% 0.14 200);"></div></div>
+      <div style="display:flex;align-items:center;gap:16px;"><span style="width:120px;font-family:'Source Code Pro',monospace;font-size:16px;">$sp-7 · 32px</span><div style="height:16px;width:32px;background:oklch(50% 0.14 200);"></div></div>
+      <div style="display:flex;align-items:center;gap:16px;"><span style="width:120px;font-family:'Source Code Pro',monospace;font-size:16px;">$sp-8 · 40px</span><div style="height:16px;width:40px;background:oklch(50% 0.14 200);"></div></div>
+      <div style="display:flex;align-items:center;gap:16px;"><span style="width:120px;font-family:'Source Code Pro',monospace;font-size:16px;">$sp-9 · 48px</span><div style="height:16px;width:48px;background:oklch(50% 0.14 200);"></div></div>
+      <div style="display:flex;align-items:center;gap:16px;"><span style="width:120px;font-family:'Source Code Pro',monospace;font-size:16px;">$sp-10 · 64px</span><div style="height:16px;width:64px;background:oklch(50% 0.14 200);"></div></div>
+      <div style="display:flex;align-items:center;gap:16px;"><span style="width:120px;font-family:'Source Code Pro',monospace;font-size:16px;">$sp-11 · 80px</span><div style="height:16px;width:80px;background:oklch(50% 0.14 200);"></div></div>
+    </div>
+  </section>
+
+  <!-- RADII / SHADOW -->
+  <section style="margin-bottom:56px;display:flex;gap:56px;flex-wrap:wrap;">
+    <div style="flex:1;min-width:280px;">
+      <h2 style="font-size:24px;font-weight:700;margin:0 0 20px;border-bottom:1px solid oklch(87% 0.008 240);padding-bottom:12px;">Radii</h2>
+      <div style="display:flex;gap:20px;align-items:flex-end;">
+        <div style="text-align:center;"><div style="width:56px;height:56px;background:oklch(50% 0.14 200);border-radius:8px;margin-bottom:8px;"></div><span style="font-size:16px;font-family:'Source Code Pro',monospace;">sm · 8</span></div>
+        <div style="text-align:center;"><div style="width:56px;height:56px;background:oklch(50% 0.14 200);border-radius:12px;margin-bottom:8px;"></div><span style="font-size:16px;font-family:'Source Code Pro',monospace;">md · 12</span></div>
+        <div style="text-align:center;"><div style="width:56px;height:56px;background:oklch(50% 0.14 200);border-radius:16px;margin-bottom:8px;"></div><span style="font-size:16px;font-family:'Source Code Pro',monospace;">lg · 16</span></div>
+        <div style="text-align:center;"><div style="width:56px;height:56px;background:oklch(50% 0.14 200);border-radius:999px;margin-bottom:8px;"></div><span style="font-size:16px;font-family:'Source Code Pro',monospace;">pill · 999</span></div>
+      </div>
+    </div>
+    <div style="flex:1;min-width:280px;">
+      <h2 style="font-size:24px;font-weight:700;margin:0 0 20px;border-bottom:1px solid oklch(87% 0.008 240);padding-bottom:12px;">Elevation</h2>
+      <div style="display:flex;gap:24px;">
+        <div style="text-align:center;"><div style="width:100px;height:56px;background:oklch(100% 0 0);border-radius:12px;box-shadow:0 1px 2px oklch(0% 0 0 / 0.06);margin-bottom:8px;"></div><span style="font-size:16px;font-family:'Source Code Pro',monospace;">shadow-sm</span></div>
+        <div style="text-align:center;"><div style="width:100px;height:56px;background:oklch(100% 0 0);border-radius:12px;box-shadow:0 8px 24px oklch(0% 0 0 / 0.10);margin-bottom:8px;"></div><span style="font-size:16px;font-family:'Source Code Pro',monospace;">shadow-md</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MEASURE / BREAKPOINTS -->
+  <section>
+    <h2 style="font-size:24px;font-weight:700;margin:0 0 20px;border-bottom:1px solid oklch(87% 0.008 240);padding-bottom:12px;">Layout constants</h2>
+    <div style="display:flex;flex-direction:column;gap:10px;font-size:16px;font-family:'Source Code Pro',monospace;">
+      <div>$prose-measure: 65ch <span style="font-family:'Source Sans 3',sans-serif;color:oklch(45% 0.015 240);">— max-width for any paragraph block, default-applied</span></div>
+      <div>$content-max: 1120px <span style="font-family:'Source Sans 3',sans-serif;color:oklch(45% 0.015 240);">— reading-width cap for lists/pages at 1280</span></div>
+      <div>$gutter-390: 16px · $gutter-768: 32px · $gutter-1280: 64px</div>
+      <div>$bp-base: 390 · $bp-md: 768 · $bp-lg: 1280</div>
+      <div>$focus-ring: 0 0 0 3px oklch(50% 0.14 200 / 0.35), inset color oklch(50% 0.14 200)</div>
+    </div>
+  </section>
+
+</div>
+
+</x-dc>
+</body>
+</html>

@@ -2,15 +2,45 @@
 //
 // It exists because a page that sets no font gets the browser's default serif: the landing route
 // rendered in Times while /admin rendered in system-ui, since the only font-family in the app
-// lived on the admin page's own `.page` class. D1's tokens replace these values; the file is
-// where they will land.
+// lived on the admin page's own `.page` class. The values are the D1 tokens.
+@use '~/styles/tokens' as tokens;
+
 :root {
     color-scheme: light;
 }
 
 body {
     margin: 0;
-    font-family: system-ui, sans-serif;
-    color: #14202e;
-    background: #fff;
+    font-family: tokens.$font-family;
+    font-size: tokens.$text-100;
+    line-height: tokens.$leading-relaxed;
+    color: tokens.$color-text-primary;
+    background: tokens.$color-bg;
+}
+
+h1,
+h2,
+h3,
+h4 {
+    line-height: tokens.$leading-tight;
+}
+
+// The measure is a default, not a per-page decision: any paragraph is capped at 65 characters,
+// which is what answers the S3 review's 96–101 character lines at 768 and 1280.
+p {
+    max-width: tokens.$prose-measure;
+}
+
+button,
+input,
+select,
+textarea {
+    font: inherit;
+}
+
+// One focus ring for every control. `outline` rather than `box-shadow` so it survives a rule
+// that sets its own shadow, and offset so it sits outside the control's border.
+:focus-visible {
+    outline: 3px solid tokens.$color-focus-ring;
+    outline-offset: 2px;
 }

@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&family=Source+Code+Pro:wght@500&display=swap" rel="stylesheet">
+<style>
+  body{margin:0;background:oklch(98% 0.004 240);}
+  a{color:oklch(40% 0.13 200);}
+  a:hover{color:oklch(32% 0.13 200);}
+  @keyframes bs-spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+  @media (prefers-reduced-motion: reduce){ .bs-spin{animation:none !important;} }
+</style>
+</helmet>
+<div style="font-family:'Source Sans 3',system-ui,sans-serif;max-width:1120px;margin:0 auto;padding:64px 32px 120px;color:oklch(22% 0.02 240);">
+
+  <div style="margin-bottom:56px;">
+    <div style="font-size:16px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:oklch(40% 0.13 200);margin-bottom:8px;">Breach Scan — Design System</div>
+    <h1 style="font-size:42px;line-height:1.15;font-weight:700;margin:0 0 12px;">Component inventory</h1>
+    <p style="font-size:18px;line-height:1.5;color:oklch(45% 0.015 240);max-width:65ch;margin:0;">Named for the React tree. Each shows the states it needs — no separate desktop variants, every component reflows by prop, not by existing as two components.</p>
+  </div>
+
+  <!-- BUTTON -->
+  <section style="margin-bottom:48px;padding-bottom:40px;border-bottom:1px solid oklch(90% 0.006 240);">
+    <div style="font-family:'Source Code Pro',monospace;font-size:18px;font-weight:600;margin-bottom:6px;">Button</div>
+    <div style="font-size:16px;color:oklch(45% 0.015 240);margin-bottom:20px;">variants: primary, secondary, ghost · states: default, loading, disabled</div>
+    <div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start;">
+      <div style="display:flex;flex-direction:column;gap:8px;align-items:center;">
+        <button style="font-family:inherit;font-size:16px;font-weight:600;padding:14px 24px;min-height:48px;border-radius:12px;background:oklch(32% 0.13 200);color:oklch(99% 0 0);border:none;">Protect me</button>
+        <span style="font-size:16px;color:oklch(45% 0.015 240);">primary · default</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;align-items:center;">
+        <button style="font-family:inherit;font-size:16px;font-weight:600;padding:14px 24px;min-height:48px;border-radius:12px;background:oklch(32% 0.13 200);color:oklch(99% 0 0);border:none;display:flex;align-items:center;gap:10px;"><span class="bs-spin" style="width:16px;height:16px;border-radius:50%;border:2px solid oklch(99% 0 0 / 0.4);border-top-color:oklch(99% 0 0);display:inline-block;animation:bs-spin 0.8s linear infinite;"></span>Protecting…</button>
+        <span style="font-size:16px;color:oklch(45% 0.015 240);">primary · loading</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;align-items:center;">
+        <button style="font-family:inherit;font-size:16px;font-weight:600;padding:14px 24px;min-height:48px;border-radius:12px;background:oklch(91% 0.006 240);color:oklch(38% 0.01 240);border:none;">Protect me</button>
+        <span style="font-size:16px;color:oklch(45% 0.015 240);">primary · disabled</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;align-items:center;">
+        <button style="font-family:inherit;font-size:16px;font-weight:600;padding:13px 23px;min-height:48px;border-radius:12px;background:oklch(100% 0 0);color:oklch(32% 0.13 200);border:1.5px solid oklch(32% 0.13 200);">View results</button>
+        <span style="font-size:16px;color:oklch(45% 0.015 240);">secondary · default</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;align-items:center;">
+        <button style="font-family:inherit;font-size:16px;font-weight:600;padding:14px 24px;min-height:48px;border-radius:12px;background:transparent;color:oklch(32% 0.13 200);border:none;">Skip for now</button>
+        <span style="font-size:16px;color:oklch(45% 0.015 240);">ghost · default</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- STICKY CTA BAR -->
+  <section style="margin-bottom:48px;padding-bottom:40px;border-bottom:1px solid oklch(90% 0.006 240);">
+    <div style="font-family:'Source Code Pro',monospace;font-size:18px;font-weight:600;margin-bottom:6px;">StickyCtaBar</div>
+    <div style="font-size:16px;color:oklch(45% 0.015 240);margin-bottom:20px;">390-only; becomes an inline Button in the header region at 768+, never a second CTA</div>
+    <div style="width:390px;background:oklch(100% 0 0);border:1px solid oklch(87% 0.008 240);border-radius:16px;padding:12px 16px;box-shadow:0 -8px 24px oklch(0% 0 0 / 0.06);">
+      <button style="width:100%;font-family:inherit;font-size:16px;font-weight:600;padding:14px 24px;min-height:48px;border-radius:12px;background:oklch(32% 0.13 200);color:oklch(99% 0 0);border:none;">Protect me</button>
+    </div>
+  </section>
+
+  <!-- SUMMARY TILE -->
+  <section style="margin-bottom:48px;padding-bottom:40px;border-bottom:1px solid oklch(90% 0.006 240);">
+    <div style="font-family:'Source Code Pro',monospace;font-size:18px;font-weight:600;margin-bottom:6px;">SummaryTile</div>
+    <div style="font-size:16px;color:oklch(45% 0.015 240);margin-bottom:20px;">states: loaded, skeleton · 2×2 at 390, one row of four at 768+</div>
+    <div style="display:flex;flex-wrap:wrap;gap:16px;">
+      <div style="width:160px;background:oklch(100% 0 0);border:1px solid oklch(87% 0.008 240);border-radius:12px;padding:16px;">
+        <div style="font-size:16px;color:oklch(45% 0.015 240);margin-bottom:8px;">Accounts exposed</div>
+        <div style="font-size:28px;font-weight:700;">17.7B</div>
+      </div>
+      <div style="width:160px;background:oklch(100% 0 0);border:1px solid oklch(87% 0.008 240);border-radius:12px;padding:16px;">
+        <div style="width:100px;height:16px;background:oklch(93% 0.006 240);border-radius:4px;margin-bottom:12px;"></div>
+        <div style="width:60px;height:24px;background:oklch(93% 0.006 240);border-radius:4px;"></div>
+      </div>
+      <span style="align-self:center;font-size:16px;color:oklch(45% 0.015 240);">loaded · skeleton</span>
+    </div>
+  </section>
+
+  <!-- SEARCH FIELD -->
+  <section style="margin-bottom:48px;padding-bottom:40px;border-bottom:1px solid oklch(90% 0.006 240);">
+    <div style="font-family:'Source Code Pro',monospace;font-size:18px;font-weight:600;margin-bottom:6px;">SearchField</div>
+    <div style="font-size:16px;color:oklch(45% 0.015 240);margin-bottom:20px;">states: idle, focus</div>
+    <div style="display:flex;gap:20px;flex-wrap:wrap;">
+      <div style="display:flex;align-items:center;gap:10px;width:280px;height:48px;padding:0 16px;border-radius:12px;border:1px solid oklch(87% 0.008 240);background:oklch(100% 0 0);">
+        <span style="width:16px;height:16px;border:2px solid oklch(45% 0.015 240);border-radius:50%;position:relative;flex-shrink:0;"><span style="position:absolute;width:7px;height:2px;background:oklch(45% 0.015 240);bottom:-3px;right:-5px;transform:rotate(45deg);"></span></span>
+        <span style="font-size:16px;color:oklch(45% 0.015 240);">Search by name or domain</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;width:280px;height:48px;padding:0 16px;border-radius:12px;border:1.5px solid oklch(32% 0.13 200);box-shadow:0 0 0 3px oklch(50% 0.14 200 / 0.18);background:oklch(100% 0 0);">
+        <span style="width:16px;height:16px;border:2px solid oklch(32% 0.13 200);border-radius:50%;position:relative;flex-shrink:0;"><span style="position:absolute;width:7px;height:2px;background:oklch(32% 0.13 200);bottom:-3px;right:-5px;transform:rotate(45deg);"></span></span>
+        <span style="font-size:16px;color:oklch(22% 0.02 240);">mckesson</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- FILTER CHIP -->
+  <section style="margin-bottom:48px;padding-bottom:40px;border-bottom:1px solid oklch(90% 0.006 240);">
+    <div style="font-family:'Source Code Pro',monospace;font-size:18px;font-weight:600;margin-bottom:6px;">FilterChip</div>
+    <div style="font-size:16px;color:oklch(45% 0.015 240);margin-bottom:20px;">states: idle, selected · single-select, tap selected chip to clear · min 44px tall</div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;">
+      <div style="height:44px;display:flex;align-items:center;padding:0 18px;border-radius:999px;border:1px solid oklch(87% 0.008 240);background:oklch(100% 0 0);font-size:16px;">Email addresses</div>
+      <div style="height:44px;display:flex;align-items:center;gap:8px;padding:0 18px;border-radius:999px;border:1px solid oklch(40% 0.13 200);background:oklch(95% 0.025 200);color:oklch(32% 0.13 200);font-size:16px;font-weight:600;">Passwords <span style="font-size:16px;">×</span></div>
+    </div>
+  </section>
+
+  <!-- TOGGLE FIELD -->
+  <section style="margin-bottom:48px;padding-bottom:40px;border-bottom:1px solid oklch(90% 0.006 240);">
+    <div style="font-family:'Source Code Pro',monospace;font-size:18px;font-weight:600;margin-bottom:6px;">ToggleField</div>
+    <div style="font-size:16px;color:oklch(45% 0.015 240);margin-bottom:20px;">states: off, on · 44×44 hit area around the switch</div>
+    <div style="display:flex;gap:32px;">
+      <div style="display:flex;align-items:center;gap:12px;height:44px;">
+        <span style="width:44px;height:26px;border-radius:999px;background:oklch(87% 0.008 240);position:relative;display:inline-block;"><span style="position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:oklch(100% 0 0);"></span></span>
+        <span style="font-size:16px;">Verified only</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;height:44px;">
+        <span style="width:44px;height:26px;border-radius:999px;background:oklch(32% 0.13 200);position:relative;display:inline-block;"><span style="position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;background:oklch(100% 0 0);"></span></span>
+        <span style="font-size:16px;font-weight:600;">Verified only</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- SEGMENTED CONTROL -->
+  <section style="margin-bottom:48px;padding-bottom:40px;border-bottom:1px solid oklch(90% 0.006 240);">
+    <div style="font-family:'Source Code Pro',monospace;font-size:18px;font-weight:600;margin-bottom:6px;">SegmentedControl</div>
+    <div style="font-size:16px;color:oklch(45% 0.015 240);margin-bottom:20px;">sort: Newest (default), Most accounts, Name</div>
+    <div style="display:inline-flex;padding:4px;border-radius:12px;background:oklch(96% 0.006 240);gap:4px;">
+      <div style="padding:10px 16px;min-height:36px;display:flex;align-items:center;border-radius:8px;background:oklch(100% 0 0);box-shadow:0 1px 2px oklch(0% 0 0 / 0.08);font-size:16px;font-weight:600;">Newest</div>
+      <div style="padding:10px 16px;min-height:36px;display:flex;align-items:center;border-radius:8px;font-size:16px;color:oklch(45% 0.015 240);">Most accounts</div>
+      <div style="padding:10px 16px;min-height:36px;display:flex;align-items:center;border-radius:8px;font-size:16px;color:oklch(45% 0.015 240);">Name</div>
+    </div>
+  </section>
+
+  <!-- RESULTS LINE -->
+  <section style="margin-bottom:48px;padding-bottom:40px;border-bottom:1px solid oklch(90% 0.006 240);">
+    <div style="font-family:'Source Code Pro',monospace;font-size:18px;font-weight:600;margin-bottom:6px;">ResultsLine</div>
+    <div style="font-size:16px;color:oklch(45% 0.015 240);margin-bottom:20px;">"Clear filters" appears only when a filter is active</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;max-width:400px;">
+      <span style="font-size:16px;color:oklch(45% 0.015 240);">Showing 20 of 1,031</span>
+      <span style="font-size:16px;font-weight:600;color:oklch(32% 0.13 200);">Clear filters</span>
+    </div>
+  </section>
+
+  <!-- DATA CLASS BADGE + VERIFIED MARK -->
+  <section style="margin-bottom:48px;padding-bottom:40px;border-bottom:1px solid oklch(90% 0.006 240);">
+    <div style="font-family:'Source Code Pro',monospace;font-size:18px;font-weight:600;margin-bottom:6px;">DataClassBadge / VerifiedMark</div>
+    <div style="font-size:16px;color:oklch(45% 0.015 240);margin-bottom:20px;">passwords badge is visually distinct from plain badges</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+      <span style="height:28px;display:flex;align-items:center;padding:0 12px;border-radius:999px;background:oklch(96% 0.006 240);font-size:16px;color:oklch(45% 0.015 240);">Email addresses</span>
+      <span style="height:28px;display:flex;align-items:center;padding:0 12px;border-radius:999px;background:oklch(94% 0.03 25);color:oklch(45% 0.19 25);font-weight:600;font-size:16px;">Passwords</span>
+      <span style="display:flex;align-items:center;gap:6px;font-size:16px;font-weight:600;color:oklch(38% 0.12 150);"><span style="width:18px;height:18px;border-radius:50%;background:oklch(38% 0.12 150);display:inline-block;position:relative;"><span style="position:absolute;left:4px;top:8px;width:6px;height:2px;background:white;transform:rotate(45deg);"></span><span style="position:absolute;left:7px;top:6px;width:9px;height:2px;background:white;transform:rotate(-45deg);"></span></span>Verified</span>
+    </div>
+  </section>
+
+  <!-- BREACH ROW -->
+  <section style="margin-bottom:48px;padding-bottom:40px;border-bottom:1px solid oklch(90% 0.006 240);">
+    <div style="font-family:'Source Code Pro',monospace;font-size:18px;font-weight:600;margin-bottom:6px;">BreachRow</div>
+    <div style="font-size:16px;color:oklch(45% 0.015 240);margin-bottom:20px;">states: collapsed, expanded, skeleton, no-logo</div>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div style="display:flex;gap:16px;padding:16px;border:1px solid oklch(87% 0.008 240);border-radius:12px;background:oklch(100% 0 0);">
+        <div style="width:48px;height:48px;border-radius:8px;background:oklch(38% 0.09 235);flex-shrink:0;"></div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:18px;font-weight:600;margin-bottom:2px;">McKesson</div>
+          <div style="font-size:16px;color:oklch(45% 0.015 240);margin-bottom:8px;">mckesson.com · 2026 · 6.4M accounts</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <span style="height:28px;display:flex;align-items:center;padding:0 12px;border-radius:999px;background:oklch(96% 0.006 240);font-size:16px;color:oklch(45% 0.015 240);">Email addresses</span>
+            <span style="height:28px;display:flex;align-items:center;padding:0 12px;border-radius:999px;background:oklch(94% 0.03 25);color:oklch(45% 0.19 25);font-weight:600;font-size:16px;">Passwords</span>
+          </div>
+        </div>
+        <span style="font-size:16px;color:oklch(45% 0.015 240);align-self:center;">collapsed ▾</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px;padding:16px;border:1px solid oklch(87% 0.008 240);border-radius:12px;background:oklch(100% 0 0);">
+        <div style="display:flex;gap:16px;">
+          <div style="width:48px;height:48px;border-radius:8px;background:oklch(38% 0.09 235);flex-shrink:0;"></div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:18px;font-weight:600;margin-bottom:2px;">McKesson</div>
+            <div style="font-size:16px;color:oklch(45% 0.015 240);">mckesson.com · 2026 · 6.4M accounts</div>
+          </div>
+          <span style="font-size:16px;color:oklch(45% 0.015 240);align-self:center;">expanded ▴</span>
+        </div>
+        <p style="font-size:16px;line-height:1.5;color:oklch(45% 0.015 240);max-width:65ch;margin:0;">A 2026 breach of the healthcare distributor exposed customer email addresses, names and account passwords. Guardio recommends resetting any reused password immediately.</p>
+      </div>
+      <div style="display:flex;gap:16px;padding:16px;border:1px solid oklch(87% 0.008 240);border-radius:12px;background:oklch(100% 0 0);">
+        <div style="width:48px;height:48px;border-radius:8px;background:oklch(93% 0.006 240);flex-shrink:0;"></div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:8px;">
+          <div style="width:160px;height:16px;background:oklch(93% 0.006 240);border-radius:4px;"></div>
+          <div style="width:220px;height:14px;background:oklch(93% 0.006 240);border-radius:4px;"></div>
+        </div>
+      </div>
+      <div style="display:flex;gap:16px;padding:16px;border:1px solid oklch(87% 0.008 240);border-radius:12px;background:oklch(100% 0 0);">
+        <div style="width:48px;height:48px;border-radius:8px;background:oklch(96% 0.006 240);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:oklch(45% 0.015 240);flex-shrink:0;">?</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:18px;font-weight:600;margin-bottom:2px;">Unnamed source</div>
+          <div style="font-size:16px;color:oklch(45% 0.015 240);">domain unknown · 2024 · 412K accounts</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- LOAD MORE / EMPTY / ERROR -->
+  <section style="margin-bottom:48px;padding-bottom:40px;border-bottom:1px solid oklch(90% 0.006 240);">
+    <div style="font-family:'Source Code Pro',monospace;font-size:18px;font-weight:600;margin-bottom:6px;">LoadMoreButton / EmptyFilterState / ErrorState</div>
+    <div style="font-size:16px;color:oklch(45% 0.015 240);margin-bottom:20px;">empty (filters) and error are visually distinct — different icon shape and copy register</div>
+    <div style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start;">
+      <button style="font-family:inherit;font-size:16px;font-weight:600;padding:13px 23px;min-height:48px;border-radius:12px;background:oklch(100% 0 0);color:oklch(32% 0.13 200);border:1.5px solid oklch(32% 0.13 200);">Load more</button>
+      <div style="width:280px;text-align:center;padding:32px 20px;border:1px dashed oklch(87% 0.008 240);border-radius:12px;">
+        <div style="width:40px;height:40px;border-radius:50%;border:2px solid oklch(45% 0.015 240);margin:0 auto 12px;"></div>
+        <div style="font-size:16px;font-weight:600;margin-bottom:4px;">No breaches match your filters</div>
+        <div style="font-size:16px;color:oklch(45% 0.015 240);margin-bottom:16px;">Try a different search or clear your filters.</div>
+        <button style="font-family:inherit;font-size:16px;font-weight:600;padding:10px 18px;min-height:44px;border-radius:12px;background:oklch(100% 0 0);color:oklch(32% 0.13 200);border:1.5px solid oklch(32% 0.13 200);">Clear filters</button>
+      </div>
+      <div style="width:280px;text-align:center;padding:32px 20px;border:1px solid oklch(87% 0.008 240);border-radius:12px;background:oklch(96% 0.006 240);">
+        <div style="width:40px;height:40px;border-radius:8px;border:2px solid oklch(45% 0.19 25);margin:0 auto 12px;"></div>
+        <div style="font-size:16px;font-weight:600;margin-bottom:4px;">Couldn't load breaches</div>
+        <div style="font-size:16px;color:oklch(45% 0.015 240);margin-bottom:16px;">Something went wrong on our end.</div>
+        <button style="font-family:inherit;font-size:16px;font-weight:600;padding:10px 18px;min-height:44px;border-radius:12px;background:oklch(32% 0.13 200);color:oklch(99% 0 0);border:none;">Retry</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- PLAN CARD -->
+  <section style="margin-bottom:48px;padding-bottom:40px;border-bottom:1px solid oklch(90% 0.006 240);">
+    <div style="font-family:'Source Code Pro',monospace;font-size:18px;font-weight:600;margin-bottom:6px;">PlanCard</div>
+    <div style="font-size:16px;color:oklch(45% 0.015 240);margin-bottom:20px;">states: idle, selected · exactly two, single-select</div>
+    <div style="display:flex;gap:16px;flex-wrap:wrap;">
+      <div style="width:220px;padding:20px;border:1.5px solid oklch(87% 0.008 240);border-radius:12px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;"><span style="font-size:18px;font-weight:600;">Basic</span><span style="width:20px;height:20px;border-radius:50%;border:2px solid oklch(87% 0.008 240);"></span></div>
+        <div style="font-size:16px;color:oklch(45% 0.015 240);margin-bottom:12px;">$4.99/mo</div>
+        <div style="font-size:16px;line-height:1.5;">One device protected<br>Breach monitoring</div>
+      </div>
+      <div style="width:220px;padding:20px;border:2px solid oklch(32% 0.13 200);border-radius:12px;background:oklch(95% 0.025 200);">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;"><span style="font-size:18px;font-weight:600;">Family</span><span style="width:20px;height:20px;border-radius:50%;border:6px solid oklch(32% 0.13 200);"></span></div>
+        <div style="font-size:16px;color:oklch(32% 0.13 200);font-weight:600;margin-bottom:12px;">$9.99/mo</div>
+        <div style="font-size:16px;line-height:1.5;">Up to 5 devices<br>Family breach alerts</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TEXT FIELD / PASSWORD FIELD -->
+  <section style="margin-bottom:48px;padding-bottom:40px;border-bottom:1px solid oklch(90% 0.006 240);">
+    <div style="font-family:'Source Code Pro',monospace;font-size:18px;font-weight:600;margin-bottom:6px;">TextField / PasswordField</div>
+    <div style="font-size:16px;color:oklch(45% 0.015 240);margin-bottom:20px;">TextField: idle, focus, error · PasswordField adds checking, leaked, unchecked</div>
+    <div style="display:flex;flex-wrap:wrap;gap:20px;">
+      <div style="width:260px;">
+        <div style="font-size:16px;font-weight:600;margin-bottom:6px;">Email</div>
+        <div style="height:48px;border-radius:12px;border:1px solid oklch(87% 0.008 240);background:oklch(100% 0 0);"></div>
+      </div>
+      <div style="width:260px;">
+        <div style="font-size:16px;font-weight:600;margin-bottom:6px;">Email</div>
+        <div style="height:48px;border-radius:12px;border:1px solid oklch(45% 0.19 25);background:oklch(100% 0 0);"></div>
+        <div style="font-size:16px;color:oklch(45% 0.19 25);margin-top:6px;">Enter a valid email address</div>
+      </div>
+      <div style="width:260px;">
+        <div style="font-size:16px;font-weight:600;margin-bottom:6px;">Password</div>
+        <div style="height:48px;border-radius:12px;border:1px solid oklch(87% 0.008 240);background:oklch(100% 0 0);display:flex;align-items:center;padding:0 16px;gap:10px;"><span class="bs-spin" style="width:14px;height:14px;border-radius:50%;border:2px solid oklch(87% 0.008 240);border-top-color:oklch(45% 0.015 240);animation:bs-spin 0.8s linear infinite;"></span><span style="font-size:16px;color:oklch(45% 0.015 240);">Checking…</span></div>
+      </div>
+      <div style="width:260px;">
+        <div style="font-size:16px;font-weight:600;margin-bottom:6px;">Password</div>
+        <div style="height:48px;border-radius:12px;border:1px solid oklch(87% 0.008 240);background:oklch(100% 0 0);margin-bottom:6px;"></div>
+        <div style="font-size:16px;color:oklch(32% 0.08 85);background:oklch(93% 0.05 85);padding:8px 12px;border-radius:8px;">Appeared in 3,120,000 leaks. You can still continue.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STATUS MESSAGE -->
+  <section style="margin-bottom:48px;padding-bottom:40px;border-bottom:1px solid oklch(90% 0.006 240);">
+    <div style="font-family:'Source Code Pro',monospace;font-size:18px;font-weight:600;margin-bottom:6px;">StatusMessage</div>
+    <div style="font-size:16px;color:oklch(45% 0.015 240);margin-bottom:20px;">states: info, success, warning, error</div>
+    <div style="display:flex;flex-direction:column;gap:10px;max-width:400px;">
+      <div style="padding:12px 16px;border-radius:10px;background:oklch(96% 0.006 240);font-size:16px;color:oklch(22% 0.02 240);">This is a demo — nothing is charged.</div>
+      <div style="padding:12px 16px;border-radius:10px;background:oklch(94% 0.03 150);font-size:16px;color:oklch(38% 0.12 150);font-weight:600;">You're protected.</div>
+      <div style="padding:12px 16px;border-radius:10px;background:oklch(93% 0.05 85);font-size:16px;color:oklch(32% 0.08 85);">Couldn't check this password right now.</div>
+      <div style="padding:12px 16px;border-radius:10px;background:oklch(94% 0.03 25);font-size:16px;color:oklch(45% 0.19 25);font-weight:600;">That email already has an account.</div>
+    </div>
+  </section>
+
+  <!-- SKELETON / PROGRESS -->
+  <section style="margin-bottom:48px;padding-bottom:40px;border-bottom:1px solid oklch(90% 0.006 240);">
+    <div style="font-family:'Source Code Pro',monospace;font-size:18px;font-weight:600;margin-bottom:6px;">Skeleton / ProgressIndicator</div>
+    <div style="font-size:16px;color:oklch(45% 0.015 240);margin-bottom:20px;">shimmer and count-up both have a static reduced-motion equivalent</div>
+    <div style="display:flex;flex-direction:column;gap:20px;max-width:320px;">
+      <div style="display:flex;flex-direction:column;gap:8px;"><div style="height:16px;width:80%;background:oklch(93% 0.006 240);border-radius:4px;"></div><div style="height:16px;width:55%;background:oklch(93% 0.006 240);border-radius:4px;"></div></div>
+      <div><div style="height:8px;border-radius:999px;background:oklch(93% 0.006 240);overflow:hidden;"><div style="height:100%;width:62%;background:oklch(32% 0.13 200);border-radius:999px;"></div></div><div style="font-size:16px;color:oklch(45% 0.015 240);margin-top:8px;">Checking 1,031 known breaches…</div></div>
+    </div>
+  </section>
+
+  <!-- HYPOTHESIS / FUNNEL / LIFT / RECOMMENDATION -->
+  <section>
+    <div style="font-family:'Source Code Pro',monospace;font-size:18px;font-weight:600;margin-bottom:6px;">HypothesisCard / FunnelChart / LiftCard / RecommendationBanner</div>
+    <div style="font-size:16px;color:oklch(45% 0.015 240);margin-bottom:20px;">dashboard-only, same tokens</div>
+    <div style="display:flex;flex-direction:column;gap:16px;">
+      <div style="padding:20px;border:1px solid oklch(87% 0.008 240);border-radius:12px;background:oklch(100% 0 0);">
+        <div style="font-size:16px;font-weight:600;color:oklch(40% 0.13 200);margin-bottom:8px;">Hypothesis</div>
+        <p style="font-size:16px;line-height:1.5;max-width:65ch;margin:0;">An urgent tone on the result screen increases CTA click-through without hurting sign-up completion.</p>
+      </div>
+      <div style="padding:20px;border:1px solid oklch(87% 0.008 240);border-radius:12px;background:oklch(100% 0 0);">
+        <div style="font-size:16px;font-weight:600;margin-bottom:16px;">Funnel</div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div style="display:flex;align-items:center;gap:12px;"><span style="width:110px;font-size:16px;color:oklch(45% 0.015 240);flex-shrink:0;">Landing</span><div style="flex:1;height:20px;border-radius:4px;background:oklch(40% 0.13 200);width:100%;"></div></div>
+          <div style="display:flex;align-items:center;gap:12px;"><span style="width:110px;font-size:16px;color:oklch(45% 0.015 240);flex-shrink:0;">Scan started</span><div style="flex:1;height:20px;border-radius:4px;background:oklch(42% 0.15 35);width:74%;"></div></div>
+          <div style="display:flex;align-items:center;gap:12px;"><span style="width:110px;font-size:16px;color:oklch(45% 0.015 240);flex-shrink:0;">CTA click</span><div style="flex:1;height:20px;border-radius:4px;background:oklch(40% 0.13 200);width:31%;"></div></div>
+        </div>
+        <div style="display:flex;gap:16px;margin-top:12px;"><span style="display:flex;align-items:center;gap:6px;font-size:16px;color:oklch(45% 0.015 240);"><span style="width:12px;height:12px;border-radius:3px;background:oklch(40% 0.13 200);"></span>calm</span><span style="display:flex;align-items:center;gap:6px;font-size:16px;color:oklch(45% 0.015 240);"><span style="width:12px;height:12px;border-radius:3px;background:oklch(42% 0.15 35);"></span>urgent</span></div>
+      </div>
+      <div style="padding:20px;border:1px solid oklch(87% 0.008 240);border-radius:12px;background:oklch(100% 0 0);">
+        <div style="font-size:16px;font-weight:600;margin-bottom:8px;">Lift</div>
+        <div style="font-size:34px;font-weight:700;color:oklch(38% 0.12 150);">+18.4%</div>
+        <div style="font-size:16px;color:oklch(45% 0.015 240);">95% CI: 6.1%–29.8% · p = 0.004</div>
+      </div>
+      <div style="padding:16px 20px;border-radius:12px;background:oklch(94% 0.03 150);font-size:16px;font-weight:600;color:oklch(38% 0.12 150);">Ship variant — urgent tone outperforms with high confidence</div>
+      <div style="padding:16px 20px;border-radius:12px;background:oklch(96% 0.006 240);font-size:16px;font-weight:600;">Keep control — no significant difference detected</div>
+      <div style="padding:16px 20px;border-radius:12px;background:oklch(93% 0.05 85);font-size:16px;color:oklch(32% 0.08 85);">
+        <div style="font-weight:600;margin-bottom:8px;">Keep running — 4,200 of 6,500 required per arm</div>
+        <div style="height:8px;border-radius:999px;background:oklch(100% 0 0 / 0.5);overflow:hidden;"><div style="height:100%;width:65%;background:oklch(32% 0.08 85);border-radius:999px;"></div></div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+</x-dc>
+</body>
+</html>

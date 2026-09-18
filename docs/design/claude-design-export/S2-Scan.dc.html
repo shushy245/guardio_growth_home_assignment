@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&family=Source+Code+Pro:wght@500&display=swap" rel="stylesheet">
+<style>body{margin:0;background:oklch(97% 0.004 240);}</style>
+</helmet>
+<div style="font-family:'Source Sans 3',system-ui,sans-serif;padding:48px 32px 120px;color:oklch(22% 0.02 240);">
+  <div style="max-width:1120px;margin:0 auto 32px;">
+    <div style="font-size:16px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:oklch(40% 0.13 200);margin-bottom:8px;">Breach Scan — S-2 Scan moment</div>
+    <h1 style="font-size:42px;line-height:1.15;font-weight:700;margin:0 0 12px;">Scan moment</h1>
+    <p style="font-size:18px;line-height:1.5;color:oklch(45% 0.015 240);max-width:65ch;margin:0 0 20px;">~2 second full-screen scan, then the result screen. Progress bar respects <code style="font-family:'Source Code Pro',monospace;background:oklch(96% 0.006 240);padding:2px 6px;border-radius:4px;font-size:16px;">prefers-reduced-motion</code> live in this preview.</p>
+    <div style="display:flex;flex-direction:column;gap:6px;font-size:16px;color:oklch(45% 0.015 240);background:oklch(100% 0 0);border:1px solid oklch(87% 0.008 240);border-radius:12px;padding:16px 20px;max-width:65ch;">
+      <div><strong style="color:oklch(22% 0.02 240);">390 → 768 → 1280:</strong> identical, centred content only grows its surrounding whitespace — a transient full-screen state has nothing else to reflow.</div>
+    </div>
+  </div>
+
+  <div style="max-width:1120px;margin:0 auto 16px;font-size:16px;font-weight:700;">Scanning</div>
+  <div style="display:flex;gap:24px;overflow-x:auto;padding-bottom:24px;">
+    <div style="display:flex;flex-direction:column;gap:10px;"><span style="font-size:16px;font-family:'Source Code Pro',monospace;">390</span><dc-import name="ScanBody" width="390" state="scanning" hint-size="390px,560px"></dc-import></div>
+    <div style="display:flex;flex-direction:column;gap:10px;"><span style="font-size:16px;font-family:'Source Code Pro',monospace;">768</span><dc-import name="ScanBody" width="768" state="scanning" hint-size="768px,560px"></dc-import></div>
+    <div style="display:flex;flex-direction:column;gap:10px;"><span style="font-size:16px;font-family:'Source Code Pro',monospace;">1280</span><dc-import name="ScanBody" width="1280" state="scanning" hint-size="1280px,560px"></dc-import></div>
+  </div>
+
+  <div style="max-width:1120px;margin:0 auto 16px;font-size:16px;font-weight:700;">Error — with retry</div>
+  <div style="display:flex;gap:24px;overflow-x:auto;padding-bottom:24px;">
+    <div style="display:flex;flex-direction:column;gap:10px;"><span style="font-size:16px;font-family:'Source Code Pro',monospace;">390</span><dc-import name="ScanBody" width="390" state="error" hint-size="390px,560px"></dc-import></div>
+    <div style="display:flex;flex-direction:column;gap:10px;"><span style="font-size:16px;font-family:'Source Code Pro',monospace;">768</span><dc-import name="ScanBody" width="768" state="error" hint-size="768px,560px"></dc-import></div>
+    <div style="display:flex;flex-direction:column;gap:10px;"><span style="font-size:16px;font-family:'Source Code Pro',monospace;">1280</span><dc-import name="ScanBody" width="1280" state="error" hint-size="1280px,560px"></dc-import></div>
+  </div>
+</div>
+
+</x-dc>
+</body>
+</html>

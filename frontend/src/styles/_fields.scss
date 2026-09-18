@@ -1,36 +1,93 @@
 // Form and prose primitives shared by the admin page and the flag editor it renders. One home
-// for each, so "what an input looks like" is not a decision made twice and drifted once. D1's
-// design tokens replace the literals here.
+// for each, so "what an input looks like" is not a decision made twice and drifted once. The
+// values are the D1 tokens: TextField, Button (primary and secondary) and StatusMessage from
+// docs/design/component-inventory.md.
+@use '~/styles/tokens' as tokens;
 
 @mixin field {
-    gap: 6px;
-    font-size: 14px;
+    gap: tokens.$sp-2;
+    font-size: tokens.$text-100;
+    line-height: tokens.$leading-snug;
 }
 
 @mixin label {
-    font-weight: 600;
+    font-weight: tokens.$weight-semibold;
 }
 
 @mixin input {
     font: inherit;
-    padding: 10px 12px;
-    min-height: 44px;
-    border: 1px solid #b6c2cf;
-    border-radius: 8px;
-    background: #fff;
+    padding: 0 tokens.$sp-4;
+    min-height: tokens.$control-height;
+    border: 1px solid tokens.$color-border;
+    border-radius: tokens.$radius-md;
+    background: tokens.$color-surface;
+    color: tokens.$color-text-primary;
     width: 100%;
     box-sizing: border-box;
 }
 
 @mixin note {
-    font-size: 14px;
-    line-height: 1.5;
+    font-size: tokens.$text-100;
+    line-height: tokens.$leading-relaxed;
     margin: 0;
-    color: #4a5a6a;
+    color: tokens.$color-text-secondary;
 }
 
+// A message carries its tone in its fill, not only in its words: the S3 review found success,
+// conflict and failure rendering identically. The tone classes below set the pair.
 @mixin message {
-    font-size: 14px;
-    line-height: 1.5;
+    font-size: tokens.$text-100;
+    line-height: tokens.$leading-relaxed;
     margin: 0;
+    padding: tokens.$sp-3 tokens.$sp-4;
+    border-radius: tokens.$radius-md;
+    background: tokens.$color-surface-sunken;
+    color: tokens.$color-text-primary;
+}
+
+@mixin message-success {
+    background: tokens.$color-success-tint;
+    color: tokens.$color-success;
+    font-weight: tokens.$weight-semibold;
+}
+
+@mixin message-warning {
+    background: tokens.$color-warning-tint;
+    color: tokens.$color-warning;
+}
+
+@mixin message-error {
+    background: tokens.$color-danger-tint;
+    color: tokens.$color-danger;
+    font-weight: tokens.$weight-semibold;
+}
+
+@mixin button-base {
+    font: inherit;
+    font-weight: tokens.$weight-semibold;
+    min-height: tokens.$control-height;
+    padding: 0 tokens.$sp-6;
+    border-radius: tokens.$radius-md;
+    cursor: pointer;
+}
+
+@mixin button-primary {
+    @include button-base;
+    border: 0;
+    background: tokens.$tone-calm-accent-strong;
+    color: tokens.$tone-calm-on-accent;
+
+    &:disabled {
+        background: tokens.$color-disabled-fill;
+        color: tokens.$color-disabled-text;
+        border: 1px solid tokens.$color-border;
+        cursor: not-allowed;
+    }
+}
+
+@mixin button-secondary {
+    @include button-base;
+    border: 1.5px solid tokens.$tone-calm-accent-strong;
+    background: tokens.$color-surface;
+    color: tokens.$tone-calm-accent-strong;
 }

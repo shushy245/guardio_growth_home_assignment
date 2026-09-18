@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  @keyframes bs-shimmer{0%{opacity:0.6;}50%{opacity:1;}100%{opacity:0.6;}}
+  .bs-shimmer{animation:bs-shimmer 1.4s ease-in-out infinite;}
+  @keyframes bs-spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+  .bs-spin{animation:bs-spin 0.8s linear infinite;}
+  @media (prefers-reduced-motion: reduce){ .bs-shimmer, .bs-spin { animation: none !important; opacity:1 !important; } }
+</style>
+</helmet>
+<div style="{{ frameStyle }}">
+  <header style="{{ headerWrapStyle }}">
+    <div style="max-width:65ch;">
+      <h1 style="{{ headlineStyle }}">{{ headline }}</h1>
+      <p style="{{ subStyle }}">{{ sub }}</p>
+    </div>
+    <sc-if value="{{ isNotMobile }}" hint-placeholder-val="{{ true }}">
+      <button style="{{ ctaButtonStyle }}">{{ ctaLabel }}</button>
+    </sc-if>
+  </header>
+
+  <div style="{{ bodyPadStyle }}">
+    <div style="{{ contentWrapStyle }}">
+
+      <div style="{{ tilesWrapperStyle }}">
+        <sc-if value="{{ showRealTiles }}" hint-placeholder-val="{{ true }}">
+          <sc-for list="{{ tiles }}" as="tile" hint-placeholder-count="4">
+            <div style="{{ tileItemStyle }}">
+              <div style="font-size:16px;color:oklch(45% 0.015 240);margin-bottom:8px;">{{ tile.label }}</div>
+              <div style="font-size:28px;font-weight:700;line-height:1.15;">{{ tile.value }}</div>
+            </div>
+          </sc-for>
+        </sc-if>
+        <sc-if value="{{ showSkeletonTiles }}" hint-placeholder-val="{{ false }}">
+          <div class="bs-shimmer" style="{{ tileItemStyle }}"><div style="width:90px;height:14px;background:oklch(93% 0.006 240);border-radius:4px;margin-bottom:12px;"></div><div style="width:56px;height:22px;background:oklch(93% 0.006 240);border-radius:4px;"></div></div>
+          <div class="bs-shimmer" style="{{ tileItemStyle }}"><div style="width:90px;height:14px;background:oklch(93% 0.006 240);border-radius:4px;margin-bottom:12px;"></div><div style="width:56px;height:22px;background:oklch(93% 0.006 240);border-radius:4px;"></div></div>
+          <div class="bs-shimmer" style="{{ tileItemStyle }}"><div style="width:90px;height:14px;background:oklch(93% 0.006 240);border-radius:4px;margin-bottom:12px;"></div><div style="width:56px;height:22px;background:oklch(93% 0.006 240);border-radius:4px;"></div></div>
+          <div class="bs-shimmer" style="{{ tileItemStyle }}"><div style="width:90px;height:14px;background:oklch(93% 0.006 240);border-radius:4px;margin-bottom:12px;"></div><div style="width:56px;height:22px;background:oklch(93% 0.006 240);border-radius:4px;"></div></div>
+        </sc-if>
+      </div>
+
+      <sc-if value="{{ showRealTiles }}" hint-placeholder-val="{{ true }}">
+        <div style="font-size:16px;color:oklch(45% 0.015 240);margin-top:10px;">Record synced 2 hours ago</div>
+      </sc-if>
+
+      <nav aria-label="Filter breaches" style="display:flex;flex-direction:column;gap:14px;margin-top:28px;">
+        <div style="{{ searchFieldStyle }}">
+          <span style="width:16px;height:16px;border:2px solid oklch(45% 0.015 240);border-radius:50%;position:relative;flex-shrink:0;"><span style="position:absolute;width:7px;height:2px;background:oklch(45% 0.015 240);bottom:-3px;right:-5px;transform:rotate(45deg);"></span></span>
+          <span style="font-size:16px;color:oklch(45% 0.015 240);">Search by name or domain</span>
+        </div>
+        <div style="{{ chipsWrapperStyle }}">
+          <sc-for list="{{ chips }}" as="chip" hint-placeholder-count="8">
+            <div style="{{ chipItemStyle }}">{{ chip }}</div>
+          </sc-for>
+        </div>
+        <div style="{{ toggleSortRowStyle }}">
+          <div style="display:flex;align-items:center;gap:12px;height:44px;">
+            <span style="width:44px;height:26px;border-radius:999px;background:oklch(87% 0.008 240);position:relative;display:inline-block;"><span style="position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:oklch(100% 0 0);"></span></span>
+            <span style="font-size:16px;">Verified only</span>
+          </div>
+          <div style="display:inline-flex;padding:4px;border-radius:12px;background:oklch(96% 0.006 240);gap:4px;">
+            <div style="padding:9px 14px;min-height:36px;display:flex;align-items:center;border-radius:8px;background:oklch(100% 0 0);box-shadow:0 1px 2px oklch(0% 0 0 / 0.08);font-size:16px;font-weight:600;">Newest</div>
+            <div style="padding:9px 14px;min-height:36px;display:flex;align-items:center;border-radius:8px;font-size:16px;color:oklch(45% 0.015 240);">Most accounts</div>
+            <div style="padding:9px 14px;min-height:36px;display:flex;align-items:center;border-radius:8px;font-size:16px;color:oklch(45% 0.015 240);">Name</div>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:16px;color:oklch(45% 0.015 240);">{{ resultsLine }}</span>
+          <sc-if value="{{ showClearFilters }}" hint-placeholder-val="{{ false }}">
+            <span style="font-size:16px;font-weight:600;color:{{ accent }};">Clear filters</span>
+          </sc-if>
+        </div>
+      </nav>
+
+      <main style="margin-top:20px;display:flex;flex-direction:column;gap:12px;">
+        <sc-if value="{{ showSkeletonRows }}" hint-placeholder-val="{{ false }}">
+          <div class="bs-shimmer" style="display:flex;gap:16px;padding:16px;border:1px solid oklch(87% 0.008 240);border-radius:12px;background:oklch(100% 0 0);"><div style="width:48px;height:48px;border-radius:8px;background:oklch(93% 0.006 240);flex-shrink:0;"></div><div style="flex:1;display:flex;flex-direction:column;gap:8px;justify-content:center;"><div style="width:40%;height:16px;background:oklch(93% 0.006 240);border-radius:4px;"></div><div style="width:60%;height:14px;background:oklch(93% 0.006 240);border-radius:4px;"></div></div></div>
+          <div class="bs-shimmer" style="display:flex;gap:16px;padding:16px;border:1px solid oklch(87% 0.008 240);border-radius:12px;background:oklch(100% 0 0);"><div style="width:48px;height:48px;border-radius:8px;background:oklch(93% 0.006 240);flex-shrink:0;"></div><div style="flex:1;display:flex;flex-direction:column;gap:8px;justify-content:center;"><div style="width:40%;height:16px;background:oklch(93% 0.006 240);border-radius:4px;"></div><div style="width:60%;height:14px;background:oklch(93% 0.006 240);border-radius:4px;"></div></div></div>
+          <div class="bs-shimmer" style="display:flex;gap:16px;padding:16px;border:1px solid oklch(87% 0.008 240);border-radius:12px;background:oklch(100% 0 0);"><div style="width:48px;height:48px;border-radius:8px;background:oklch(93% 0.006 240);flex-shrink:0;"></div><div style="flex:1;display:flex;flex-direction:column;gap:8px;justify-content:center;"><div style="width:40%;height:16px;background:oklch(93% 0.006 240);border-radius:4px;"></div><div style="width:60%;height:14px;background:oklch(93% 0.006 240);border-radius:4px;"></div></div></div>
+        </sc-if>
+
+        <sc-if value="{{ showRows }}" hint-placeholder-val="{{ false }}">
+          <sc-for list="{{ rows }}" as="row" hint-placeholder-count="4">
+            <div style="padding:16px;border:1px solid oklch(87% 0.008 240);border-radius:12px;background:oklch(100% 0 0);">
+              <div style="display:flex;gap:16px;">
+                <sc-if value="{{ row.hasLogo }}" hint-placeholder-val="{{ true }}">
+                  <div style="width:48px;height:48px;border-radius:8px;background:oklch(38% 0.09 235);color:oklch(99% 0 0);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;flex-shrink:0;">{{ row.logoInitial }}</div>
+                </sc-if>
+                <sc-if value="{{ row.noLogo }}" hint-placeholder-val="{{ false }}">
+                  <div style="width:48px;height:48px;border-radius:8px;background:oklch(96% 0.006 240);color:oklch(45% 0.015 240);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;flex-shrink:0;">?</div>
+                </sc-if>
+                <div style="flex:1;min-width:0;">
+                  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:2px;">
+                    <span style="font-size:18px;font-weight:600;">{{ row.name }}</span>
+                    <sc-if value="{{ row.verified }}" hint-placeholder-val="{{ false }}">
+                      <span style="display:flex;align-items:center;gap:5px;font-size:16px;font-weight:600;color:oklch(38% 0.12 150);"><span style="width:16px;height:16px;border-radius:50%;background:oklch(38% 0.12 150);display:inline-block;position:relative;"><span style="position:absolute;left:4px;top:7px;width:5px;height:2px;background:white;transform:rotate(45deg);"></span><span style="position:absolute;left:6px;top:5px;width:8px;height:2px;background:white;transform:rotate(-45deg);"></span></span>Verified</span>
+                    </sc-if>
+                  </div>
+                  <div style="font-size:16px;color:oklch(45% 0.015 240);margin-bottom:10px;">{{ row.metaLine }}</div>
+                  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                    <sc-for list="{{ row.classes }}" as="c" hint-placeholder-count="3">
+                      <span style="{{ c.style }}">{{ c.label }}</span>
+                    </sc-for>
+                  </div>
+                  <sc-if value="{{ row.expanded }}" hint-placeholder-val="{{ false }}">
+                    <p style="font-size:16px;line-height:1.5;color:oklch(45% 0.015 240);max-width:65ch;margin:12px 0 0;">{{ row.description }}</p>
+                  </sc-if>
+                </div>
+                <button aria-label="Expand breach details" style="width:44px;height:44px;flex-shrink:0;border:none;background:transparent;font-size:18px;color:oklch(45% 0.015 240);cursor:pointer;" onClick="{{ row.toggle }}">{{ row.chevron }}</button>
+              </div>
+            </div>
+          </sc-for>
+        </sc-if>
+
+        <sc-if value="{{ showEmpty }}" hint-placeholder-val="{{ false }}">
+          <div style="text-align:center;padding:48px 20px;border:1px dashed oklch(87% 0.008 240);border-radius:12px;">
+            <div style="width:44px;height:44px;border-radius:50%;border:2px solid oklch(45% 0.015 240);margin:0 auto 16px;"></div>
+            <div style="font-size:18px;font-weight:600;margin-bottom:6px;">No breaches match your filters</div>
+            <div style="font-size:16px;color:oklch(45% 0.015 240);margin-bottom:20px;">Try a different search term, or clear your filters to see all 1,031 breaches.</div>
+            <button style="font-family:inherit;font-size:16px;font-weight:600;padding:10px 20px;min-height:44px;border-radius:12px;background:oklch(100% 0 0);color:{{ accent }};border:1.5px solid {{ accent }};">Clear filters</button>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ showError }}" hint-placeholder-val="{{ false }}">
+          <div style="text-align:center;padding:48px 20px;border:1px solid oklch(87% 0.008 240);border-radius:12px;background:oklch(96% 0.006 240);">
+            <div style="width:44px;height:44px;border-radius:8px;border:2px solid oklch(45% 0.19 25);margin:0 auto 16px;"></div>
+            <div style="font-size:18px;font-weight:600;margin-bottom:6px;">Couldn't load breaches</div>
+            <div style="font-size:16px;color:oklch(45% 0.015 240);margin-bottom:20px;">Something went wrong loading the breach record.</div>
+            <button style="font-family:inherit;font-size:16px;font-weight:600;padding:12px 22px;min-height:44px;border-radius:12px;background:{{ accent }};color:oklch(99% 0 0);border:none;">Retry</button>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ showLoadMoreArea }}" hint-placeholder-val="{{ false }}">
+          <sc-if value="{{ showLoadMoreLoading }}" hint-placeholder-val="{{ false }}">
+            <button style="font-family:inherit;font-size:16px;font-weight:600;padding:13px 23px;min-height:48px;border-radius:12px;background:oklch(100% 0 0);color:oklch(45% 0.015 240);border:1.5px solid oklch(87% 0.008 240);display:flex;align-items:center;justify-content:center;gap:10px;align-self:center;"><span class="bs-spin" style="width:16px;height:16px;border-radius:50%;border:2px solid oklch(87% 0.008 240);border-top-color:oklch(45% 0.015 240);display:inline-block;"></span>Loading more…</button>
+          </sc-if>
+          <sc-if value="{{ showLoadMore }}" hint-placeholder-val="{{ true }}">
+            <button style="font-family:inherit;font-size:16px;font-weight:600;padding:13px 23px;min-height:48px;border-radius:12px;background:oklch(100% 0 0);color:{{ accent }};border:1.5px solid {{ accent }};align-self:center;">Load more</button>
+          </sc-if>
+        </sc-if>
+      </main>
+    </div>
+  </div>
+
+  <sc-if value="{{ isMobile }}" hint-placeholder-val="{{ true }}">
+    <div style="position:sticky;bottom:0;background:oklch(100% 0 0);border-top:1px solid oklch(87% 0.008 240);padding:12px 16px;box-shadow:0 -8px 24px oklch(0% 0 0 / 0.06);">
+      <button style="{{ ctaButtonStyleFull }}">{{ ctaLabel }}</button>
+    </div>
+  </sc-if>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:390,&quot;height&quot;:700},&quot;width&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:390,&quot;tsType&quot;:&quot;number&quot;,&quot;min&quot;:390,&quot;max&quot;:1280},&quot;tone&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;calm&quot;,&quot;tsType&quot;:&quot;'calm'|'urgent'&quot;,&quot;options&quot;:[&quot;calm&quot;,&quot;urgent&quot;]},&quot;state&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;loaded&quot;,&quot;tsType&quot;:&quot;'loaded'|'loading'|'empty'|'error'|'loadmore'&quot;,&quot;options&quot;:[&quot;loaded&quot;,&quot;loading&quot;,&quot;empty&quot;,&quot;error&quot;,&quot;loadmore&quot;]}}">
+class Component extends DCLogic {
+  state = { urgentProgress: 0, expandedRows: {} };
+
+  componentDidMount() {
+    if (this.props.tone === 'urgent' && this.props.state === 'loaded') {
+      const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (reduced) { this.setState({ urgentProgress: 1 }); return; }
+      const start = performance.now();
+      const dur = 1400;
+      const tick = (t) => {
+        const p = Math.min(1, (t - start) / dur);
+        const eased = 1 - Math.pow(1 - p, 3);
+        this.setState({ urgentProgress: eased });
+        if (p < 1) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    }
+  }
+
+  toggleExpand(id) {
+    this.setState(s => ({ expandedRows: { ...s.expandedRows, [id]: !s.expandedRows[id] } }));
+  }
+
+  renderVals() {
+    const width = this.props.width || 390;
+    const tone = this.props.tone || 'calm';
+    const st = this.props.state || 'loaded';
+    const isMobile = width <= 480;
+    const isDesktop = width >= 1200;
+    const isNotMobile = !isMobile;
+
+    const accent = tone === 'urgent' ? 'oklch(42% 0.15 35)' : 'oklch(32% 0.13 200)';
+    const headline = tone === 'urgent' ? "You're exposed!" : 'Known breaches';
+    const sub = tone === 'urgent' ? "17.7B accounts have leaked. Yours could be among them." : "Here's the public record of data breaches.";
+    const ctaLabel = tone === 'urgent' ? 'Protect me now' : 'Protect me';
+    const exposedValue = tone === 'urgent' ? (17.7 * this.state.urgentProgress).toFixed(1) + 'B' : '17.7B';
+
+    const outerPad = isMobile ? 16 : isDesktop ? 64 : 32;
+
+    const frameStyle = {
+      width: width + 'px', flexShrink: 0, fontFamily: "'Source Sans 3',system-ui,sans-serif",
+      background: 'oklch(98% 0.004 240)', border: '1px solid oklch(87% 0.008 240)', borderRadius: '16px',
+      overflow: 'hidden', color: 'oklch(22% 0.02 240)', display: 'flex', flexDirection: 'column'
+    };
+    const headerWrapStyle = isMobile
+      ? { display: 'flex', flexDirection: 'column', gap: '12px', padding: outerPad + 'px', background: 'oklch(100% 0 0)', borderBottom: '1px solid oklch(87% 0.008 240)' }
+      : { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: '24px', flexWrap: 'wrap', padding: outerPad + 'px', background: 'oklch(100% 0 0)', borderBottom: '1px solid oklch(87% 0.008 240)' };
+    const headlineStyle = { fontSize: isMobile ? '28px' : '34px', fontWeight: 700, lineHeight: 1.15, margin: '0 0 8px' };
+    const subStyle = { fontSize: '18px', lineHeight: 1.5, color: 'oklch(45% 0.015 240)', margin: 0 };
+    const ctaButtonStyle = { fontFamily: 'inherit', fontSize: '16px', fontWeight: 600, padding: '14px 24px', minHeight: '48px', borderRadius: '12px', background: accent, color: 'oklch(99% 0 0)', border: 'none', flexShrink: 0 };
+    const ctaButtonStyleFull = { ...ctaButtonStyle, width: '100%' };
+
+    const bodyPadStyle = { padding: outerPad + 'px', flex: 1 };
+    const contentWrapStyle = { maxWidth: isDesktop ? '1120px' : '100%', margin: '0 auto' };
+
+    const tilesWrapperStyle = { display: 'flex', flexWrap: 'wrap', gap: '12px' };
+    const tileItemStyle = { flex: isMobile ? '1 1 calc(50% - 6px)' : '1 1 0', background: 'oklch(100% 0 0)', border: '1px solid oklch(87% 0.008 240)', borderRadius: '12px', padding: isMobile ? '16px' : '20px', minWidth: 0 };
+
+    const searchFieldStyle = { display: 'flex', alignItems: 'center', gap: '10px', height: '48px', padding: '0 16px', borderRadius: '12px', border: '1px solid oklch(87% 0.008 240)', background: 'oklch(100% 0 0)' };
+    const chipsWrapperStyle = isMobile
+      ? { display: 'flex', gap: '10px', overflowX: 'auto', flexWrap: 'nowrap', paddingBottom: '4px' }
+      : { display: 'flex', gap: '10px', flexWrap: 'wrap' };
+    const chipItemStyle = { height: '44px', display: 'flex', alignItems: 'center', padding: '0 18px', borderRadius: '999px', border: '1px solid oklch(87% 0.008 240)', background: 'oklch(100% 0 0)', fontSize: '16px', flexShrink: isMobile ? 0 : 1, whiteSpace: 'nowrap' };
+    const toggleSortRowStyle = isMobile
+      ? { display: 'flex', flexDirection: 'column', gap: '12px', alignItems: 'flex-start' }
+      : { display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' };
+
+    const tiles = [
+      { label: 'Breaches, last 12 months', value: '102' },
+      { label: 'Accounts exposed', value: exposedValue },
+      { label: 'Passwords leaked', value: '65%' },
+      { label: 'Largest breach', value: '1.96B' }
+    ];
+    const chips = ['Email addresses', 'Passwords', 'Names', 'Usernames', 'IP addresses', 'Phone numbers', 'Dates of birth', 'Physical addresses'];
+
+    const badge = (label) => {
+      const danger = label === 'Passwords';
+      return {
+        label,
+        style: {
+          height: '28px', display: 'flex', alignItems: 'center', padding: '0 12px', borderRadius: '999px', fontSize: '16px',
+          background: danger ? 'oklch(94% 0.03 25)' : 'oklch(96% 0.006 240)',
+          color: danger ? 'oklch(45% 0.19 25)' : 'oklch(45% 0.015 240)',
+          fontWeight: danger ? 600 : 400
+        }
+      };
+    };
+
+    const rowsSeed = [
+      { name: 'Manchester Airports Group', domain: 'magairports.com', year: '2026', count: '8.8M', classes: ['Email addresses', 'Phone numbers', 'Names', 'Purchases', 'Vehicle registration plates'], verified: true, hasLogo: true, description: 'The 2026 breach exposed passenger contact details, purchase history and vehicle registration plates tied to airport parking accounts.' },
+      { name: 'McKesson', domain: 'mckesson.com', year: '2026', count: '6.4M', classes: ['Email addresses', 'Names', 'Passwords'], verified: true, hasLogo: true, description: 'A 2026 breach of the healthcare distributor exposed customer email addresses, names and account passwords.' },
+      { name: 'Synthient Credential Stuffing Threat Data', domain: '', year: '2025', count: '1.96B', classes: ['Email addresses', 'Passwords'], verified: false, hasLogo: true, description: 'A 2025 credential-stuffing list combining email and password pairs collected from multiple prior breaches, rather than a breach of a single company.' },
+      { name: 'Unnamed source', domain: '', year: '2024', count: '412K', classes: ['Email addresses'], verified: false, hasLogo: false, description: 'Limited detail is available for this breach. It is surfaced because your address appears in the exposed data.' }
+    ];
+    const expandedRows = this.state.expandedRows;
+    const rows = rowsSeed.map((r, i) => {
+      const expanded = !!expandedRows[i];
+      return {
+        id: i, name: r.name, verified: r.verified, hasLogo: r.hasLogo, noLogo: !r.hasLogo,
+        logoInitial: r.name[0], description: r.description, expanded,
+        chevron: expanded ? '▴' : '▾',
+        metaLine: (r.domain ? r.domain + ' · ' : '') + r.year + ' · ' + r.count + ' accounts',
+        classes: r.classes.map(badge),
+        toggle: () => this.toggleExpand(i)
+      };
+    });
+
+    const showSkeletonTiles = st === 'loading';
+    const showRealTiles = !showSkeletonTiles;
+    const showSkeletonRows = st === 'loading';
+    const showRows = st === 'loaded' || st === 'loadmore';
+    const showEmpty = st === 'empty';
+    const showError = st === 'error';
+    const showLoadMoreLoading = st === 'loadmore';
+    const showLoadMore = st === 'loaded';
+    const showLoadMoreArea = showLoadMore || showLoadMoreLoading;
+    const showClearFilters = st === 'empty';
+    const resultsLine = st === 'empty' ? 'Showing 0 of 1,031' : 'Showing 20 of 1,031';
+
+    return {
+      width, isMobile, isNotMobile, isDesktop, accent, headline, sub, ctaLabel,
+      frameStyle, headerWrapStyle, headlineStyle, subStyle, ctaButtonStyle, ctaButtonStyleFull, bodyPadStyle, contentWrapStyle,
+      tilesWrapperStyle, tileItemStyle, searchFieldStyle, chipsWrapperStyle, chipItemStyle, toggleSortRowStyle,
+      tiles, chips, rows,
+      showSkeletonTiles, showRealTiles, showSkeletonRows, showRows, showEmpty, showError,
+      showLoadMoreLoading, showLoadMore, showLoadMoreArea, showClearFilters, resultsLine
+    };
+  }
+}
+</script>
+</body>
+</html>

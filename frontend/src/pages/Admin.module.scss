@@ -2,20 +2,23 @@
 @use '~/styles/fields' as fields;
 
 // Built at 390 first: one column, full-width fields, tap targets that a thumb can hit. At md+
-// the page gets a reading width and centres instead of stretching across a laptop.
+// the page gets a reading width and centres instead of stretching across a laptop. The design's
+// admin frame caps the whole page at the prose measure; this keeps 720px so the two variant
+// cards can sit side by side with their inputs intact (a listed deviation), and caps the prose
+// blocks at the measure instead.
 .page {
-    gap: 24px;
-    padding: 16px;
+    gap: tokens.$sp-6;
+    padding: tokens.$gutter-sm;
     max-width: 100%;
     margin: 0 auto;
 }
 
 .intro {
-    gap: 8px;
+    gap: tokens.$sp-2;
 }
 
 .title {
-    font-size: 22px;
+    font-size: tokens.$text-400;
     margin: 0;
 }
 
@@ -40,25 +43,21 @@
 }
 
 .flags {
-    gap: 24px;
+    gap: tokens.$sp-6;
 }
 
 .retry {
-    font: inherit;
-    font-weight: 600;
+    @include fields.button-secondary;
     align-self: flex-start;
-    min-height: 44px;
-    padding: 0 20px;
-    border: 1px solid #16508f;
-    border-radius: 8px;
-    background: #fff;
-    color: #16508f;
-    cursor: pointer;
 }
 
 @media (min-width: tokens.$breakpoint-md) {
     .page {
         max-width: 720px;
-        padding: 32px 24px;
+        padding: tokens.$gutter-md tokens.$gutter-md;
+    }
+
+    .title {
+        font-size: tokens.$text-500;
     }
 }

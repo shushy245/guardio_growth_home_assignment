@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
+</helmet>
+<div style="{{ frameStyle }}">
+  <div style="{{ innerStyle }}">
+    <h1 style="font-size:28px;font-weight:700;margin:0 0 20px;">Result screen tone test</h1>
+
+    <div style="{{ cardsWrapStyle }}">
+      <div style="{{ hypothesisCardStyle }}">
+        <div style="font-size:16px;font-weight:600;color:oklch(40% 0.13 200);margin-bottom:8px;">Hypothesis</div>
+        <p style="font-size:16px;line-height:1.5;max-width:65ch;margin:0;">An urgent tone on the result screen increases CTA click-through without hurting sign-up completion.</p>
+      </div>
+
+      <div style="{{ funnelLiftRowStyle }}">
+        <div style="{{ funnelCardStyle }}">
+          <div style="font-size:16px;font-weight:600;margin-bottom:16px;">Funnel by variant</div>
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <div style="display:flex;flex-direction:column;gap:4px;"><span style="font-size:16px;color:oklch(45% 0.015 240);">Landing</span><div style="display:flex;gap:6px;align-items:center;"><div style="height:18px;border-radius:4px;background:oklch(40% 0.13 200);width:100%;"></div></div><div style="display:flex;gap:6px;align-items:center;"><div style="height:18px;border-radius:4px;background:oklch(42% 0.15 35);width:100%;"></div></div></div>
+            <div style="display:flex;flex-direction:column;gap:4px;"><span style="font-size:16px;color:oklch(45% 0.015 240);">Scan started</span><div style="height:18px;border-radius:4px;background:oklch(40% 0.13 200);width:88%;"></div><div style="height:18px;border-radius:4px;background:oklch(42% 0.15 35);width:91%;"></div></div>
+            <div style="display:flex;flex-direction:column;gap:4px;"><span style="font-size:16px;color:oklch(45% 0.015 240);">Scan completed</span><div style="height:18px;border-radius:4px;background:oklch(40% 0.13 200);width:85%;"></div><div style="height:18px;border-radius:4px;background:oklch(42% 0.15 35);width:88%;"></div></div>
+            <div style="display:flex;flex-direction:column;gap:4px;"><span style="font-size:16px;color:oklch(45% 0.015 240);">CTA click</span><div style="height:18px;border-radius:4px;background:oklch(40% 0.13 200);width:31%;"></div><div style="height:18px;border-radius:4px;background:oklch(42% 0.15 35);width:41%;"></div></div>
+            <div style="display:flex;flex-direction:column;gap:4px;"><span style="font-size:16px;color:oklch(45% 0.015 240);">Sign-up started</span><div style="height:18px;border-radius:4px;background:oklch(40% 0.13 200);width:22%;"></div><div style="height:18px;border-radius:4px;background:oklch(42% 0.15 35);width:29%;"></div></div>
+            <div style="display:flex;flex-direction:column;gap:4px;"><span style="font-size:16px;color:oklch(45% 0.015 240);">Activation</span><div style="height:18px;border-radius:4px;background:oklch(40% 0.13 200);width:15%;"></div><div style="height:18px;border-radius:4px;background:oklch(42% 0.15 35);width:19%;"></div></div>
+          </div>
+          <div style="display:flex;gap:16px;margin-top:14px;"><span style="display:flex;align-items:center;gap:6px;font-size:16px;color:oklch(45% 0.015 240);"><span style="width:12px;height:12px;border-radius:3px;background:oklch(40% 0.13 200);"></span>calm</span><span style="display:flex;align-items:center;gap:6px;font-size:16px;color:oklch(45% 0.015 240);"><span style="width:12px;height:12px;border-radius:3px;background:oklch(42% 0.15 35);"></span>urgent</span></div>
+        </div>
+
+        <div style="{{ liftCardStyle }}">
+          <div style="font-size:16px;font-weight:600;margin-bottom:8px;">Lift on CTA click</div>
+          <div style="font-size:34px;font-weight:700;color:oklch(38% 0.12 150);margin-bottom:6px;">+18.4%</div>
+          <div style="font-size:16px;color:oklch(45% 0.015 240);margin-bottom:20px;">95% CI: 6.1%–29.8% · p = 0.004</div>
+
+          <sc-if value="{{ showShip }}" hint-placeholder-val="{{ true }}">
+            <div style="padding:16px 18px;border-radius:12px;background:oklch(94% 0.03 150);font-size:16px;font-weight:600;color:oklch(38% 0.12 150);">Ship variant — urgent tone outperforms with high confidence</div>
+          </sc-if>
+          <sc-if value="{{ showKeepRunning }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:16px 18px;border-radius:12px;background:oklch(93% 0.05 85);font-size:16px;color:oklch(32% 0.08 85);">
+              <div style="font-weight:600;margin-bottom:8px;">Keep running — 4,200 of 6,500 required per arm</div>
+              <div style="height:8px;border-radius:999px;background:oklch(100% 0 0 / 0.5);overflow:hidden;"><div style="height:100%;width:65%;background:oklch(32% 0.08 85);border-radius:999px;"></div></div>
+            </div>
+          </sc-if>
+          <sc-if value="{{ showError }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:16px 18px;border-radius:12px;background:oklch(96% 0.006 240);font-size:16px;">
+              <div style="font-weight:600;margin-bottom:6px;">Couldn't load experiment data</div>
+              <button style="font-family:inherit;font-size:16px;font-weight:600;padding:10px 18px;min-height:44px;border-radius:10px;background:oklch(32% 0.13 200);color:oklch(99% 0 0);border:none;margin-top:6px;">Retry</button>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:390,&quot;height&quot;:700},&quot;width&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:390,&quot;tsType&quot;:&quot;number&quot;,&quot;min&quot;:390,&quot;max&quot;:1280},&quot;state&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;loaded&quot;,&quot;tsType&quot;:&quot;'loaded'|'keep-running'|'error'&quot;,&quot;options&quot;:[&quot;loaded&quot;,&quot;keep-running&quot;,&quot;error&quot;]}}">
+class Component extends DCLogic {
+  renderVals() {
+    const width = this.props.width || 390;
+    const st = this.props.state || 'loaded';
+    const isDesktop = width >= 1200;
+    const frameStyle = { width: width + 'px', flexShrink: 0, fontFamily: "'Source Sans 3',system-ui,sans-serif", color: 'oklch(22% 0.02 240)', background: 'oklch(97% 0.004 240)', border: '1px solid oklch(87% 0.008 240)', borderRadius: '16px', overflow: 'hidden' };
+    const innerStyle = { padding: width <= 480 ? '24px' : isDesktop ? '48px 64px' : '40px' };
+    const cardsWrapStyle = { display: 'flex', flexDirection: 'column', gap: '16px' };
+    const cardBase = { background: 'oklch(100% 0 0)', border: '1px solid oklch(87% 0.008 240)', borderRadius: '12px', padding: '20px' };
+    const hypothesisCardStyle = { ...cardBase };
+    const funnelLiftRowStyle = isDesktop ? { display: 'flex', gap: '16px', alignItems: 'stretch' } : { display: 'flex', flexDirection: 'column', gap: '16px' };
+    const funnelCardStyle = { ...cardBase, flex: isDesktop ? '1.4' : 'none' };
+    const liftCardStyle = { ...cardBase, flex: isDesktop ? '1' : 'none' };
+    return {
+      frameStyle, innerStyle, cardsWrapStyle, hypothesisCardStyle, funnelLiftRowStyle, funnelCardStyle, liftCardStyle,
+      showShip: st === 'loaded', showKeepRunning: st === 'keep-running', showError: st === 'error'
+    };
+  }
+}
+</script>
+</body>
+</html>
