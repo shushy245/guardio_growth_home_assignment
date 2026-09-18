@@ -2,10 +2,10 @@ import { MemoryRouter } from 'react-router';
 import { render } from '@testing-library/react';
 import { type ReactElement, StrictMode } from 'react';
 
-import { VisitorProvider } from '~/providers/VisitorProvider';
-
-// Every render in a test goes through here so the provider stack matches production.
-// Providers are added as stories introduce them (visitor, analytics).
+// Every render in a test goes through here so the render stack matches production: the router,
+// and StrictMode when the test asks for it. The visitor session is deliberately *not* here —
+// it is scoped to the funnel routes inside `App`, so a driver that needs it wraps its own
+// subject the way the funnel does, and a driver that does not gets no visitor.
 // Returns nothing on purpose: the driver is the only thing a test talks to, so handing back a
 // RenderResult would open a second, untyped route into the DOM.
 
@@ -22,12 +22,5 @@ export const renderWithProviders = (
     ui: ReactElement,
     { route = '/', mode = RenderMode.Plain }: { route?: string; mode?: RenderMode } = {},
 ): void => {
-    render(
-        wrap(
-            <MemoryRouter initialEntries={[route]}>
-                <VisitorProvider>{ui}</VisitorProvider>
-            </MemoryRouter>,
-            mode,
-        ),
-    );
+    render(wrap(<MemoryRouter initialEntries={[route]}>{ui}</MemoryRouter>, mode));
 };

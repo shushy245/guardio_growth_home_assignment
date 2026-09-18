@@ -3,9 +3,9 @@ import { act, type ReactElement } from 'react';
 import { screen, waitFor } from '@testing-library/react';
 
 import type { VisitorDTO } from '~/models/visitor';
-import { useVisitor } from '~/providers/VisitorProvider';
 import { fakeHttp, HttpMethod } from '~/testkit/fake-http';
 import type { FeatureFlagDTO } from '~/models/featureFlag';
+import { useVisitor, VisitorProvider } from '~/providers/VisitorProvider';
 import { readStoredVisitorId, storeVisitorId } from '~/storage/visitor-id';
 import { RenderMode, renderWithProviders } from '~/testkit/renderWithProviders';
 import { isFailed, variantFor, VisitorStatus } from '~/providers/VisitorProvider.utils';
@@ -105,7 +105,12 @@ export const makeVisitorProviderDriver = (): VisitorProviderDriver => {
         when: {
             created: async (): Promise<void> => {
                 await act(async () => {
-                    renderWithProviders(<VisitorProbe />, { route: '/', mode });
+                    renderWithProviders(
+                        <VisitorProvider>
+                            <VisitorProbe />
+                        </VisitorProvider>,
+                        { route: '/', mode },
+                    );
                 });
             },
         },
