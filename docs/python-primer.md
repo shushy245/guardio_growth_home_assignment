@@ -167,3 +167,41 @@ You will struggle to validate details, so here is what to look for:
   analogue. The `@classmethod` line is required and must sit *below* the decorator.
 - **`urllib.parse.urlsplit`** (`app/config.py`): the stdlib URL parser — `scheme`, `netloc`, `path`,
   `query`, `fragment`. Standard-library-first: no package needed to tell an origin from a URL.
+
+## Added in S2b — constructs that actually landed
+
+- **`threading.Lock` with `acquire(blocking=False)`** (`app/breaches/refresh.py`): the non-blocking
+  form returns `False` at once if someone else holds the lock, instead of waiting. That is the
+  single-flight idiom — "if a refresh is running, do nothing" — and the `try/finally` around the
+  work is what guarantees `release()` even when the work raises. `lock.locked()` is a read-only
+  peek the handler uses to avoid scheduling a task at all. JS has no equivalent because JS has no
+  preemptive threads; the nearest mental model is a `let inFlight = false` flag that is atomic.
+- **`threading.Event`** (`tests/fakes/breach_catalog.py`): a boolean other threads can `wait()` on,
+  with a timeout. The fake's fetch blocks on one until the test calls `release()` — a slow HIBP you
+  control — and a second event signals "the fetch has started" so the test overlaps it *for sure*
+  rather than by sleeping and hoping. Always pass a timeout to `wait()`: a test that can hang
+  forever is worse than one that fails.
+- **`threading.Thread(target=fn, args=(…,), daemon=True)` + `join(timeout)`** (`tests/drivers/
+  catalog_refresh.py`): a real OS thread. `daemon=True` means the process will not wait for it at
+  exit; `join(timeout)` waits for it to finish, and `is_alive()` afterwards tells you whether it
+  did. The driver joins before the test thread touches the shared database connection again —
+  SQLAlchemy `Connection` objects are not thread-safe, and the red run of R7 showed what two
+  threads on one connection do to a savepoint stack.
+- **FastAPI `BackgroundTasks`**: declare it as a handler parameter and `add_task(fn, **kwargs)`;
+  Starlette runs the tasks after the response body has been sent, a sync function on a worker
+  thread. The request's DB session is closed by then, so a task opens its own transaction from the
+  app-level factory. Two gotchas this story hit: tasks ride on the *response object*, so a
+  handler that raises `HTTPException` loses them (hence `carry_background_tasks` in
+  `app/errors.py`); and a router-level `dependencies=[Depends(…)]` runs *before* the handler's own
+  parameters are validated, so a `?page=0` would hit the database before its 400 — which is why the
+  revalidation is a plain call at the top of each handler.
+- **`request.state`** vs **`request.app.state`**: the first is a per-request bag (lives and dies
+  with one request), the second the process-wide one (session factory, refresher). `setattr` /
+  `getattr(obj, name, default)` with a module-level constant for the key keeps the attribute name
+  in one place; a bare `request.state.foo` on a request that never set it raises `AttributeError`.
+- **`max(generator)`** (`app/breaches/summary.py`): `max(b.fetched_at for b in breaches)` — a
+  generator expression is an iterable, so no intermediate list. `max` on an empty iterable raises;
+  here the empty case returned `None` earlier, so the guard is the existing one.
+- **`datetime.fromisoformat("…Z")`** (`tests/drivers/breaches_api.py`): since Python 3.11 the
+  stdlib parser accepts the `Z` suffix Pydantic emits. Compare instants as datetimes, never as
+  strings — `Z` and `+00:00` are the same instant spelled two ways.
