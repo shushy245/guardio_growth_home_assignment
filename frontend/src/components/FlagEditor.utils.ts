@@ -38,6 +38,8 @@ export const copyLabelMap: Record<CopyField, string> = {
     [CopyField.CtaLabel]: 'Button label',
 };
 
+// Five states, none of them carrying data: the failure detail goes to the log, so the status is
+// the whole state.
 export enum SaveStatus {
     Idle = 'idle',
     Saving = 'saving',
@@ -46,39 +48,28 @@ export enum SaveStatus {
     Failed = 'failed',
 }
 
-export type SaveState =
-    | { status: SaveStatus.Idle }
-    | { status: SaveStatus.Saving }
-    | { status: SaveStatus.Saved }
-    | { status: SaveStatus.Conflict }
-    | { status: SaveStatus.Failed; error: string };
-
-export const isSaving = (state: SaveState): boolean => state.status === SaveStatus.Saving;
-
-export const isFailedSave = (state: SaveState): state is Extract<SaveState, { status: SaveStatus.Failed }> =>
-    state.status === SaveStatus.Failed;
+export const isSaving = (save: SaveStatus): boolean => save === SaveStatus.Saving;
 
 export const CONFLICT_MESSAGE =
     'This flag changed somewhere else while you were editing. Reload the page, then apply your change to the current version.';
 export const SAVED_MESSAGE = 'Saved.';
 export const MISSING_TOKEN_MESSAGE = 'Paste the admin token above before saving.';
+// Operator copy, not the server's. What went wrong is on-call detail and goes to the log; what
+// the operator needs is whether the flag changed and what to do next.
+export const FAILED_MESSAGE =
+    'The flag could not be saved and is unchanged. Try again — the details are in the browser console.';
 
 // What the operator is told after a save attempt. A lookup table rather than a branch chain, so
-// a new SaveStatus member is a compile error here instead of a silently blank message. Failed is
-// not in it: it is the one state carrying its own text, and a guard reads it without the table
-// having to re-check a status its own index already decided.
-const saveMessageMap: Record<Exclude<SaveStatus, SaveStatus.Failed>, string | undefined> = {
+// a new SaveStatus member is a compile error here instead of a silently blank message.
+const saveMessageMap: Record<SaveStatus, string | undefined> = {
     [SaveStatus.Idle]: undefined,
     [SaveStatus.Saving]: undefined,
     [SaveStatus.Saved]: SAVED_MESSAGE,
     [SaveStatus.Conflict]: CONFLICT_MESSAGE,
+    [SaveStatus.Failed]: FAILED_MESSAGE,
 };
 
-export const saveMessage = (state: SaveState): string | undefined => {
-    if (isFailedSave(state)) return state.error;
-
-    return saveMessageMap[state.status];
-};
+export const saveMessage = (save: SaveStatus): string | undefined => saveMessageMap[save];
 
 // Every condition the server would reject on, asked once, before the round trip: a request in
 // flight (a second would race it), a split that does not cover every bucket (a 400), and no
@@ -88,7 +79,7 @@ export const canSave = ({
     flag,
     adminToken,
 }: {
-    save: SaveState;
+    save: SaveStatus;
     flag: FeatureFlagModel;
     adminToken: string;
 }): boolean => !isSaving(save) && hasCompleteSplit(flag) && adminToken !== '';

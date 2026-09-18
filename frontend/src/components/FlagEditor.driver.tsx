@@ -1,8 +1,9 @@
-import { expect } from 'vitest';
+import { expect, vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import { screen, waitFor } from '@testing-library/react';
 import { act, type ReactElement, useState } from 'react';
 
+import { logger } from '~/logging/logger';
 import { FlagEditor } from '~/components/FlagEditor';
 import { aFeatureFlagDTO } from '~/testkit/builders';
 import { isPlainObject } from '~/api/http-client.utils';
@@ -23,6 +24,8 @@ const URGENT = 'urgent';
 const SAVE_PATH = `/feature-flags/${RESULT_SCREEN_TONE}`;
 const HTTP_CONFLICT = 409;
 const HTTP_SERVER_ERROR = 500;
+// What the backend puts in `{ error }` — written for an on-call engineer, never for this page.
+const SERVER_ERROR_DETAIL = 'internal error';
 
 const urgentFieldId = (field: CopyField | typeof WEIGHT_FIELD): string =>
     variantFieldTestId({ flagKey: RESULT_SCREEN_TONE, variantKey: URGENT, field });
@@ -72,6 +75,8 @@ export type FlagEditorDriver = {
         urgentWeightIs: (weight: number) => void;
         conflictMessageIsShown: () => Promise<void>;
         failureMessageIsShown: (message: string) => Promise<void>;
+        saveFailureIsShown: () => Promise<void>;
+        saveFailureWasLogged: () => void;
         urgentCtaLabelIs: (label: string) => void;
     };
 };
@@ -82,6 +87,7 @@ export const makeFlagEditorDriver = (): FlagEditorDriver => {
     let dto = aFeatureFlagDTO().build();
     let adminToken = 'the-pasted-admin-token';
     let releaseSave: (() => void) | undefined = undefined;
+    const loggedErrors = vi.spyOn(logger, 'error').mockImplementation(() => {});
 
     const saves = (): RecordedRequest[] =>
         fakeHttp.requests().filter((request) => request.method === HttpMethod.Patch && request.path === SAVE_PATH);
@@ -161,7 +167,7 @@ export const makeFlagEditorDriver = (): FlagEditorDriver => {
                     method: HttpMethod.Patch,
                     path: SAVE_PATH,
                     status: HTTP_SERVER_ERROR,
-                    body: { error: 'internal error' },
+                    body: { error: SERVER_ERROR_DETAIL },
                 });
             },
         },
@@ -235,6 +241,20 @@ export const makeFlagEditorDriver = (): FlagEditorDriver => {
                 await waitFor(() => {
                     expect(messageOf()).toHaveTextContent(message);
                 });
+            },
+            // The two halves of the same rule: the operator reads operator copy, and the detail
+            // that used to be on screen is in the log instead of nowhere.
+            saveFailureIsShown: async (): Promise<void> => {
+                await waitFor(() => {
+                    expect(messageOf()).toHaveTextContent('could not be saved');
+                });
+                expect(messageOf()).not.toHaveTextContent(SERVER_ERROR_DETAIL);
+            },
+            saveFailureWasLogged: (): void => {
+                expect(loggedErrors).toHaveBeenCalledWith(
+                    expect.stringContaining('handleSave'),
+                    expect.objectContaining({ detail: SERVER_ERROR_DETAIL }),
+                );
             },
             urgentCtaLabelIs: (label: string): void => {
                 expect(screen.getByTestId(urgentFieldId(CopyField.CtaLabel))).toHaveValue(label);

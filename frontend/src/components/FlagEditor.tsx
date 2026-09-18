@@ -4,6 +4,7 @@
 import { type ChangeEvent, type ReactElement, useState } from 'react';
 
 import { Column, Row } from '~/ui/box';
+import { logger } from '~/logging/logger';
 import { updateFeatureFlag } from '~/api/feature-flags';
 import { describeError, statusOfError } from '~/api/http-client';
 import {
@@ -18,7 +19,6 @@ import {
     WEIGHT_TOTAL,
 } from '~/models/featureFlag';
 import {
-    type SaveState,
     canSave,
     clampWeight,
     copyLabelMap,
@@ -46,14 +46,14 @@ export const FlagEditor = ({
     onChange: (flag: FeatureFlagModel) => void;
     onSaved: (saved: { flagKey: string; lockToken: string }) => void;
 }): ReactElement => {
-    const [save, setSave] = useState<SaveState>({ status: SaveStatus.Idle });
+    const [save, setSave] = useState<SaveStatus>(SaveStatus.Idle);
 
     // Any edit invalidates the last answer: "Saved." standing beside a field the operator has
     // since changed claims the value on screen is the value stored. A save still in flight keeps
     // its state — it is what disables the button, and re-enabling it mid-request would let a
     // second save overlap the first.
     const handleFlagEdited = (edited: FeatureFlagModel): void => {
-        setSave((current) => (isSaving(current) ? current : { status: SaveStatus.Idle }));
+        setSave((current) => (isSaving(current) ? current : SaveStatus.Idle));
         onChange(edited);
     };
 
@@ -62,22 +62,26 @@ export const FlagEditor = ({
     };
 
     const handleSave = (): void => {
-        setSave({ status: SaveStatus.Saving });
+        setSave(SaveStatus.Saving);
         void updateFeatureFlag({ flag, adminToken })
             .then((lockToken) => {
                 // Don't read after write: the server returns only the new token, so only the
                 // token is applied. Handing back the flag captured at click time would write a
                 // snapshot over whatever the operator typed during the round trip.
                 onSaved({ flagKey: flag.key, lockToken });
-                setSave({ status: SaveStatus.Saved });
+                setSave(SaveStatus.Saved);
             })
             .catch((error: unknown) => {
                 if (statusOfError(error) === HTTP_CONFLICT) {
-                    setSave({ status: SaveStatus.Conflict });
+                    setSave(SaveStatus.Conflict);
 
                     return;
                 }
-                setSave({ status: SaveStatus.Failed, error: describeError(error) });
+                logger.error('FlagEditor.handleSave: the save failed', {
+                    flagKey: flag.key,
+                    detail: describeError(error),
+                });
+                setSave(SaveStatus.Failed);
             });
     };
 

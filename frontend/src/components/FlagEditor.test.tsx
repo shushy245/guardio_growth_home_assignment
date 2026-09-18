@@ -74,6 +74,15 @@ describe('FlagEditor', () => {
         driver.assert.noSaveMessageIsShown();
     });
 
+    it('tells the operator a save failed in their words and logs the server’s', async () => {
+        driver.given.theFlag(aFeatureFlagDTO().withUpdatedAt(FIRST_TOKEN).build());
+        driver.given.theSaveFails();
+        await driver.when.created();
+        await driver.click.save();
+        await driver.assert.saveFailureIsShown();
+        driver.assert.saveFailureWasLogged();
+    });
+
     it('does not offer a save before the admin token is pasted, and says why', async () => {
         driver.given.theFlag(aFeatureFlagDTO().build());
         driver.given.theAdminToken('');

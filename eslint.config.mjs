@@ -55,6 +55,10 @@ export default [
             ],
         },
     },
+    // The console wrapper. `no-console`'s own instruction is "use the structured logger"; this is
+    // that logger, and it is the only file allowed to reach the console to be it.
+    { files: ['**/logging/logger.ts'], rules: { 'no-console': 'off' } },
+
     // Two wrapper files, one exemption each (lint-index: "one entry + one override exemption per
     // wrapper file"): the production seam, and the test-side fake transport that must speak
     // axios's adapter contract to stand in for the network.
