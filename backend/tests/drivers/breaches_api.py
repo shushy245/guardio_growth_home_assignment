@@ -19,6 +19,7 @@ from app.breaches.repository import upsert_many
 from app.ports.breach_catalog import Breach
 from tests.builders.breach import a_breach
 from tests.drivers.http import HttpDriver
+from tests.fakes.breach_catalog import UNREACHABLE_REASON
 
 # Ages, not instants: a seed stamped with a fixed date silently crosses the sync TTL the day
 # after it is written, and every list test would start behaving as if the catalog were stale.
@@ -183,9 +184,11 @@ class _Then:
         expected = self._driver._seeded_at
         assert actual == expected, f"expected syncedAt={expected.isoformat()}, got {raw}"
 
-    def the_failed_refresh_was_logged(self) -> None:
+    def the_failed_refresh_was_logged_with_its_reason(self) -> None:
+        """The reason is the only thing an operator can act on; the event name alone is not."""
         self._driver._http.then.logged(
-            "sync_catalog_best_effort: catalog unavailable, serving what is stored"
+            "sync_catalog_best_effort: catalog unavailable, serving what is stored",
+            reason=UNREACHABLE_REASON,
         )
 
     def the_catalog_source_was_fetched(self, times: int) -> None:

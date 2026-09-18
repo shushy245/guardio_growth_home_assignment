@@ -63,7 +63,7 @@ def test_a_failed_refresh_never_reaches_the_visitor(breaches: BreachesApiDriver)
     breaches.then.it_answered_normally()
     breaches.then.the_breach_names_are("Adobe")
     breaches.then.the_catalog_source_was_fetched(1)
-    breaches.then.the_failed_refresh_was_logged()
+    breaches.then.the_failed_refresh_was_logged_with_its_reason()
 
 
 def test_a_request_refused_over_an_empty_catalog_still_schedules_the_refresh(

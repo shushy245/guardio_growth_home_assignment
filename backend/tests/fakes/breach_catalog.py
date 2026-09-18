@@ -12,6 +12,7 @@ from app.ports.breach_catalog import Breach, BreachCatalogError
 
 # A held fetch that is never released is a test bug, not a hang: fail it, loudly, in bounded time.
 RELEASE_TIMEOUT_SECONDS = 5
+UNREACHABLE_REASON = "fetch_all: fake catalog is unreachable"
 
 
 class FakeBreachCatalog:
@@ -43,7 +44,6 @@ class FakeBreachCatalog:
             msg = "fetch_all: fake catalog was held for too long and never released"
             raise AssertionError(msg)
         if not self._reachable:
-            msg = "fetch_all: fake catalog is unreachable"
-            raise BreachCatalogError(msg)
+            raise BreachCatalogError(UNREACHABLE_REASON)
 
         return list(self._breaches)

@@ -57,13 +57,21 @@ def sync_catalog_best_effort(
     """
     try:
         sync_breaches_if_stale(session=session, catalog=catalog, now=now)
-    except BreachCatalogError:
-        log.exception("sync_catalog_best_effort: catalog unavailable, serving what is stored")
-    except SQLAlchemyError:
+    except BreachCatalogError as error:
+        # `reason` as a field, not only in the traceback: it is the one thing an operator can act
+        # on, and a bound field survives a log level change where `exc_info` does not (BF23).
+        log.exception(
+            "sync_catalog_best_effort: catalog unavailable, serving what is stored",
+            reason=str(error),
+        )
+    except SQLAlchemyError as error:
         # The database too, not just the source. Catching only `BreachCatalogError` left the
         # docstring's promise half-true: a rejected write escaped the lifespan and aborted
         # uvicorn's startup, turning one bad record into the crash loop this exists to avoid.
-        log.exception("sync_catalog_best_effort: could not store the catalog, serving what is held")
+        log.exception(
+            "sync_catalog_best_effort: could not store the catalog, serving what is held",
+            reason=str(error),
+        )
 
 
 def sync_catalog_in_own_transaction(
