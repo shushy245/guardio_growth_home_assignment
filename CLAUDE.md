@@ -12,14 +12,17 @@ defect, not a shortcut.**
 `git ls-files -o --exclude-standard`. If any path matches `frontend/` and is not `*.test.*` /
 `*.driver.*`, the change has a rendered surface. The path check is mechanical on purpose — don't
 judge for yourself whether something "counts as UI".
-- At `/code-review medium` and above, at `/story-done`, and before calling any UI change done: open
-  `~/.claude/docs/visual-review.md` and follow it — **first confirm the running app actually contains
-  the change** (`docker compose up -d --build`; plain `up -d` serves nginx with a stale baked image,
-  so source edits are invisible and the review silently passes UI that was never rendered), then
-  capture 390x844 / 768x1024 / 1280x800 and run its measurement script.
-- At `/code-review low`, which is one-pass by design, don't run it — but say in the output that the
-  visual pass was not run and that no claim has captures behind it. A silent skip is the failure;
-  a stated one is fine.
+- **The pass belongs to the session driving the review, never to a review subagent.** A forked
+  reviewer runs a capped one-pass recipe and cannot reliably tell which effort level it is in — a
+  `medium` invocation reported itself as `low` and skipped on that basis. Let the subagent review
+  source; you drive the browser yourself and fold its findings in.
+- Open `~/.claude/docs/visual-review.md` and follow it. **First confirm the running app actually
+  contains the change** (`docker compose up -d --build`; plain `up -d` serves nginx with a stale
+  baked image, so source edits are invisible and the review silently passes UI that was never
+  rendered), then capture 390x844 / 768x1024 / 1280x800 and run its measurement script.
+- Required before `/story-done` and before calling any UI change done. If a review closes without
+  it, say so plainly — "visual pass not run; no claim here is backed by a capture". A stated skip is
+  acceptable, a silent one is the bug.
 Don't wait for `visual-review.md` to be injected — hook injection does not reach a forked reviewer.
 Open it yourself. Never write "responsive" / "renders correctly" / "looks right" without captures
 behind them; font size, tap-target size and line length are measured, never eyeballed.**
