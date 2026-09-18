@@ -828,6 +828,27 @@ Cases:
 - F2. `track` while the visitor is not yet created queues and flushes after creation, in order (driver)
 - F3. a failed post logs and does not throw to the caller (driver)
 - F4. React StrictMode double-invoking the landing effect produces one network call (driver, same event id)
+- Pre-mortem (added at /story-start, 2026-09-18):
+  - B6. an `occurredAt` without a timezone → 400 `{ error }`, never a naive-vs-aware `TypeError`
+    turned 500 by the clock-skew comparison (`AwareDatetime` at the boundary)
+  - B7. an `id` that is not `evt_` + a well-formed body → 400: the client mints the row's primary
+    key, so the boundary decides what a valid one looks like, not the table
+  - B8. a visitor whose flag was disabled when they arrived (no assignment) → 201 and a row with
+    no flag and no variant — the funnel still records the step, it is just not in the experiment
+  - B9. `metadata` is stored as sent
+  - B10. the same id posted a second time with a different body → 201 and the first row is
+    untouched (`DO NOTHING` does nothing — the first write wins, the replay is not an update)
+  - F5. events queued while the visitor session was loading are dropped with a log when the
+    session fails — never held forever, never posted without a visitor
+  - F6. a `track` issued while the queue is flushing lands behind the queued events, not ahead
+    of them: order holds across the interleaving
+  - F7. a second mount of the same step (navigate away and back) mints a new event id and posts
+    again — the StrictMode dedupe is per mount, never per name, so a revisit is still a visit
+  - (recorded) one `flag_key` / `variant_key` pair per event tags the visitor's assignment for
+    the one running experiment. A second enabled flag would leave the row unable to tag both;
+    when that day comes the choice is a JSONB `assignments` snapshot or one row per flag, and
+    S7's query changes with it. The handler refuses to guess: two assignments is a logged 500,
+    never a silently chosen one.
 
 Commits:
 - C1 `[chore]` `funnel_event` migration + model + `FunnelEventName` enum
