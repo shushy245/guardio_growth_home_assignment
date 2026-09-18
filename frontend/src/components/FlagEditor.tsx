@@ -131,6 +131,7 @@ export const FlagEditor = ({
                 type="button"
                 data-testid={flagFieldTestId({ flagKey: flag.key, field: FlagField.Save })}
                 disabled={!canSave({ save, flag, adminToken })}
+                aria-busy={isSaving(save)}
                 onClick={handleSave}
             >
                 {`Save`}

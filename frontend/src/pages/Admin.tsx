@@ -6,12 +6,20 @@
 // visitor, and never in localStorage, which would leave it on the machine.
 import { type ChangeEvent, type ReactElement, useEffect, useState } from 'react';
 
+import { logger } from '~/logging/logger';
 import { Column, MainColumn } from '~/ui/box';
 import { describeError } from '~/api/http-client';
 import { FlagEditor } from '~/components/FlagEditor';
 import { fetchFeatureFlags } from '~/api/feature-flags';
 import { type FeatureFlagModel, replaceFlag, setLockTokenIn } from '~/models/featureFlag';
-import { type AdminState, AdminTestIds, isFailedToLoad, isReady, LoadStatus } from '~/pages/Admin.utils';
+import {
+    type AdminState,
+    AdminTestIds,
+    isFailedToLoad,
+    isReady,
+    LOAD_FAILED_MESSAGE,
+    LoadStatus,
+} from '~/pages/Admin.utils';
 
 import styles from '~/pages/Admin.module.scss';
 
@@ -32,7 +40,8 @@ export const Admin = (): ReactElement => {
                 if (!cancelled) setState({ status: LoadStatus.Ready, flags });
             })
             .catch((error: unknown) => {
-                if (!cancelled) setState({ status: LoadStatus.Failed, error: describeError(error) });
+                logger.error('Admin: the flag list could not be loaded', { detail: describeError(error) });
+                if (!cancelled) setState({ status: LoadStatus.Failed });
             });
 
         return (): void => {
@@ -114,7 +123,7 @@ const Flags = ({
         return (
             <Column className={styles.intro}>
                 <p className={styles.message} role="status" data-testid={AdminTestIds.LoadError}>
-                    {`Could not load the flags: ${state.error}`}
+                    {LOAD_FAILED_MESSAGE}
                 </p>
                 <button className={styles.retry} type="button" data-testid={AdminTestIds.Retry} onClick={onRetry}>
                     {`Try again`}

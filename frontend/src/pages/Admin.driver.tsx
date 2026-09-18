@@ -1,9 +1,10 @@
 import { act } from 'react';
-import { expect } from 'vitest';
+import { expect, vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import { screen, waitFor } from '@testing-library/react';
 
 import { Admin } from '~/pages/Admin';
+import { logger } from '~/logging/logger';
 import { CopyField } from '~/models/featureFlag';
 import { AdminTestIds } from '~/pages/Admin.utils';
 import { isPlainObject } from '~/api/http-client.utils';
@@ -17,6 +18,9 @@ const RESULT_SCREEN_TONE = 'result_screen_tone';
 const URGENT = 'urgent';
 const SAVE_PATH = `/feature-flags/${RESULT_SCREEN_TONE}`;
 const HTTP_SERVER_ERROR = 500;
+// What the backend puts in `{ error }`, or what a proxy puts in a status line — written for an
+// on-call engineer, never for this page.
+const SERVER_ERROR_DETAIL = 'internal error';
 
 export type AdminDriver = {
     given: {
@@ -37,6 +41,8 @@ export type AdminDriver = {
         saveCarried: (expected: { ctaLabel: string; lockToken: string; adminToken: string }) => void;
         savedConfirmationIsShown: () => Promise<void>;
         loadErrorIsShown: () => Promise<void>;
+        loadFailureIsShownWithoutTheServersWords: () => Promise<void>;
+        loadFailureWasLogged: () => void;
         adminTokenFieldIsShown: () => void;
         flagIsShown: () => Promise<void>;
     };
@@ -44,6 +50,7 @@ export type AdminDriver = {
 
 export const makeAdminDriver = (): AdminDriver => {
     const user = userEvent.setup();
+    const loggedErrors = vi.spyOn(logger, 'error').mockImplementation(() => {});
 
     const saves = (): RecordedRequest[] =>
         fakeHttp.requests().filter((request) => request.method === HttpMethod.Patch && request.path === SAVE_PATH);
@@ -87,7 +94,7 @@ export const makeAdminDriver = (): AdminDriver => {
                     method: HttpMethod.Get,
                     path: '/feature-flags',
                     status: HTTP_SERVER_ERROR,
-                    body: { error: 'internal error' },
+                    body: { error: SERVER_ERROR_DETAIL },
                 });
             },
             theSaveSucceedsWithToken: (token: string): void => {
@@ -160,6 +167,18 @@ export const makeAdminDriver = (): AdminDriver => {
                 await waitFor(() => {
                     expect(screen.getByTestId(AdminTestIds.LoadError)).toBeInTheDocument();
                 });
+            },
+            loadFailureIsShownWithoutTheServersWords: async (): Promise<void> => {
+                await waitFor(() => {
+                    expect(screen.getByTestId(AdminTestIds.LoadError)).toHaveTextContent('could not be loaded');
+                });
+                expect(screen.getByTestId(AdminTestIds.LoadError)).not.toHaveTextContent(SERVER_ERROR_DETAIL);
+            },
+            loadFailureWasLogged: (): void => {
+                expect(loggedErrors).toHaveBeenCalledWith(
+                    expect.stringContaining('Admin'),
+                    expect.objectContaining({ detail: SERVER_ERROR_DETAIL }),
+                );
             },
             adminTokenFieldIsShown: (): void => {
                 expect(screen.getByTestId(AdminTestIds.AdminToken)).toBeInTheDocument();

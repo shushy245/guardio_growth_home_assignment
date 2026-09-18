@@ -13,6 +13,11 @@ export enum AdminTestIds {
     Retry = 'AdminTestIds.Retry',
 }
 
+// Operator copy, not the server's. A proxy's 502 and an axios wording are on-call detail: they
+// go to the log, and what the page says is what the operator can act on.
+export const LOAD_FAILED_MESSAGE =
+    'The flags could not be loaded, so there is nothing to edit yet. Try again — the details are in the browser console.';
+
 export enum LoadStatus {
     Loading = 'loading',
     Ready = 'ready',
@@ -24,7 +29,8 @@ export enum LoadStatus {
 export type AdminState =
     | { status: LoadStatus.Loading }
     | { status: LoadStatus.Ready; flags: FeatureFlagModel[] }
-    | { status: LoadStatus.Failed; error: string };
+    // Failed carries nothing: the detail is logged, and what the page shows is fixed copy.
+    | { status: LoadStatus.Failed };
 
 export const isReady = (state: AdminState): state is Extract<AdminState, { status: LoadStatus.Ready }> =>
     state.status === LoadStatus.Ready;

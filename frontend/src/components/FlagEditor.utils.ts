@@ -82,6 +82,7 @@ export const isAnswered = (save: SaveStatus): boolean => save !== SaveStatus.Idl
 
 export const CONFLICT_MESSAGE =
     'This flag changed somewhere else while you were editing. Reload the page, then apply your change to the current version.';
+export const SAVING_MESSAGE = 'Saving…';
 export const SAVED_MESSAGE = 'Saved.';
 export const MISSING_TOKEN_MESSAGE = 'Paste the admin token above before saving.';
 // Operator copy, not the server's. What went wrong is on-call detail and goes to the log; what
@@ -89,11 +90,12 @@ export const MISSING_TOKEN_MESSAGE = 'Paste the admin token above before saving.
 export const FAILED_MESSAGE =
     'The flag could not be saved and is unchanged. Try again — the details are in the browser console.';
 
-// What the operator is told after a save attempt. A lookup table rather than a branch chain, so
+// What the operator is told about a save attempt. Saving says so: a request that took 39 seconds
+// against a stopped backend showed a greyed button and nothing else for the whole of it. A lookup table rather than a branch chain, so
 // a new SaveStatus member is a compile error here instead of a silently blank message.
 const saveMessageMap: Record<SaveStatus, string | undefined> = {
     [SaveStatus.Idle]: undefined,
-    [SaveStatus.Saving]: undefined,
+    [SaveStatus.Saving]: SAVING_MESSAGE,
     [SaveStatus.Saved]: SAVED_MESSAGE,
     [SaveStatus.Conflict]: CONFLICT_MESSAGE,
     [SaveStatus.Failed]: FAILED_MESSAGE,

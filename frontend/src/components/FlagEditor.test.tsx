@@ -112,6 +112,15 @@ describe('FlagEditor', () => {
         driver.assert.variantFieldsAreNamedPerVariant();
     });
 
+    it('says a save is under way while it is in flight', async () => {
+        driver.given.theFlag(aFeatureFlagDTO().withUpdatedAt(FIRST_TOKEN).build());
+        driver.given.theSaveHangs(SECOND_TOKEN);
+        await driver.when.created();
+        await driver.click.save();
+        await driver.assert.saveInFlightIsShown();
+        await driver.when.theSaveResponds();
+    });
+
     it('does not scroll anything before a save has been answered', async () => {
         driver.given.theFlag(aFeatureFlagDTO().build());
         await driver.when.created();

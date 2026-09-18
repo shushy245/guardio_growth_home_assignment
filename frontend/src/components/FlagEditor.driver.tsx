@@ -74,6 +74,7 @@ export type FlagEditorDriver = {
         savesSent: (count: number) => void;
         savedConfirmationIsShown: () => Promise<void>;
         noSaveMessageIsShown: () => void;
+        saveInFlightIsShown: () => Promise<void>;
         saveIsOffered: () => void;
         saveMessagesAreAnnounced: () => void;
         saveResultWasBroughtIntoView: () => Promise<void>;
@@ -280,6 +281,12 @@ export const makeFlagEditorDriver = (): FlagEditorDriver => {
             },
             urgentWeightIs: (weight: number): void => {
                 expect(screen.getByTestId(urgentFieldId(WEIGHT_FIELD))).toHaveValue(weight);
+            },
+            saveInFlightIsShown: async (): Promise<void> => {
+                await waitFor(() => {
+                    expect(messageOf()).toHaveTextContent('Saving');
+                });
+                expect(saveButton()).toHaveAttribute('aria-busy', 'true');
             },
             noSaveMessageIsShown: (): void => {
                 expect(messageOf()).toBeEmptyDOMElement();

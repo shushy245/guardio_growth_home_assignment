@@ -31,6 +31,13 @@ describe('Admin page', () => {
         await driver.assert.loadErrorIsShown();
     });
 
+    it('tells the operator the flags did not load in their words and logs the server’s', async () => {
+        driver.given.theFlagListFails();
+        await driver.when.created();
+        await driver.assert.loadFailureIsShownWithoutTheServersWords();
+        driver.assert.loadFailureWasLogged();
+    });
+
     it('keeps the admin token field and offers a retry when the flags cannot be loaded', async () => {
         driver.given.theFlagListFails();
         await driver.when.created();
