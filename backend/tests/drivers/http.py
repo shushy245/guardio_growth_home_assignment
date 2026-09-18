@@ -93,7 +93,10 @@ class HttpDriver:
                 app.dependency_overrides[get_session] = lambda: session
                 # The background refresh opens its own transaction from this factory. Bound to
                 # the test's connection it lands in the savepoint; left on the real engine it
-                # would commit for real and leak rows into the test database.
+                # would commit for real and leak rows into the test database. Invariant: never
+                # two threads on this connection — it holds only because `TestClient` blocks
+                # until background tasks finish. A test that drives two requests concurrently
+                # through this driver would break it without a clear failure.
                 app.state.session_factory = sessionmaker(
                     bind=session.connection(), join_transaction_mode="create_savepoint"
                 )

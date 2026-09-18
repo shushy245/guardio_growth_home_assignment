@@ -51,7 +51,6 @@ def revalidate_catalog(
     carried onto an error response too: an empty catalog is a 503 *and* the case that most needs
     the refresh, since it is how a boot that found HIBP down heals without a restart.
     """
-    carry_background_tasks(request=request, background_tasks=background_tasks)
     refresher: CatalogRefresher = request.app.state.catalog_refresher
     now = datetime.now(UTC)
     fetched_at = repository.latest_fetched_at(session=session)
@@ -65,6 +64,7 @@ def revalidate_catalog(
     background_tasks.add_task(
         refresher.refresh, session_factory=request.app.state.session_factory, now=now
     )
+    carry_background_tasks(request=request, background_tasks=background_tasks)
 
 
 @router.get("/breaches", response_model=BreachPage)

@@ -2,8 +2,9 @@
 overlap or fail, which a sequential `TestClient` cannot interleave.
 
 A refresh "in the background" is a real thread holding a real (savepoint-bound) transaction
-open inside the fake's held fetch — the state a slow HIBP puts production in. The test thread
-touches the shared connection only after that thread has been joined.
+open inside the fake's held fetch — the state a slow HIBP puts production in. Invariant: never
+two threads on the shared connection. The test thread touches it only after that thread has
+been joined; the red run of R7 (two threads, one connection) corrupted the savepoint stack.
 """
 
 import threading

@@ -21,6 +21,7 @@ class FakeBreachCatalog:
         self._reachable = True
         self._released = threading.Event()
         self._released.set()
+        self._counting = threading.Lock()
         self.fetch_started = threading.Event()
         self.fetch_count = 0
 
@@ -38,7 +39,10 @@ class FakeBreachCatalog:
         self._released.set()
 
     def fetch_all(self) -> list[Breach]:
-        self.fetch_count += 1
+        # The count is the evidence that single-flight holds, so it must not itself lose an
+        # increment under two genuinely concurrent fetches — the case it exists to detect.
+        with self._counting:
+            self.fetch_count += 1
         self.fetch_started.set()
         if not self._released.wait(timeout=RELEASE_TIMEOUT_SECONDS):
             msg = "fetch_all: fake catalog was held for too long and never released"

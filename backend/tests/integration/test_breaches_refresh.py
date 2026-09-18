@@ -75,15 +75,15 @@ def test_a_request_refused_over_an_empty_catalog_still_schedules_the_refresh(
     breaches.given.the_catalog_source_offers(a_breach().with_name("Adobe").build())
 
     breaches.when.listed()
-    breaches.then.the_catalog_was_reported_unavailable()
 
+    breaches.then.the_catalog_was_reported_unavailable()
     breaches.then.the_catalog_source_was_fetched(1)
     breaches.then.the_stored_catalog_holds("Adobe")
 
 
 def test_the_request_after_a_healing_refresh_is_served(breaches: BreachesApiDriver) -> None:
     breaches.given.the_catalog_source_offers(a_breach().with_name("Adobe").build())
-    breaches.when.listed()
+    breaches.given.a_request_already_triggered_the_refresh()
 
     breaches.when.listed()
 

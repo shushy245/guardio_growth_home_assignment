@@ -87,6 +87,10 @@ class _Given:
         the difference between the two."""
         self._driver._http._catalog.holds(list(breaches))
 
+    def a_request_already_triggered_the_refresh(self) -> None:
+        """One earlier request over an empty catalog: a 503 whose refresh has already run."""
+        self._driver._list("")
+
     def the_catalog_source_is_unreachable(self) -> None:
         """HIBP is down. The endpoints never call it, and this test is what says so."""
         self._driver._http._catalog.becomes_unreachable()
