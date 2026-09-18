@@ -7,7 +7,7 @@
 **Strict TDD, no exceptions: no production line without a failing test first; every commit is
 `test+impl`, `refactor`, or `chore` as defined in `docs/plan.md` → TDD contract. Untested code is a
 defect, not a shortcut.**
-**Stop at plan stage D1 (before S5) and hand Shalev a Claude Design prompt; never build funnel UI without it.**
+**D1 is closed (2026-09-19): the design exists and is translated. Never build funnel UI that is not the design — `docs/design/component-inventory.md` names the components and `frontend/src/styles/tokens.scss` holds every value; a deviation is recorded in the inventory or it is a defect.**
 **VISUAL PASS — HARD RULE 5 in the global CLAUDE.md governs this; it is not restated here.**
 Project-specific trigger only: run `git diff --name-only HEAD` and `git ls-files -o
 --exclude-standard`; any path under `frontend/` that is not `*.test.*` / `*.driver.*` is a
@@ -47,6 +47,25 @@ in-app statistical dashboard.
 
 ## What's done
 Full history: `docs/changelog.md`; commit-level record: `git log`.
+
+- **D1 — design handoff (closed 2026-09-19).** The funnel screens had no design, and the admin
+  page carried three measured defects that no page-local fix could answer without answering them
+  twice. Shalev ran the prompt in Claude Design and brought back the project verbatim; it is now
+  translated into a token scale the app reads everywhere, and an inventory that names every
+  component S5–S7 will build. The three carried findings are closed by a token each and confirmed
+  by measurement: the disabled Save passes contrast with zero items, no text renders under 16px,
+  and no line exceeds 75 characters at any viewport. Accessibility 100 on both screens.
+  Technically: `tokens.scss` translates the design's `oklch()` to sRGB hex with the source value in
+  a comment beside each (Chrome gamut-maps by reducing chroma, and the review tooling measures from
+  computed `rgb()`); `$text-100` 16px is the floor, `$prose-measure: 65ch` caps every `p`,
+  `$content-max` 1120px caps `main`, and `button-primary:disabled` reads its pair from
+  `$color-disabled-fill`/`-text`. Source Sans 3 is self-hosted via `@fontsource-variable`, imported
+  once in `main.tsx` — a security product's page should not call a third-party origin to draw text.
+  `/admin` and the landing route are re-tokened; every `@media` is `min-width` over a breakpoint
+  token and no component branches on width. **Eight deviations** are recorded, not silent — the
+  mock's JS width branch becomes CSS-only reflow, two CTA nodes become one, sort segments grow to
+  44px. Inventory: `docs/design/component-inventory.md`; review:
+  `docs/reviews/d1-visual-review.md`; export: `docs/design/claude-design-export/`.
 
 - **S4 — funnel-events (closed 2026-09-18).** The funnel could not say what a visitor did: no
   step was recorded anywhere, so the experiment had numbers on paper and none in a table. Every
@@ -108,18 +127,22 @@ Full history: `docs/changelog.md`; commit-level record: `git log`.
   tests green.
 
 ## What's next
-**D1 — the pause point. Nothing to build.** S4 closed. The Claude Design prompt is written at
-`docs/design/d1-claude-design-prompt.md` (2026-09-18); Shalev runs it in Claude Design and brings
-back tokens, the component inventory and the screens at 390/768/1280. Then I translate the output
-into `frontend/src/styles/tokens.scss` and the inventory, listing deviations. **Never build funnel
-UI without it.** D1's exit criteria carry three measured findings from the S3 visual
-passes, to be answered by a token rather than a one-off override: the disabled Save at 2.58:1,
-14px body text against the 16px floor, and a 96–101 character measure at 768 and 1280.
+**S5 — funnel-ui. Unblocked and next.** D1 closed: the design is translated, so S5 implements a
+design rather than inventing one. **Component names, states and screens come from
+`docs/design/component-inventory.md`** and every value comes from `frontend/src/styles/tokens.scss`
+— a one-off literal in a `.module.scss` is a finding. The eight recorded deviations are the only
+places the code may differ from the export.
 
-Also carried: `api/breaches` (the hooks *and* `fetchBreaches`/`fetchBreachSummary`) is deferred
-to S5 to be written red-first; the landing placeholder has no `max-width`; S5 gains F0 (the
-provider mount proved through the App driver, BF50); S7's simulator holds one cookie jar per
-simulated visitor (BF47).
+S5 carries into it: `api/breaches` (the hooks *and* `fetchBreaches`/`fetchBreachSummary`) deferred
+from S2 to be written red-first; **F0** (the provider mount proved through the App driver, BF50);
+and **F21** (BreachRow expanded reveals the description), added at D1 because the design gives the
+description its only home on the screen. S7's simulator holds one cookie jar per simulated visitor
+(BF47).
 
-Review records: `docs/reviews/s3-review.md`, `docs/reviews/s3-fixes-visual-review.md`, and the
-S4 triage in `docs/plan.md`. **BF36 and BF42 remain open by design as D1 exit criteria.**
+Open, deliberately: the `/admin` status `<p>` and Save do not share a right edge at 768/1280 (DV3,
+a nit — the 65ch cap is the token answering the measure criterion), and every authenticated
+`/admin` state is still visually unmeasured (no `ADMIN_TOKEN` given to the reviewer).
+
+Review records: `docs/reviews/s3-review.md`, `docs/reviews/s3-fixes-visual-review.md`,
+`docs/reviews/d1-visual-review.md`, and the S4 triage in `docs/plan.md`. **BF36 and BF42 are
+closed** — measured in the D1 pass.

@@ -808,7 +808,8 @@ findings above and are the fastest route to each red test.
 "barely designed", and the design tokens land at D1 before S5, so fixing them now means doing
 them twice: **BF36** (disabled Save at 2.58:1), **BF42** (14px body text against the 16px floor),
 and the 94–101 character line lengths at 768 and 1280. Add them to D1's exit criteria so they are
-checked against the real tokens.
+checked against the real tokens. **All three closed 2026-09-19** — each answered by a token, each
+confirmed by measurement in D1's "Exit criteria, measured" table.
 
 **Closing the story.** After Phase 5, re-run the `visual-reviewer` (pass A and pass B) against
 `http://localhost:5173/admin` — `docker compose up -d --build` first, since compose serves a baked
@@ -931,11 +932,11 @@ S5 implements a design rather than inventing one. **I stop here and hand over a 
 Tasks:
 - [x] (2026-09-18, `docs/design/d1-claude-design-prompt.md`) I write the Claude Design prompt: product context (Guardio, breach-scan funnel, mobile-web first at 390px **and responsive up to desktop**), the four screens in order, the result screen as the centrepiece with the calm and urgent variants side by side, the summary tiles, the sortable/filterable list with chips and sticky CTA, the sign-up form with the leaked-password warning state, the "you're protected" confirmation, and the constraints the implementation needs (tokens for colour/spacing/type, component inventory, both variants sharing one layout with only copy/tone changing, states: loading skeleton, empty-filter, error)
 - [x] (2026-09-18, same file, section 3) The same prompt asks for every screen at all three widths, not only 390, and names what reflows at each (see "Responsive contract") — so the desktop layout is designed rather than improvised in S5
-- [ ] Shalev runs it in Claude Design and brings back the output (design system tokens, screens, any exported HTML/CSS)
-- [ ] I translate the output into `frontend/src/styles/tokens.scss` and a component inventory that S5's drivers and components are named after; deviations from the design are listed, not silent
-- [ ] Optional in the same round: the dashboard (S7) read, so the PM-facing page shares the system
+- [x] (2026-09-19, `docs/design/claude-design-export/`) Shalev runs it in Claude Design and brings back the output: the project's 16 files verbatim — tokens, a 24-component inventory with states, every screen at 390/768/1280 (the result screen in both variants at each width), live HTML bodies, and ten decisions the designer took unprompted
+- [x] (2026-09-19, `f12c1bc`) I translate the output into `frontend/src/styles/tokens.scss` (oklch → sRGB hex, source value in a comment beside each) and `docs/design/component-inventory.md`, which S5–S7 name their components and drivers after; `/admin` and the landing route are re-tokened off the scale; **eight deviations are listed**, not silent (CSS-only reflow instead of the mock's JS width branch, one CTA node, 44px sort segments, the named largest breach, hex not oklch, admin's 720px width, 12px message radius, placeholder copy stays placeholder)
+- [x] (2026-09-19) Optional in the same round: the dashboard (S7) read — `S6-Dashboard.dc.html` + `DashboardBody.dc.html`, so the PM-facing page shares the system
 
-- [ ] **Carried from the S3 review** — three presentation findings deferred here rather than fixed
+- [x] **Carried from the S3 review** — three presentation findings deferred here rather than fixed
   twice, because they are decisions the design tokens make and the admin page is deliberately
   barely designed. Each is an exit criterion, measured against the real tokens, on `/admin` as
   well as the funnel screens:
@@ -952,14 +953,38 @@ Cases:
   decisions, the component inventory agreed in chat, and the three carried findings above answered
   by a token rather than a one-off override.
 
-**Carried from the S3 visual review:** the landing route is a placeholder with no `max-width`, so
-its content box grows to the full viewport (1232px at 1280) where `/admin` caps at 768. Harmless
-with one heading on it; the real screen needs a reading-width cap.
+**Exit criteria, measured** (2026-09-19, independent `visual-reviewer` pass A + B on `/admin` and
+`/` at 390/768/1280; verbatim report and triage in `docs/reviews/d1-visual-review.md`):
+
+| Criterion | Token that answers it | Measurement |
+|---|---|---|
+| BF36 disabled Save was 2.58:1 | `$color-disabled-fill` / `$color-disabled-text` in `button-primary:disabled` | Lighthouse `color-contrast` **passes, 0 items**, with Save rendered disabled |
+| BF42 14px body text | `$text-100` = 16px, the floor | `bodyTextUnder16` **empty at all three viewports**, both screens |
+| 96–101 ch measure at 768/1280 | `$prose-measure: 65ch` on every `p` | **nothing over 75ch at any viewport** — the finding does not reproduce |
+| the landing route had no `max-width` | `$content-max: 1120px` + `$gutter-*` | `main` computes `max-width: 1120px`, `padding: 64px` at 1280 |
+| tokens file carries the three breakpoints | `$breakpoint-md` / `$breakpoint-lg` | all four `@media` blocks are `min-width` over the tokens; **no breakpoint literal, no `max-width` query, no width branch in any component** |
+
+Accessibility 100 on both screens, 0 accessibility audits failed. Four observations triaged, none a
+blocker and none a code fix: the 24×24 checkbox inside a 686×52 label (precondition, not a defect),
+native `<input>` value clipping, the status `<p>` and Save not sharing a right edge at 768/1280
+(nit — the 65ch cap is the token answering the measure criterion), and a pre-existing devtools
+`id`/`name` console note on controls that all carry accessible names. **Unmeasured and stated as
+such:** every authenticated `/admin` state (the `.saved` / `.unsaved` / `.warning` pairs), the real
+`prefers-reduced-motion` feature, and iOS Safari `100dvh`.
+
+**Carried from the S3 visual review — closed 2026-09-19:** the landing route was a placeholder with
+no `max-width`, so its content box grew to the full viewport (1232px at 1280). `MainColumn` now
+carries `$content-max` (1120px) and the token gutters; measured at 1280 in the D1 pass.
 
 ### S5 — funnel-ui (~2.5h; the result screen is the heart of the exercise and gets the most care; implements D1's design)
 
 Objective: Landing → Scan moment → Result (summary, sortable/filterable list, variant copy) → CTA,
 mobile-first at 390px and holding to desktop per the Responsive contract.
+
+**Component names, states and screens come from `docs/design/component-inventory.md`** (D1's
+translation of the Claude Design handoff) — each component and its driver carries the design's
+name, and the eight recorded deviations are the only places the code may differ. Values come from
+`frontend/src/styles/tokens.scss`; a one-off literal in a `.module.scss` is a finding.
 
 Result-screen product bar (load the `frontend-design` skill before building it):
 - Summary tiles answer "why should I care": breaches in the last 12 months, accounts exposed
@@ -996,6 +1021,7 @@ Cases:
 - F18. `BreachList` shows skeleton rows while the first page loads (driver)
 - F19. the CTA is rendered inside the sticky footer region on the result page (driver asserts the test id is present; visual sticky behaviour is checked manually at 390px)
 - F20. the result page renders exactly one CTA node at any width — the mobile/desktop switch is CSS, never a second element or a width branch (driver: one match for the CTA test id)
+- F21. `BreachRow` expanded reveals the breach description; collapsed does not render it (driver) — from D1, the design gives the description its only home on the screen
 
 Commits:
 - C1 `[test+impl F1, F2]` Landing page (driver first)
@@ -1004,7 +1030,7 @@ Commits:
 - C4 `[test+impl F5]` Result page shell reading variant config from `VisitorProvider` (driver first)
 - C5 `[test+impl F7]` `BreachSummary` (driver first)
 - C6 `[test+impl F8, F9, F15]` `BreachFilters` (driver first) + `useBreachFilters` state
-- C7 `[test+impl F17]` `BreachRow` (driver first)
+- C7 `[test+impl F17, F21]` `BreachRow` (driver first), collapsed and expanded
 - C8 `[test+impl F10, F11, F13, F16, F18]` `BreachList` (driver first) with load-more, abortable fetch, skeleton and empty states
 - C9 `[test+impl F12, F19, F20]` sticky CTA wiring — one node, position and placement driven by the breakpoint in `.module.scss`
 - C10 `[refactor]` extract sub-components / move logic to `.utils.ts` where files accumulated logic
