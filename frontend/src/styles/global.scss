@@ -1,0 +1,16 @@
+// The one global stylesheet, imported by the composition root. Everything else is a CSS module.
+//
+// It exists because a page that sets no font gets the browser's default serif: the landing route
+// rendered in Times while /admin rendered in system-ui, since the only font-family in the app
+// lived on the admin page's own `.page` class. D1's tokens replace these values; the file is
+// where they will land.
+:root {
+    color-scheme: light;
+}
+
+body {
+    margin: 0;
+    font-family: system-ui, sans-serif;
+    color: #14202e;
+    background: #fff;
+}

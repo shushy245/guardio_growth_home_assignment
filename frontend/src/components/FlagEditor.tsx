@@ -6,6 +6,7 @@ import { type ChangeEvent, type ReactElement, useEffect, useRef, useState } from
 import { Column } from '~/ui/box';
 import { logger } from '~/logging/logger';
 import { bringIntoView } from '~/ui/scroll';
+import { joinClassNames } from '~/ui/box.utils';
 import { updateFeatureFlag } from '~/api/feature-flags';
 import { describeError, statusOfError } from '~/api/http-client';
 import {
@@ -31,6 +32,8 @@ import {
     missingTokenHint,
     saveMessage,
     SaveStatus,
+    saveTone,
+    SaveTone,
     variantFieldLabelledBy,
     variantFieldTestId,
     variantHeadingId,
@@ -103,6 +106,11 @@ export const FlagEditor = ({
     };
 
     const message = saveMessage(save) ?? missingTokenHint(adminToken);
+    const toneClassMap: Record<SaveTone, string | undefined> = {
+        [SaveTone.Neutral]: undefined,
+        [SaveTone.Saved]: styles.saved,
+        [SaveTone.Unsaved]: styles.unsaved,
+    };
 
     return (
         <Column className={styles.flag}>
@@ -140,7 +148,7 @@ export const FlagEditor = ({
                 live region is what makes that a change a screen reader hears. */}
             <p
                 ref={handleMessageRef}
-                className={styles.message}
+                className={joinClassNames(styles.message, toneClassMap[saveTone(save)])}
                 role="status"
                 data-testid={flagFieldTestId({ flagKey: flag.key, field: FlagField.SaveMessage })}
             >

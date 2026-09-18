@@ -103,6 +103,24 @@ const saveMessageMap: Record<SaveStatus, string | undefined> = {
 
 export const saveMessage = (save: SaveStatus): string | undefined => saveMessageMap[save];
 
+// Which of the message styles an answer wears. A table rather than a branch, so a new SaveStatus
+// has to decide how it looks instead of silently inheriting the success tone.
+export enum SaveTone {
+    Neutral = 'neutral',
+    Saved = 'saved',
+    Unsaved = 'unsaved',
+}
+
+const saveToneMap: Record<SaveStatus, SaveTone> = {
+    [SaveStatus.Idle]: SaveTone.Neutral,
+    [SaveStatus.Saving]: SaveTone.Neutral,
+    [SaveStatus.Saved]: SaveTone.Saved,
+    [SaveStatus.Conflict]: SaveTone.Unsaved,
+    [SaveStatus.Failed]: SaveTone.Unsaved,
+};
+
+export const saveTone = (save: SaveStatus): SaveTone => saveToneMap[save];
+
 // Every condition the server would reject on, asked once, before the round trip: a request in
 // flight (a second would race it), a split that does not cover every bucket (a 400), and no
 // admin token to sign with (a 401).
