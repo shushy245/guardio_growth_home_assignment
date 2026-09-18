@@ -38,5 +38,13 @@ export const toggleEnabled = (flag: FeatureFlagModel): FeatureFlagModel => ({ ..
 
 export const setLockToken = (flag: FeatureFlagModel, lockToken: string): FeatureFlagModel => ({ ...flag, lockToken });
 
+// A save answers with the new lock token and nothing else, and it answers after the operator may
+// have typed again. The token is applied to whatever the list holds by then — never by writing a
+// whole flag captured before the round trip, which would discard every edit made during it.
+export const setLockTokenIn = (
+    flags: FeatureFlagModel[],
+    { flagKey, lockToken }: { flagKey: string; lockToken: string },
+): FeatureFlagModel[] => flags.map((flag) => (flag.key === flagKey ? setLockToken(flag, lockToken) : flag));
+
 export const replaceFlag = (flags: FeatureFlagModel[], updated: FeatureFlagModel): FeatureFlagModel[] =>
     flags.map((flag) => (flag.key === updated.key ? updated : flag));

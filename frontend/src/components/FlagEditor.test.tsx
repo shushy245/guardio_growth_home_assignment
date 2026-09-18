@@ -54,6 +54,16 @@ describe('FlagEditor', () => {
         driver.assert.saveTokensSent(FIRST_TOKEN);
     });
 
+    it('keeps an edit typed while the save it overlaps is still in flight', async () => {
+        driver.given.theFlag(aFeatureFlagDTO().withUpdatedAt(FIRST_TOKEN).build());
+        driver.given.theSaveHangs(SECOND_TOKEN);
+        await driver.when.created();
+        await driver.click.save();
+        await driver.type.urgentCtaLabel('Typed while the save was in flight');
+        await driver.when.theSaveResponds();
+        driver.assert.urgentCtaLabelIs('Typed while the save was in flight');
+    });
+
     it('refuses to send a save before the admin token is pasted', async () => {
         driver.given.theFlag(aFeatureFlagDTO().build());
         driver.given.theAdminToken('');

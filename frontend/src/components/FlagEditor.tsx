@@ -11,7 +11,6 @@ import {
     type FeatureFlagVariantModel,
     CopyField,
     hasCompleteSplit,
-    setLockToken,
     setVariantCopy,
     setVariantWeight,
     toggleEnabled,
@@ -38,10 +37,12 @@ export const FlagEditor = ({
     flag,
     adminToken,
     onChange,
+    onSaved,
 }: {
     flag: FeatureFlagModel;
     adminToken: string;
     onChange: (flag: FeatureFlagModel) => void;
+    onSaved: (saved: { flagKey: string; lockToken: string }) => void;
 }): ReactElement => {
     const [save, setSave] = useState<SaveState>({ status: SaveStatus.Idle });
 
@@ -58,9 +59,10 @@ export const FlagEditor = ({
         setSave({ status: SaveStatus.Saving });
         void updateFeatureFlag({ flag, adminToken })
             .then((lockToken) => {
-                // Don't read after write: the server returns only the new token, and the values
-                // on screen are the ones we just sent.
-                onChange(setLockToken(flag, lockToken));
+                // Don't read after write: the server returns only the new token, so only the
+                // token is applied. Handing back the flag captured at click time would write a
+                // snapshot over whatever the operator typed during the round trip.
+                onSaved({ flagKey: flag.key, lockToken });
                 setSave({ status: SaveStatus.Saved });
             })
             .catch((error: unknown) => {

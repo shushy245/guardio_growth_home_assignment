@@ -15,6 +15,7 @@ import {
     type FeatureFlagModel,
     type FeatureFlagUpdatePayload,
     fromDTO,
+    setLockToken,
 } from '~/models/featureFlag';
 
 const RESULT_SCREEN_TONE = 'result_screen_tone';
@@ -32,7 +33,11 @@ const urgentFieldId = (field: CopyField | typeof WEIGHT_FIELD): string =>
 const FlagEditorHost = ({ flag, adminToken }: { flag: FeatureFlagModel; adminToken: string }): ReactElement => {
     const [current, setCurrent] = useState(flag);
 
-    return <FlagEditor flag={current} adminToken={adminToken} onChange={setCurrent} />;
+    const handleSaved = ({ lockToken }: { flagKey: string; lockToken: string }): void => {
+        setCurrent((latest) => setLockToken(latest, lockToken));
+    };
+
+    return <FlagEditor flag={current} adminToken={adminToken} onChange={setCurrent} onSaved={handleSaved} />;
 };
 
 export type FlagEditorDriver = {

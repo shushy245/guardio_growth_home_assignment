@@ -8,6 +8,7 @@ import {
     fromDTO,
     replaceFlag,
     setLockToken,
+    setLockTokenIn,
     setVariantCopy,
     setVariantWeight,
     toggleEnabled,
@@ -103,6 +104,15 @@ describe('featureFlag setters', () => {
         const flag = fromDTO(aFeatureFlagDTO().withUpdatedAt('2026-09-18T08:00:00Z').build());
 
         expect(setLockToken(flag, '2026-09-18T09:00:00Z').lockToken).toBe('2026-09-18T09:00:00Z');
+    });
+
+    it('advances one flag’s lock token in a list and leaves the rest alone', () => {
+        const first = fromDTO(aFeatureFlagDTO().withKey('a').withUpdatedAt('2026-09-18T08:00:00Z').build());
+        const second = fromDTO(aFeatureFlagDTO().withKey('b').withUpdatedAt('2026-09-18T08:00:00Z').build());
+
+        const advanced = setLockTokenIn([first, second], { flagKey: 'b', lockToken: '2026-09-18T09:00:00Z' });
+
+        expect(advanced.map((flag) => flag.lockToken)).toStrictEqual(['2026-09-18T08:00:00Z', '2026-09-18T09:00:00Z']);
     });
 
     it('replaces one flag in a list by key and keeps the order', () => {

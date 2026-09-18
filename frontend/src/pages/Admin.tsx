@@ -10,7 +10,7 @@ import { Column } from '~/ui/box';
 import { describeError } from '~/api/http-client';
 import { FlagEditor } from '~/components/FlagEditor';
 import { fetchFeatureFlags } from '~/api/feature-flags';
-import { type FeatureFlagModel, replaceFlag } from '~/models/featureFlag';
+import { type FeatureFlagModel, replaceFlag, setLockTokenIn } from '~/models/featureFlag';
 import { type AdminState, AdminTestIds, isFailedToLoad, isReady, LoadStatus } from '~/pages/Admin.utils';
 
 import styles from '~/pages/Admin.module.scss';
@@ -42,6 +42,15 @@ export const Admin = (): ReactElement => {
 
     const handleFlagChange = (flag: FeatureFlagModel): void => {
         setState((current) => (isReady(current) ? { ...current, flags: replaceFlag(current.flags, flag) } : current));
+    };
+
+    // The save answers with a token and nothing else, and it answers into whatever the operator
+    // has typed by then — so the token is applied inside the functional update, to the current
+    // list, never to a flag captured before the request went out.
+    const handleFlagSaved = (saved: { flagKey: string; lockToken: string }): void => {
+        setState((current) =>
+            isReady(current) ? { ...current, flags: setLockTokenIn(current.flags, saved) } : current,
+        );
     };
 
     if (isFailedToLoad(state)) {
@@ -79,7 +88,13 @@ export const Admin = (): ReactElement => {
                 />
             </label>
             {state.flags.map((flag) => (
-                <FlagEditor key={flag.key} flag={flag} adminToken={adminToken} onChange={handleFlagChange} />
+                <FlagEditor
+                    key={flag.key}
+                    flag={flag}
+                    adminToken={adminToken}
+                    onChange={handleFlagChange}
+                    onSaved={handleFlagSaved}
+                />
             ))}
         </Column>
     );
