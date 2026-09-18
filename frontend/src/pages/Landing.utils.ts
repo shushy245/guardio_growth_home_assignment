@@ -11,3 +11,6 @@ export const TRUST_POINTS: readonly string[] = [
     'No email needed to scan',
     'Takes seconds',
 ];
+
+// Where the scan button leads. The route table in App is the other reader of this path.
+export const SCAN_ROUTE = '/scan';

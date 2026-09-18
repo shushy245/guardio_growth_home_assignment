@@ -15,4 +15,11 @@ describe('Landing', () => {
         driver.assert.scanButtonIsShown();
         await driver.assert.stepsPosted(FunnelEventName.LandingView, 1);
     });
+
+    it('starts the scan when the button is tapped: records the step and moves to the scan moment', async () => {
+        await driver.when.created();
+        await driver.click.scan();
+        await driver.assert.stepsPosted(FunnelEventName.ScanStarted, 1);
+        await driver.assert.scanRouteIsShown();
+    });
 });
