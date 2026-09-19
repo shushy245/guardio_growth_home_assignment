@@ -26,12 +26,16 @@ from app.health.router import router as health_router
 from app.logging import configure_logging
 from app.middleware.correlation_id import CorrelationIdMiddleware
 from app.ports.breach_catalog import BreachCatalogPort
+from app.ports.pwned_password_range import PwnedPasswordRangePort
+from app.pwned_passwords.router import router as pwned_passwords_router
 from app.signups.password_hash import PasswordHasher
 from app.signups.router import router as signups_router
 from app.visitors.router import router as visitors_router
 
 
-def create_app(settings: Settings, *, catalog: BreachCatalogPort) -> FastAPI:
+def create_app(
+    settings: Settings, *, catalog: BreachCatalogPort, pwned_passwords: PwnedPasswordRangePort
+) -> FastAPI:
     configure_logging(log_format=settings.log_format)
     session_factory = build_session_factory(build_engine(database_url=settings.database_url))
 
@@ -50,6 +54,7 @@ def create_app(settings: Settings, *, catalog: BreachCatalogPort) -> FastAPI:
     app.state.catalog_refresher = CatalogRefresher(catalog=catalog)
     # Built once: the parameters are parsed at construction, and every request hashes with it.
     app.state.password_hasher = PasswordHasher()
+    app.state.pwned_passwords = pwned_passwords
     app.add_middleware(CorrelationIdMiddleware)
     app.add_middleware(
         CORSMiddleware,
@@ -65,4 +70,5 @@ def create_app(settings: Settings, *, catalog: BreachCatalogPort) -> FastAPI:
     app.include_router(feature_flags_router, prefix="/api")
     app.include_router(funnel_events_router, prefix="/api")
     app.include_router(signups_router, prefix="/api")
+    app.include_router(pwned_passwords_router, prefix="/api")
     return app

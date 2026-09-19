@@ -30,6 +30,7 @@ from app.main import create_app
 from app.middleware.correlation_id import CORRELATION_ID_HEADER
 from tests.builders.settings import a_settings
 from tests.fakes.breach_catalog import FakeBreachCatalog
+from tests.fakes.pwned_password_range import FakePwnedPasswordRange
 
 CRASHING_ROUTE = "/api/_test/crash"
 CRASH_DETAIL = "secret detail that must never reach the client"
@@ -41,6 +42,7 @@ class HttpDriver:
     def __init__(self) -> None:
         self._settings = a_settings()
         self._catalog = FakeBreachCatalog()
+        self._pwned_passwords = FakePwnedPasswordRange()
         self._crashing_route = False
         self._session_override: Session | None = None
         self._cookies: dict[str, str] = {}
@@ -90,7 +92,11 @@ class HttpDriver:
 
     def _app(self) -> FastAPI:
         if self._built_app is None:
-            app = create_app(self._settings.build(), catalog=self._catalog)
+            app = create_app(
+                self._settings.build(),
+                catalog=self._catalog,
+                pwned_passwords=self._pwned_passwords,
+            )
             if self._crashing_route:
                 _mount_crashing_route(app)
             if self._session_override is not None:

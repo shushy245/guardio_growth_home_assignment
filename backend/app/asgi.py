@@ -11,6 +11,11 @@ from app.adapters.hibp.breach_catalog import (
     build_hibp_client,
     build_hibp_transport,
 )
+from app.adapters.hibp.pwned_password_range import (
+    HibpPwnedPasswordRange,
+    build_pwned_passwords_client,
+    build_pwned_passwords_transport,
+)
 from app.config import load_settings
 from app.main import create_app
 
@@ -18,4 +23,9 @@ settings = load_settings(os.environ)
 catalog = HibpBreachCatalog(
     client=build_hibp_client(user_agent=settings.hibp_user_agent, transport=build_hibp_transport())
 )
-app = create_app(settings, catalog=catalog)
+pwned_passwords = HibpPwnedPasswordRange(
+    client=build_pwned_passwords_client(
+        user_agent=settings.hibp_user_agent, transport=build_pwned_passwords_transport()
+    )
+)
+app = create_app(settings, catalog=catalog, pwned_passwords=pwned_passwords)

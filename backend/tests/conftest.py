@@ -9,7 +9,9 @@ from pathlib import Path
 import pytest
 
 from tests.drivers.hibp_catalog import HibpCatalogDriver
+from tests.drivers.hibp_pwned_passwords import HibpPwnedPasswordsDriver
 from tests.drivers.http import HttpDriver
+from tests.drivers.pwned_passwords_api import PwnedPasswordsApiDriver
 
 INTEGRATION_DIR = Path(__file__).parent / "integration"
 
@@ -33,3 +35,13 @@ def driver() -> HttpDriver:
 @pytest.fixture
 def hibp() -> HibpCatalogDriver:
     return HibpCatalogDriver()
+
+
+@pytest.fixture
+def hibp_pwned() -> HibpPwnedPasswordsDriver:
+    return HibpPwnedPasswordsDriver()
+
+
+@pytest.fixture
+def pwned_passwords(driver: HttpDriver) -> PwnedPasswordsApiDriver:
+    return PwnedPasswordsApiDriver(driver)

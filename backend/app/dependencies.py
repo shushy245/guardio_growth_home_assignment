@@ -7,6 +7,7 @@ test's settings arrive the same way production's do."""
 from fastapi import Request
 
 from app.config import Settings
+from app.ports.pwned_password_range import PwnedPasswordRangePort
 from app.signups.password_hash import PasswordHasher
 
 
@@ -20,3 +21,9 @@ def get_password_hasher(request: Request) -> PasswordHasher:
     hasher: PasswordHasher = request.app.state.password_hasher
 
     return hasher
+
+
+def get_pwned_password_range(request: Request) -> PwnedPasswordRangePort:
+    source: PwnedPasswordRangePort = request.app.state.pwned_passwords
+
+    return source
