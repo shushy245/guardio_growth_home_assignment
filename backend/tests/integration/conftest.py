@@ -29,6 +29,7 @@ from tests.drivers.flag_splits import FlagSplitsDriver
 from tests.drivers.funnel_events_api import FunnelEventsApiDriver
 from tests.drivers.http import HttpDriver
 from tests.drivers.signups_api import SignupsApiDriver
+from tests.drivers.simulation import SimulationDriver
 from tests.drivers.visitors_api import VisitorsApiDriver
 
 
@@ -124,3 +125,8 @@ def experiment_results(db_session: Session) -> ExperimentResultsDriver:
 @pytest.fixture
 def experiments(driver: HttpDriver, db_session: Session) -> ExperimentsApiDriver:
     return ExperimentsApiDriver(driver, db_session)
+
+
+@pytest.fixture
+def simulation(driver: HttpDriver, db_session: Session) -> SimulationDriver:
+    return SimulationDriver(driver, db_session)

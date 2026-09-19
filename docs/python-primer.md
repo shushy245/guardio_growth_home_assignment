@@ -359,3 +359,22 @@ every commit as the gate requires.
   decoder accepts `NaN` and `Infinity` by default, which a browser's `JSON.parse` does not. The
   driver hands it a `parse_constant` that raises, so a test decodes bodies as strictly as the
   dashboard will.
+- **`argparse` with a `type=` function** (`scripts/simulate_traffic.py`): `type=parse_arm_rate`
+  runs the function on each raw string, and an `argparse.ArgumentTypeError` raised inside it
+  becomes the CLI's own usage error naming the argument — validation at the boundary, the way a
+  Pydantic model does it for a request body. `nargs="+"` collects `calm=0.08 urgent=0.10` into a
+  list of whatever the type function returned.
+- **`random.SystemRandom()` and the bandit rule S311**: ruff's security family flags every
+  `random.Random`/`random.random()` call because the module's PRNG is not a secret source. The
+  simulator has no secret, but the fix that keeps the rule intact was to notice that a `--seed`
+  bought nothing — the arm is chosen by an id the *server* mints — and use the OS source the
+  rule permits. `SystemRandom` is a `Random` subclass, so the injected type stays `random.Random`.
+- **A factory as the seam** (`open_browser: Callable[[], httpx.Client]`): the shell needs a
+  *fresh* client per visitor, not a client, so what is injected is the act of opening one. The
+  test passes `lambda: TestClient(app)`; the script passes a real `httpx2.Client` with a base
+  URL. `try`/`finally: browser.close()` rather than `with`, because entering a `TestClient`
+  context also runs the app's lifespan — a catalog sync per simulated visitor.
+- **`itertools.pairwise(seq)`** yields `(a, b), (b, c), …` — the successive-pair walk a funnel
+  check needs. ruff `RUF007` refuses `zip(seq, seq[1:])` for it: the name says what the loop is.
+- **`str.partition("=")`** returns `(before, separator, after)` with the separator empty when it
+  was not found, so one call parses `calm=0.08` and tells a missing `=` apart from an empty rate.
