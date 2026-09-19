@@ -48,9 +48,9 @@
       }
     ],
     "primary": {
-      "successes": 144,
+      "successes": 143,
       "trials": 1940,
-      "rate": 0.07422680412371134
+      "rate": 0.07371134020618557
     },
     "secondary": {
       "successes": 675,
@@ -58,9 +58,9 @@
       "rate": 0.3479381443298969
     },
     "guardrail": {
-      "successes": 144,
+      "successes": 143,
       "trials": 675,
-      "rate": 0.21333333333333335
+      "rate": 0.21185185185185185
     }
   },
   "variant": {
@@ -68,64 +68,64 @@
     "steps": [
       {
         "name": "landing_view",
-        "visitors": 2337
+        "visitors": 2339
       },
       {
         "name": "scan_started",
-        "visitors": 1992
+        "visitors": 1993
       },
       {
         "name": "scan_completed",
-        "visitors": 1885
+        "visitors": 1886
       },
       {
         "name": "cta_click",
-        "visitors": 670
+        "visitors": 671
       },
       {
         "name": "signup_started",
-        "visitors": 386
+        "visitors": 387
       },
       {
         "name": "activation",
-        "visitors": 185
+        "visitors": 186
       }
     ],
     "primary": {
-      "successes": 185,
-      "trials": 1885,
-      "rate": 0.09814323607427056
+      "successes": 184,
+      "trials": 1886,
+      "rate": 0.0975609756097561
     },
     "secondary": {
-      "successes": 670,
-      "trials": 1885,
-      "rate": 0.35543766578249336
+      "successes": 671,
+      "trials": 1886,
+      "rate": 0.355779427359491
     },
     "guardrail": {
-      "successes": 185,
-      "trials": 670,
-      "rate": 0.27611940298507465
+      "successes": 184,
+      "trials": 671,
+      "rate": 0.27421758569299554
     }
   },
   "test": {
-    "z": 2.6374545814671224,
-    "pValue": 0.008353081051542961
+    "z": 2.6380321781805476,
+    "pValue": 0.008338866878637498
   },
   "lift": {
     "absolute": {
-      "point": 0.023916431950559217,
-      "low": 0.006127478538075458,
-      "high": 0.041705385363042975
+      "point": 0.023849635403570532,
+      "low": 0.006114707494099109,
+      "high": 0.04158456331304196
     },
     "relative": {
-      "point": 0.32220748600058946,
-      "low": 0.07349519680427274,
-      "high": 0.6285425787095991
+      "point": 0.32355449428620164,
+      "low": 0.0738156763078448,
+      "high": 0.6313754194467474
     }
   },
   "sample": {
     "requiredPerArm": 4921,
-    "reachedPerArm": 1885
+    "reachedPerArm": 1886
   },
   "recommendation": "KEEP_RUNNING"
 }

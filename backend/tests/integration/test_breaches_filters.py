@@ -128,3 +128,19 @@ def test_an_underscore_in_the_search_is_looked_for_literally(
     breaches.when.listed_matching("A_obe")
 
     breaches.then.the_breach_names_are("A_obe")
+
+
+def test_a_query_parameter_the_endpoint_does_not_know_is_refused(
+    breaches: BreachesApiDriver,
+) -> None:
+    """Decided, not inherited (BF76): an unknown key is a 400 rather than something ignored.
+
+    The cost of strictness is that a link carrying a tracking parameter would be refused, and
+    nothing here builds one — the frontend composes this query itself. The cost of ignoring is
+    that `?verifiedOnly=ture` reads as the whole catalog and looks like it worked, which is the
+    failure a list endpoint can least afford.
+    """
+    breaches.when.listed_with_an_unknown_parameter()
+
+    breaches.then.the_request_was_rejected()
+    breaches.then.the_error_names("utm_source")

@@ -11,14 +11,16 @@ import random
 from collections import Counter
 from itertools import pairwise
 
+import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
 from app.config import Env
 from app.experiments import repository
 from app.experiments.results import FUNNEL_IN_ORDER, StepPairCount
-from app.experiments.simulation import simulate_traffic
+from app.experiments.simulation import MAX_FAILED_VISITS, SimulationError, simulate_traffic
+from app.feature_flags.models import FeatureFlagRow
 from app.funnel_events.models import FunnelEventRow
 from app.visitors.models import VisitorAssignmentRow, VisitorRow
 from tests.drivers.http import HttpDriver
@@ -27,11 +29,16 @@ RESULT_SCREEN_TONE = "result_screen_tone"
 ACTIVATION_RATES = {"calm": 0.08, "urgent": 0.10}
 
 
+RUN_ID = "run_simulated_by_a_test"
+
+
 class SimulationDriver:
     def __init__(self, http: HttpDriver, session: Session) -> None:
         self._http = http
         self._session = session
         self._visitors_sent = 0
+        self._failure: SimulationError | None = None
+        self.given = _Given(self)
         self.when = _When(self)
         self.then = _Then(self)
 
@@ -59,6 +66,21 @@ class SimulationDriver:
         return Counter(rows)
 
 
+class _Given:
+    def __init__(self, driver: SimulationDriver) -> None:
+        self._driver = driver
+
+    def the_experiment_is_not_running(self) -> None:
+        """The flag disabled: every visitor is created and assigned to nothing, so every visit
+        fails at the same step — the shape of an API a run cannot continue against."""
+        self._driver._session.execute(
+            update(FeatureFlagRow)
+            .where(FeatureFlagRow.key == RESULT_SCREEN_TONE)
+            .values(is_enabled=False)
+        )
+        self._driver._session.flush()
+
+
 class _When:
     def __init__(self, driver: SimulationDriver) -> None:
         self._driver = driver
@@ -72,7 +94,13 @@ class _When:
             activation_rates=ACTIVATION_RATES,
             rng=random.SystemRandom(),
             open_browser=lambda: TestClient(app),
+            run_id=RUN_ID,
         )
+
+    def traffic_is_simulated_against_a_failing_api(self, *, visitors: int) -> None:
+        with pytest.raises(SimulationError) as failure:
+            self.traffic_is_simulated(visitors=visitors)
+        self._driver._failure = failure.value
 
 
 class _Then:
@@ -116,6 +144,32 @@ class _Then:
             assert activation < landing, (
                 f"arm {arm!r}: expected fewer than {landing} to activate, got {activation}"
             )
+
+    def every_event_names_the_run_that_wrote_it(self) -> None:
+        """A run that stopped part-way leaves its rows behind, and without a marker they are
+        indistinguishable from a complete run's (BF72)."""
+        unmarked = self._driver._session.execute(
+            select(func.count())
+            .select_from(FunnelEventRow)
+            .where(FunnelEventRow.metadata_["runId"].astext.is_distinct_from(RUN_ID))
+        ).scalar_one()
+        assert unmarked == 0, f"{unmarked} events do not name the run that wrote them"
+
+    def the_run_gave_up_after_the_failure_threshold(self) -> None:
+        """It kept going past the first failure and stopped before walking everybody: one
+        visitor row per attempted visit, and exactly the threshold of them."""
+        attempted = self._driver._session.execute(
+            select(func.count()).select_from(VisitorRow)
+        ).scalar_one()
+        assert attempted == MAX_FAILED_VISITS, (
+            f"expected the run to stop after {MAX_FAILED_VISITS} failed visits, "
+            f"it attempted {attempted}"
+        )
+        failure = self._driver._failure
+        assert failure is not None, "no failure was recorded"
+        assert str(MAX_FAILED_VISITS) in str(failure), (
+            f"the failure does not say how many visits failed: {failure}"
+        )
 
     def every_event_is_tagged_with_its_visitors_arm(self) -> None:
         """The API stamped the tag; the simulator sent none. Every stored event carries the

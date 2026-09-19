@@ -40,7 +40,14 @@ class SortOrder(StrEnum):
 
 class BreachListQuery(BaseModel):
     """No `populate_by_name`: the wire spelling is the only accepted spelling, so there is one
-    contract to document rather than two that drift."""
+    contract to document rather than two that drift.
+
+    `extra="forbid"` is a decision, not a default (BF76): an unknown key is a 400. It means a
+    URL carrying a tracking parameter would be refused, and nothing builds one — the frontend
+    composes this query itself. What it buys is that `?verifiedOnly=ture` fails loudly instead
+    of quietly answering with the whole catalog, which is the failure a list endpoint can least
+    afford: a wrong answer that looks like a right one.
+    """
 
     model_config = ConfigDict(alias_generator=to_camel, extra="forbid")
 

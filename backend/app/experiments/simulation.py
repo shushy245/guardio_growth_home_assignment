@@ -40,6 +40,10 @@ SIGNUP_STARTED_OF_CTA_CLICK = 0.60
 MAX_ACTIVATION_RATE = CTA_CLICK_OF_SCAN_COMPLETED * SIGNUP_STARTED_OF_CTA_CLICK
 
 LOG_EVERY = 500
+# How many visits may fail before the run is called off. One failure is a flaky request and the
+# next visitor is unaffected; a stream of them is an API that is down, and walking the remaining
+# thousands into it writes half-funnels the dashboard cannot tell from real drop-off (BF72).
+MAX_FAILED_VISITS = 10
 
 
 class SimulationError(Exception):
@@ -96,6 +100,7 @@ def simulate_traffic(
     activation_rates: Mapping[str, float],
     rng: random.Random,
     open_browser: Callable[[], httpx.Client],
+    run_id: str,
 ) -> None:
     """Send `visitors` visitors through the API, each in a browser of their own.
 
@@ -103,22 +108,52 @@ def simulate_traffic(
     dashboard reads is the assignment rule's, not the script's. `activation_rates` must name
     every arm the flag can assign; a visitor landing in one it does not name is an error, not a
     visitor silently walked with someone else's rate.
+
+    `run_id` is stamped into every event's metadata and injected rather than generated here, so
+    the caller can print the id of the run it started and find its rows afterwards. A run that
+    stops part-way leaves its rows behind — they are real events from real requests and are not
+    rolled back — and the marker is what tells them from a complete run's.
+
+    A visit that fails is logged and the next visitor is walked; the run gives up once
+    `MAX_FAILED_VISITS` have failed, because at that point the answer is about the API and not
+    about the funnel.
     """
     transitions_map = {
         arm: plan_transitions(activation_rate=rate) for arm, rate in activation_rates.items()
     }
-    log.info("simulate_traffic: started", visitors=visitors, activation_rates=activation_rates)
+    log.info(
+        "simulate_traffic: started",
+        visitors=visitors,
+        activation_rates=activation_rates,
+        run_id=run_id,
+    )
+    failed = 0
 
     for ordinal in range(1, visitors + 1):
         browser = open_browser()
         try:
-            _one_visit(browser=browser, transitions_map=transitions_map, rng=rng)
+            _one_visit(browser=browser, transitions_map=transitions_map, rng=rng, run_id=run_id)
+        except SimulationError as error:
+            failed += 1
+            log.warning(
+                "simulate_traffic: a visit failed",
+                run_id=run_id,
+                ordinal=ordinal,
+                failed=failed,
+                reason=str(error),
+            )
+            if failed >= MAX_FAILED_VISITS:
+                msg = (
+                    f"simulate_traffic: giving up after {failed} failed visits of {ordinal} "
+                    f"attempted — run_id={run_id}; the last failure was: {error}"
+                )
+                raise SimulationError(msg) from error
         finally:
             browser.close()
         if ordinal % LOG_EVERY == 0:
-            log.info("simulate_traffic: progress", sent=ordinal, of=visitors)
+            log.info("simulate_traffic: progress", sent=ordinal, of=visitors, run_id=run_id)
 
-    log.info("simulate_traffic: completed", visitors=visitors)
+    log.info("simulate_traffic: completed", visitors=visitors, failed=failed, run_id=run_id)
 
 
 def _one_visit(
@@ -126,6 +161,7 @@ def _one_visit(
     browser: httpx.Client,
     transitions_map: Mapping[str, tuple[_Transition, ...]],
     rng: random.Random,
+    run_id: str,
 ) -> None:
     arm = _create_visitor(browser)
     transitions = transitions_map.get(arm)
@@ -137,7 +173,7 @@ def _one_visit(
         raise SimulationError(msg)
 
     for step in walk(transitions=transitions, rng=rng):
-        _record_step(browser, step=step)
+        _record_step(browser, step=step, run_id=run_id)
 
 
 def _create_visitor(browser: httpx.Client) -> str:
@@ -156,7 +192,7 @@ def _create_visitor(browser: httpx.Client) -> str:
     return arm
 
 
-def _record_step(browser: httpx.Client, *, step: FunnelEventName) -> None:
+def _record_step(browser: httpx.Client, *, step: FunnelEventName, run_id: str) -> None:
     """No `visitorId` in the body, by design: the cookie is the identity (BF47)."""
     response = browser.post(
         "/api/funnel-events",
@@ -164,7 +200,7 @@ def _record_step(browser: httpx.Client, *, step: FunnelEventName) -> None:
             "id": generate_unique_id("evt"),
             "name": step,
             "occurredAt": datetime.now(UTC).isoformat(),
-            "metadata": {"simulated": True},
+            "metadata": {"simulated": True, "runId": run_id},
         },
     )
     _expect(response, status=201, doing=f"record {step}")

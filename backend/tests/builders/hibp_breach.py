@@ -17,14 +17,14 @@ def a_hibp_breach() -> _HibpBreachBuilder:
 @dataclass(frozen=True)
 class _HibpBreachBuilder:
     name: str = "000webhost"
-    title: str = "000webhost"
-    domain: str = "000webhost.com"
+    title: str | None = "000webhost"
+    domain: str | None = "000webhost.com"
     breach_date: str = "2015-03-01"
     added_date: str = "2015-10-26T23:35:45Z"
     modified_date: str = "2017-12-10T21:44:27Z"
     pwn_count: int = 14936670
     description: str = 'The breach exposed <a href="https://example.test">customer records</a>.'
-    logo_path: str = "https://logos.haveibeenpwned.com/000webhost.png"
+    logo_path: str | None = "https://logos.haveibeenpwned.com/000webhost.png"
     attribution: str | None = None
     disclosure_url: str | None = None
     data_classes: tuple[str, ...] = ("Email addresses", "IP addresses", "Names", "Passwords")
@@ -40,8 +40,14 @@ class _HibpBreachBuilder:
     def with_description(self, description: str) -> _HibpBreachBuilder:
         return replace(self, description=description)
 
-    def with_domain(self, domain: str) -> _HibpBreachBuilder:
+    def with_domain(self, domain: str | None) -> _HibpBreachBuilder:
         return replace(self, domain=domain)
+
+    def with_title(self, title: str | None) -> _HibpBreachBuilder:
+        return replace(self, title=title)
+
+    def with_logo_path(self, logo_path: str | None) -> _HibpBreachBuilder:
+        return replace(self, logo_path=logo_path)
 
     def with_attribution(self, attribution: str | None) -> _HibpBreachBuilder:
         return replace(self, attribution=attribution)

@@ -46,8 +46,8 @@ code. Commit-level detail lives in `git log`; the plan holds what is still ahead
   created — and R-1/R-2 from the review, each named by a test; 57 tests added (backend
   192→225, frontend 184→208); 17 commits (11 red-first, 3 refactors, 3 chores;
   `+4,242 / −32` lines over 70 files, lockfiles excluded). 4,000 simulated visitors at 8%
-  against 10%: control 7.4%, variant 9.8%, p = 0.008, relative lift +32% (+7% to +63%), and
-  `KEEP_RUNNING` at 1,885 of 4,921 per arm (`docs/simulation-read.json`). Accessibility 100 in
+  against 10%: control 7.4%, variant 9.8%, p = 0.008, relative lift +32% (+8% to +64%), and
+  `KEEP_RUNNING` at 1,886 of 4,921 per arm (`docs/simulation-read.json`). Accessibility 100 in
   two independent passes; the second found the one defect no test can see — a raw class name
   that painted the banner grey — fixed and re-measured the same hour. Record:
   `docs/reviews/s7-visual-review.md` and the triage in `docs/plan.md`.

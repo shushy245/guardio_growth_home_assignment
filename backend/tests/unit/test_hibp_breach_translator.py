@@ -49,6 +49,20 @@ def test_the_hibp_translator_reads_an_empty_domain_as_absent() -> None:
     assert to_breaches(payload)[0].domain is None
 
 
+def test_the_hibp_translator_reads_a_null_domain_title_or_logo_as_the_absence_it_is() -> None:
+    """The three fields HIBP writes as `""` today are the three it could write as `null`
+    tomorrow, and by the all-or-nothing rule one `null` would abort the whole 1,036-record sync
+    rather than lose one field (BF73). A breach with no title falls back to the name HIBP files
+    it under — the closest true thing, and not an invented one."""
+    payload = [a_hibp_breach().with_domain(None).with_title(None).with_logo_path(None).build()]
+
+    breach = to_breaches(payload)[0]
+
+    assert breach.domain is None
+    assert breach.title == breach.name
+    assert breach.logo_path == ""
+
+
 def test_the_hibp_translator_rejects_a_payload_that_is_not_hibps_shape() -> None:
     """A schema change upstream must fail loudly here, never yield half-populated breaches."""
     payload = [{"Name": "acme.test"}]

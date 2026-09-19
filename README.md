@@ -76,16 +76,18 @@ cd backend && uv run python scripts/simulate_traffic.py --visitors 4000 --activa
 
 | | Control | Variant |
 |---|---|---|
-| Scan completed | 1,940 | 1,885 |
-| Activated | 144 | 185 |
+| Scan completed | 1,940 | 1,886 |
+| Activated | 143 | 184 |
 | **Activation rate** | **7.4%** | **9.8%** |
 
-z = 2.64, p = 0.008, relative lift +32% (95% CI +7% to +63%). Required per arm: 4,921. Reached:
-1,885. **Call: `KEEP_RUNNING`.** Significant at this look, and still not shipped, because the
+z = 2.64, p = 0.008, relative lift +32% (95% CI +8% to +64%). Required per arm: 4,921. Reached:
+1,886. **Call: `KEEP_RUNNING`.** Significant at this look, and still not shipped, because the
 sample is short of what the hypothesis was powered for. That is the peeking guard: a daily
 refresh is a sequential look, and a null test crosses p < 0.05 at some look if the reader may
 stop there. Full response: [`docs/simulation-read.json`](docs/simulation-read.json). The table
-behind it also holds 764 visitors from a crashed first run and manual testing, 4,764 in all.
+behind it also holds 766 visitors from a crashed first run and manual testing, 4,766 in all —
+a run is marked with its own id in every event it writes now, so a partial one can be told from
+a complete one.
 
 The simulator encodes the effect it is asked for. This validates the pipeline and the
 statistics, not the hypothesis. Only real traffic answers that.

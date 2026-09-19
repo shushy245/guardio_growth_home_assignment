@@ -77,14 +77,17 @@ class _HibpBreach(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     name: str = Field(alias="Name")
-    title: str = Field(alias="Title")
-    domain: str = Field(alias="Domain")
+    # The three fields HIBP writes as `""` for "none" are typed to accept `null` as well: by
+    # the all-or-nothing rule above, one `null` in one record would abort the whole
+    # 1,036-record sync and leave the funnel with an empty catalog (BF73).
+    title: str | None = Field(alias="Title")
+    domain: str | None = Field(alias="Domain")
     breach_date: date = Field(alias="BreachDate")
     added_date: datetime = Field(alias="AddedDate")
     modified_date: datetime = Field(alias="ModifiedDate")
     pwn_count: int = Field(alias="PwnCount")
     description: str = Field(alias="Description")
-    logo_path: str = Field(alias="LogoPath")
+    logo_path: str | None = Field(alias="LogoPath")
     data_classes: tuple[str, ...] = Field(alias="DataClasses")
     is_verified: bool = Field(alias="IsVerified")
     is_fabricated: bool = Field(alias="IsFabricated")
@@ -130,14 +133,14 @@ def _describe(error: ValidationError) -> str:
 def _to_breach(record: _HibpBreach) -> Breach:
     return Breach(
         name=record.name,
-        title=record.title,
+        title=_title_of(record),
         domain=_none_if_empty(record.domain),
         breach_date=record.breach_date,
         added_date=record.added_date,
         modified_date=record.modified_date,
         pwn_count=record.pwn_count,
         description=strip_html(record.description),
-        logo_path=record.logo_path,
+        logo_path=_empty_if_absent(record.logo_path),
         data_classes=record.data_classes,
         is_verified=record.is_verified,
         is_fabricated=record.is_fabricated,
@@ -152,6 +155,21 @@ def _to_breach(record: _HibpBreach) -> Breach:
     )
 
 
-def _none_if_empty(value: str) -> str | None:
+def _none_if_empty(value: str | None) -> str | None:
     """HIBP writes a missing domain as `""`; our model states absence with `None`."""
     return None if value == "" else value
+
+
+def _title_of(record: _HibpBreach) -> str:
+    """A breach with no title reads as the name HIBP files it under. Our model and the column
+    say a breach has a title, and the name is the closest true thing to show — never a made-up
+    one, and never a heading rendered blank."""
+    title = _none_if_empty(record.title)
+
+    return record.name if title is None else title
+
+
+def _empty_if_absent(value: str | None) -> str:
+    """The logo is a URL the page either has or does not; `""` is what a logo-less record has
+    been stored as since the catalog's first sync, and a `null` means the same thing."""
+    return "" if value is None else value

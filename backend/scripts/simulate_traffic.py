@@ -21,6 +21,7 @@ import structlog
 
 from app.experiments.hypothesis import RESULT_SCREEN_TONE
 from app.experiments.simulation import MAX_ACTIVATION_RATE, simulate_traffic
+from app.shared.ids import generate_unique_id
 
 DEFAULT_BASE_URL = "http://localhost:8000"
 DEFAULT_VISITORS = 4000
@@ -71,11 +72,16 @@ def main(argv: list[str]) -> None:
     def open_browser() -> httpx.Client:
         return httpx.Client(base_url=args.base_url, timeout=REQUEST_TIMEOUT_SECONDS)
 
+    # Minted here and printed before the walk starts: every event the run writes carries it, so
+    # the rows of a run that stopped part-way can be told from a complete one's.
+    run_id = generate_unique_id("run")
+    sys.stderr.write(f"run_id={run_id}\n")
     simulate_traffic(
         visitors=args.visitors,
         activation_rates=activation_rates,
         rng=random.SystemRandom(),
         open_browser=open_browser,
+        run_id=run_id,
     )
 
     with open_browser() as browser:
