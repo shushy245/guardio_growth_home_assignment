@@ -4,8 +4,10 @@
 import type { ReactElement } from 'react';
 
 import { Column } from '~/ui/box';
+import { joinClassNames } from '~/ui/box.utils';
 import type { ExperimentResultModel } from '~/models/experimentResult';
 import {
+    BannerClass,
     bannerClassMap,
     formatBannerTitle,
     RecommendationBannerTestIds,
@@ -14,9 +16,18 @@ import {
 
 import styles from '~/components/RecommendationBanner.module.scss';
 
+// Through the module, never the raw name: in production the class is hashed, and a raw `wait`
+// matches no rule. Vitest compiles modules non-scoped, so no jsdom test can tell the two apart —
+// the S7 visual pass measured the banner grey and found it (V9).
+const toneClassMap: Record<BannerClass, string | undefined> = {
+    [BannerClass.Ship]: styles.ship,
+    [BannerClass.Stop]: styles.stop,
+    [BannerClass.Wait]: styles.wait,
+};
+
 export const RecommendationBanner = ({ result }: { result: ExperimentResultModel }): ReactElement => (
     <Column
-        className={`${styles.banner} ${bannerClassMap[result.recommendation]}`}
+        className={joinClassNames(styles.banner, toneClassMap[bannerClassMap[result.recommendation]])}
         data-testid={RecommendationBannerTestIds.Root}
     >
         {/* Announced: the call is the one line a reader came for. */}
