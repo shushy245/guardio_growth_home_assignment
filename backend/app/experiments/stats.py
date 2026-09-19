@@ -15,6 +15,12 @@ from dataclasses import dataclass
 
 from scipy import stats
 
+# The one place the test's size is set. The p-value and both intervals read it, so a reader
+# can never be shown a p-value at one threshold beside an interval at another.
+ALPHA = 0.05
+# Computed once at import: every call would otherwise pay for the same inverse normal.
+_CRITICAL_VALUE = float(stats.norm.ppf(1 - ALPHA / 2))
+
 
 @dataclass(frozen=True)
 class Proportion:
@@ -53,3 +59,77 @@ def two_proportion_z_test(*, control: Proportion, variant: Proportion) -> ZTestR
 
 def _rate_of(arm: Proportion) -> float:
     return arm.successes / arm.trials
+
+
+@dataclass(frozen=True)
+class Estimate:
+    """A point estimate and the interval it is known to within, at `ALPHA`."""
+
+    point: float
+    low: float
+    high: float
+
+
+@dataclass(frozen=True)
+class Lift:
+    """How much better the variant did, both ways a reader asks it.
+
+    `absolute` is in rate points (8% to 10% is +0.02) and `relative` is in proportion of the
+    control (the same move is +0.25). The dashboard leads with the relative figure because that
+    is what a hypothesis is stated in, and carries the absolute one because that is what a
+    forecast is built from.
+    """
+
+    absolute: Estimate
+    relative: Estimate
+
+
+def measure_lift(*, control: Proportion, variant: Proportion) -> Lift:
+    """Both intervals at `ALPHA`, unpooled.
+
+    Unpooled here, pooled in the z-test, on purpose: the test asks "could these have come from
+    one rate", so it estimates one; the interval asks "how far apart are they", so it estimates
+    two. Collapsing the two standard errors into one shared helper would be collapsing two
+    different questions.
+    """
+    return Lift(
+        absolute=_absolute_lift(control=control, variant=variant),
+        relative=_relative_lift(control=control, variant=variant),
+    )
+
+
+def _absolute_lift(*, control: Proportion, variant: Proportion) -> Estimate:
+    difference = _rate_of(variant) - _rate_of(control)
+    margin = _CRITICAL_VALUE * math.sqrt(_variance_of(control) + _variance_of(variant))
+
+    return Estimate(point=difference, low=difference - margin, high=difference + margin)
+
+
+def _relative_lift(*, control: Proportion, variant: Proportion) -> Estimate:
+    """The delta method on the log ratio, exponentiated back.
+
+    A ratio's sampling distribution is skewed, so the interval is built where it is symmetric —
+    on the log scale — and carried back. The symmetric alternative (the absolute interval over
+    the control rate) understates the upside and can put the lower bound below -100%, which is
+    not a lift any variant can deliver.
+    """
+    log_ratio = math.log(_rate_of(variant) / _rate_of(control))
+    margin = _CRITICAL_VALUE * math.sqrt(_log_variance_of(control) + _log_variance_of(variant))
+
+    return Estimate(
+        point=math.exp(log_ratio) - 1,
+        low=math.exp(log_ratio - margin) - 1,
+        high=math.exp(log_ratio + margin) - 1,
+    )
+
+
+def _variance_of(arm: Proportion) -> float:
+    rate = _rate_of(arm)
+
+    return rate * (1 - rate) / arm.trials
+
+
+def _log_variance_of(arm: Proportion) -> float:
+    rate = _rate_of(arm)
+
+    return (1 - rate) / (rate * arm.trials)
