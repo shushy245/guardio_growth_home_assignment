@@ -18,9 +18,12 @@ export enum RenderMode {
 const wrap = (tree: ReactElement, mode: RenderMode): ReactElement =>
     mode === RenderMode.Strict ? <StrictMode>{tree}</StrictMode> : tree;
 
+// `state` is what a navigation carried (`navigate(to, { state })`): the confirmation page reads
+// the plan from it, so a driver can open that page the way the sign-up leaves it.
 export const renderWithProviders = (
     ui: ReactElement,
-    { route = '/', mode = RenderMode.Plain }: { route?: string; mode?: RenderMode } = {},
+    { route = '/', state, mode = RenderMode.Plain }: { route?: string; state?: unknown; mode?: RenderMode } = {},
 ): void => {
-    render(wrap(<MemoryRouter initialEntries={[route]}>{ui}</MemoryRouter>, mode));
+    const entry = state === undefined ? route : { pathname: route, state };
+    render(wrap(<MemoryRouter initialEntries={[entry]}>{ui}</MemoryRouter>, mode));
 };

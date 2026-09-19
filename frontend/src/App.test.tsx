@@ -1,7 +1,7 @@
 import { beforeEach, describe, it } from 'vitest';
 
 import { FunnelEventName } from '~/models/funnelEvent';
-import { AppDriver, makeAppDriver } from '~/App.driver';
+import { A_SIGNUP_STATE, AppDriver, makeAppDriver } from '~/App.driver';
 
 describe('App', () => {
     let driver: AppDriver;
@@ -46,6 +46,12 @@ describe('App', () => {
         driver.given.route('/signup');
         await driver.when.created();
         driver.assert.signupIsShown();
+    });
+
+    it('shows the confirmation page a sign-up hands the visitor on to', async () => {
+        driver.given.route('/protected', A_SIGNUP_STATE);
+        await driver.when.created();
+        driver.assert.protectedIsShown();
     });
 
     it('fetches the flag list once on the admin page', async () => {

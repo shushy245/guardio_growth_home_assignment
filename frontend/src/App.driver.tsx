@@ -3,21 +3,24 @@ import { expect } from 'vitest';
 import { screen, waitFor } from '@testing-library/react';
 
 import { App } from '~/App';
+import { Plan } from '~/models/signup';
 import { AdminTestIds } from '~/pages/Admin.utils';
 import { SignupTestIds } from '~/pages/Signup.utils';
 import { LandingTestIds } from '~/pages/Landing.utils';
 import { FunnelEventName } from '~/models/funnelEvent';
+import { ProtectedTestIds } from '~/pages/Protected.utils';
 import { fakeHttp, HttpMethod } from '~/testkit/fake-http';
 import { renderWithProviders } from '~/testkit/renderWithProviders';
 import { postedSteps, respondToFunnelEvents } from '~/testkit/funnel-events';
 
 export type AppDriver = {
-    given: { route: (path: string) => void };
+    given: { route: (path: string, state?: unknown) => void };
     when: { created: () => Promise<void> };
     assert: {
         landingIsShown: () => void;
         adminIsShown: () => void;
         signupIsShown: () => void;
+        protectedIsShown: () => void;
         visitorsCreated: (count: number) => void;
         flagListsFetched: (count: number) => void;
         stepsPosted: (name: FunnelEventName, count: number) => Promise<void>;
@@ -28,20 +31,25 @@ export type AppDriver = {
 const requestsTo = (method: HttpMethod, path: string): number =>
     fakeHttp.requests().filter((request) => request.method === method && request.path === path).length;
 
+// The state a sign-up leaves on the confirmation route.
+export const A_SIGNUP_STATE = { plan: Plan.Family };
+
 export const makeAppDriver = (): AppDriver => {
     let route = '/';
+    let state: unknown = undefined;
     respondToFunnelEvents();
 
     return {
         given: {
-            route: (path: string): void => {
+            route: (path: string, carried?: unknown): void => {
                 route = path;
+                state = carried;
             },
         },
         when: {
             created: async (): Promise<void> => {
                 await act(async () => {
-                    renderWithProviders(<App />, { route });
+                    renderWithProviders(<App />, { route, state });
                 });
             },
         },
@@ -54,6 +62,9 @@ export const makeAppDriver = (): AppDriver => {
             },
             signupIsShown: (): void => {
                 expect(screen.getByTestId(SignupTestIds.Page)).toBeInTheDocument();
+            },
+            protectedIsShown: (): void => {
+                expect(screen.getByTestId(ProtectedTestIds.Page)).toBeInTheDocument();
             },
             visitorsCreated: (count: number): void => {
                 expect(requestsTo(HttpMethod.Post, '/visitors')).toBe(count);

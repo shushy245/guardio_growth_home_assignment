@@ -1,0 +1,117 @@
+@use '~/styles/tokens' as tokens;
+
+// Built at 390 first: the card fills the width edge to edge inside the gutter. At md+ it gets its
+// own side padding and keeps a 480px measure; at lg only the whitespace grows.
+.page {
+    display: flex;
+    justify-content: center;
+    min-height: 100dvh;
+    padding: tokens.$sp-8 tokens.$gutter-sm;
+    box-sizing: border-box;
+}
+
+.card {
+    align-items: center;
+    text-align: center;
+    gap: tokens.$sp-4;
+    width: 100%;
+    max-width: 480px;
+}
+
+.check {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    border-radius: tokens.$radius-pill;
+    background: tokens.$color-success;
+    color: tokens.$tone-calm-on-accent;
+    font-size: tokens.$text-400;
+    font-weight: tokens.$weight-bold;
+}
+
+.headline {
+    font-size: tokens.$text-500;
+    font-weight: tokens.$weight-bold;
+    margin: 0;
+}
+
+.planLine {
+    color: tokens.$color-text-secondary;
+    margin: 0;
+}
+
+.steps {
+    display: flex;
+    flex-direction: column;
+    gap: tokens.$sp-3;
+    width: 100%;
+    margin: tokens.$sp-2 0 0;
+    padding: 0;
+    list-style: none;
+    text-align: left;
+}
+
+.step {
+    display: flex;
+    gap: tokens.$sp-4;
+    padding: tokens.$sp-4;
+    border: 1px solid tokens.$color-border;
+    border-radius: tokens.$radius-md;
+    background: tokens.$color-surface;
+}
+
+.stepNumber {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: tokens.$radius-sm;
+    background: tokens.$tone-calm-tint;
+    color: tokens.$tone-calm-accent-strong;
+    font-weight: tokens.$weight-bold;
+    flex: 0 0 auto;
+}
+
+.stepText {
+    gap: tokens.$sp-1;
+}
+
+.stepTitle {
+    font-weight: tokens.$weight-semibold;
+}
+
+.stepDetail {
+    color: tokens.$color-text-secondary;
+}
+
+.back {
+    display: inline-flex;
+    align-items: center;
+    min-height: tokens.$tap-target;
+    margin-top: tokens.$sp-2;
+    font-weight: tokens.$weight-semibold;
+    color: tokens.$tone-calm-accent;
+
+    &:hover {
+        color: tokens.$tone-calm-accent-strong;
+    }
+}
+
+@media (min-width: tokens.$breakpoint-md) {
+    .page {
+        padding: tokens.$sp-11 tokens.$gutter-md;
+    }
+
+    .card {
+        padding: 0 tokens.$sp-9;
+    }
+}
+
+@media (min-width: tokens.$breakpoint-lg) {
+    .page {
+        padding: 120px tokens.$gutter-lg;
+    }
+}
