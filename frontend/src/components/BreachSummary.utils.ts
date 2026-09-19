@@ -24,10 +24,16 @@ export enum SummaryTile {
 
 export const summaryTileTestId = (tile: SummaryTile): string => `BreachSummaryTestIds.Tile.${tile}`;
 
+export enum TileValueKind {
+    Number = 'number',
+    Name = 'name',
+}
+
 export type SummaryTileModel = {
     id: SummaryTile;
     label: string;
     value: string;
+    kind: TileValueKind;
     // A second line under the value; only the largest breach has one (deviation 4: the tile
     // names the breach and carries its count beneath).
     support?: string | undefined;
@@ -51,13 +57,29 @@ export const buildSummaryTiles = ({
     summary: BreachSummaryModel;
     accountsExposed: number;
 }): SummaryTileModel[] => [
-    { id: SummaryTile.RecentBreaches, label: 'Breaches, last 12 months', value: String(summary.breachesLast12Months) },
-    { id: SummaryTile.AccountsExposed, label: 'Accounts exposed', value: formatCount(accountsExposed) },
-    { id: SummaryTile.PasswordsLeaked, label: 'Passwords leaked', value: formatShare(summary.shareExposingPasswords) },
+    {
+        id: SummaryTile.RecentBreaches,
+        label: 'Breaches, last 12 months',
+        value: String(summary.breachesLast12Months),
+        kind: TileValueKind.Number,
+    },
+    {
+        id: SummaryTile.AccountsExposed,
+        label: 'Accounts exposed',
+        value: formatCount(accountsExposed),
+        kind: TileValueKind.Number,
+    },
+    {
+        id: SummaryTile.PasswordsLeaked,
+        label: 'Passwords leaked',
+        value: formatShare(summary.shareExposingPasswords),
+        kind: TileValueKind.Number,
+    },
     {
         id: SummaryTile.LargestBreach,
         label: 'Largest breach',
         value: summary.largestBreach.title,
+        kind: TileValueKind.Name,
         support: `${formatCount(summary.largestBreach.pwnCount)} accounts`,
     },
 ];

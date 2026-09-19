@@ -60,6 +60,7 @@ export const SearchField = ({
         <input
             className={styles.input}
             type="search"
+            name="q"
             inputMode="search"
             autoComplete="off"
             aria-label={SEARCH_LABEL}

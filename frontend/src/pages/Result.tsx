@@ -5,8 +5,8 @@
 import type { ReactElement } from 'react';
 import { useNavigate } from 'react-router';
 
-import { Column, MainColumn } from '~/ui/box';
 import { joinClassNames } from '~/ui/box.utils';
+import { Column, MainColumn, Row } from '~/ui/box';
 import { BreachList } from '~/components/BreachList';
 import { FunnelEventName } from '~/models/funnelEvent';
 import { useVisitor } from '~/providers/VisitorProvider';
@@ -31,20 +31,27 @@ export const Result = (): ReactElement => {
         <MainColumn className={joinClassNames(styles.page, toneClassMap[copy.tone])} data-testid={ResultTestIds.Page}>
             {/* The header holds the CTA's one node. At 390 the bar is fixed to the bottom of the
                 viewport; at 768+ the stylesheet sets it back inline beside the headline. */}
-            <header className={styles.header}>
-                <Column className={styles.headerText}>
-                    <h1 className={styles.headline} data-testid={ResultTestIds.Headline}>
-                        {copy.headline}
-                    </h1>
-                    <p className={styles.subheadline} data-testid={ResultTestIds.Subheadline}>
-                        {copy.subheadline}
-                    </p>
-                </Column>
-                <Column className={styles.stickyBar} data-testid={ResultTestIds.StickyBar}>
-                    <button className={styles.cta} type="button" data-testid={ResultTestIds.Cta} onClick={handleCta}>
-                        {copy.ctaLabel}
-                    </button>
-                </Column>
+            <header className={styles.headerBand}>
+                <Row className={styles.header}>
+                    <Column className={styles.headerText}>
+                        <h1 className={styles.headline} data-testid={ResultTestIds.Headline}>
+                            {copy.headline}
+                        </h1>
+                        <p className={styles.subheadline} data-testid={ResultTestIds.Subheadline}>
+                            {copy.subheadline}
+                        </p>
+                    </Column>
+                    <Column className={styles.stickyBar} data-testid={ResultTestIds.StickyBar}>
+                        <button
+                            className={styles.cta}
+                            type="button"
+                            data-testid={ResultTestIds.Cta}
+                            onClick={handleCta}
+                        >
+                            {copy.ctaLabel}
+                        </button>
+                    </Column>
+                </Row>
             </header>
             <Column className={styles.body}>
                 <BreachSummary tone={copy.tone} />

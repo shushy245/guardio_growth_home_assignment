@@ -27,13 +27,19 @@ $sticky-bar-height: tokens.$control-height + tokens.$sp-3 * 2;
     box-sizing: border-box;
 }
 
-.header {
-    display: flex;
-    flex-direction: column;
-    gap: tokens.$sp-3;
+// The band is full-bleed; the row inside it shares the body's content cap, so the headline and
+// the tiles below it start on the same edge at 1280.
+.headerBand {
     padding: tokens.$gutter-sm;
     background: tokens.$color-surface;
     border-bottom: 1px solid tokens.$color-border;
+}
+
+.header {
+    flex-direction: column;
+    gap: tokens.$sp-3;
+    max-width: tokens.$content-max;
+    margin: 0 auto;
 }
 
 .headerText {
@@ -85,13 +91,16 @@ $sticky-bar-height: tokens.$control-height + tokens.$sp-3 * 2;
         padding-bottom: 0;
     }
 
+    .headerBand {
+        padding: tokens.$gutter-md;
+    }
+
     .header {
         flex-direction: row;
         justify-content: space-between;
         align-items: flex-end;
         flex-wrap: wrap;
         gap: tokens.$sp-6;
-        padding: tokens.$gutter-md;
     }
 
     .headline {
@@ -118,7 +127,7 @@ $sticky-bar-height: tokens.$control-height + tokens.$sp-3 * 2;
 }
 
 @media (min-width: tokens.$breakpoint-lg) {
-    .header {
+    .headerBand {
         padding: tokens.$gutter-lg;
     }
 

@@ -3,6 +3,30 @@
 The product diary: one entry per story, newest first, in the words of someone who never saw the
 code. Commit-level detail lives in `git log`; the plan holds what is still ahead.
 
+## S5 — funnel-ui (closed 2026-09-19)
+
+- **Pain** — The funnel had a design and a data layer and no screens between them: the landing
+  route was a placeholder heading, nothing scanned, and the result screen the whole exercise is
+  judged on did not exist — so neither variant of the A/B test had ever been rendered.
+- **Fix** — The three funnel screens are built to the D1 design from its tokens and component
+  inventory: a landing page with one promise and one button, a two-second scan moment that waits
+  for the record, and the result screen — four summary tiles, a search, data-class chips, a
+  verified toggle, a three-way sort, a results line, expandable breach rows with the Passwords
+  badge singled out, and one "Protect me" button that is a fixed bar on a phone and sits beside the
+  headline on a laptop *(instead of the design's two buttons switched by JavaScript at a width
+  breakpoint, rejected because a width branch in code would let every test silently cover one
+  viewport and miss the other two)*. The variant changes the words and one colour class on the
+  root; every ordering and narrowing is a server query, never a browser sort.
+- **Trade-off** — A visitor the experiment cannot place — the flag stopped, or the visitor service
+  down — sees the calm control framing from a constant kept in the frontend, which duplicates the
+  seeded copy on purpose (ADR-0004): the funnel must not go dark because the flag service did. The
+  landing lead names no breach count, because the page has none to name yet. The scan and
+  result data ride one shared load, so a direct visit to /result loads it itself with skeletons.
+- **Result** — 31 cases (F0–F30, 9 of them from the story-start pre-mortem and mid-story
+  additions), each named by a test; 56 frontend tests added (95→151), 12 of the green-on-arrival
+  cases pinned by a mutation that fails only them; 21 commits, every one red-first or a pure
+  refactor. VISUAL_PASS_TBD
+
 ## D1 — design handoff (closed 2026-09-19)
 
 - **Pain** — The funnel screens had no design at all, so the screen the whole exercise is judged

@@ -4,6 +4,7 @@
 import type { ReactElement } from 'react';
 
 import { Column, Row } from '~/ui/box';
+import { joinClassNames } from '~/ui/box.utils';
 import { useCountUp } from '~/hooks/useCountUp';
 import type { Tone } from '~/models/featureFlag';
 import { useBreachCatalog } from '~/providers/BreachCatalogProvider';
@@ -16,6 +17,7 @@ import {
     SUMMARY_TILE_COUNT,
     type SummaryTileModel,
     summaryTileTestId,
+    TileValueKind,
 } from '~/components/BreachSummary.utils';
 
 import styles from '~/components/BreachSummary.module.scss';
@@ -43,10 +45,16 @@ export const BreachSummary = ({ tone }: { tone: Tone }): ReactElement => {
     );
 };
 
+// A name reads at subhead size, a number at the tile's display size.
+const valueClassMap: Record<TileValueKind, string | undefined> = {
+    [TileValueKind.Number]: undefined,
+    [TileValueKind.Name]: styles.valueName,
+};
+
 const Tile = ({ tile }: { tile: SummaryTileModel }): ReactElement => (
     <Column className={styles.tile} data-testid={summaryTileTestId(tile.id)}>
         <span className={styles.label}>{tile.label}</span>
-        <span className={styles.value}>{tile.value}</span>
+        <span className={joinClassNames(styles.value, valueClassMap[tile.kind])}>{tile.value}</span>
         {tile.support === undefined ? undefined : <span className={styles.support}>{tile.support}</span>}
     </Column>
 );

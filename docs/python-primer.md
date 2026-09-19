@@ -289,3 +289,8 @@ You will struggle to validate details, so here is what to look for:
 - **`Mapping[str, str]` as a parameter type**: the read-only protocol for dict-like arguments
   (`collections.abc`). A pure function that only reads takes `Mapping`, which also documents that
   it does not mutate — the immutability rule expressed as a type.
+
+## S5 — nothing new
+
+S5 was frontend only: no Python construct landed, and the backend's 170 tests ran unchanged at
+every commit as the gate requires.

@@ -1152,6 +1152,21 @@ Commits:
 - C10 `[refactor]` extract sub-components / move logic to `.utils.ts` where files accumulated logic
 - C11 `[chore]` `frontend-design` pass; **manual Chrome pass at 390 / 768 / 1280 over every funnel screen and both variants**, findings and fixes recorded in `docs/changelog.md`; scss polish; ADR-0004 result-screen product decisions and the CSS-only responsive rule
 
+As executed (2026-09-19): a `[refactor]` first extracted `FunnelProviders` from `App` so every
+page driver renders under the production stack; C1 landed as two commits (F1, F2); C2 as F3 then
+F4 + F22, and the red test for F3 drove out `api/breaches` (required `AbortSignal`, BF20),
+`BreachCatalogProvider` and the shared `ErrorState` together — the TDD gate asked the provider
+for a driver of its own and got one; C3 F6 + F14; C4 F5, then F25 + F26 with ADR-0004; C5 F7,
+then F27 (`useCountUp`, `ui/motion.ts`); C6 F8, F9, F15 + F29, F28 (`SearchField` in its own
+unit, with the BF24-shaped case pinned before it could ship); C7 F17 + F21; C8 as the provider's
+F13 + F23 + F24 (the fake network now records whether a request was aborted) then the list's F10,
+F11, F16, F18; C9 F12 + F19 + F20; then F0, F30 (the synced line), and the C10 refactor. Every
+green-on-arrival case was proved by a mutation that fails only it. `frontend-design` was **not**
+loaded: D1 already fixed the design, and the skill is for inventing one. The visual pass ran as
+two independent `visual-reviewer` runs against a rebuilt bundle, one per variant, with the split
+retuned to 100/0 between them and restored to 50/50 after; the S6 route is not mounted yet, so
+the CTA lands on an empty outlet until S6.
+
 ### S6 — signup (~1h)
 
 Objective: mock sign-up with plan picker, k-anonymity password warning, bcrypt storage, confirmation.

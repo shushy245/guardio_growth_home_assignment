@@ -48,6 +48,26 @@ in-app statistical dashboard.
 ## What's done
 Full history: `docs/changelog.md`; commit-level record: `git log`.
 
+- **S5 — funnel-ui (closed 2026-09-19).** The funnel had a design and a data layer and no
+  screens between them. Landing, Scan and Result are built to the D1 design — tiles, search,
+  chips, verified toggle, sort, results line, expandable rows, one CTA node that is a fixed bar at
+  390 and inline in the header at 768+ by CSS alone — and every sort and filter is a server query.
+  A visitor outside the experiment gets the calm control framing from a frontend constant
+  (ADR-0004, a deliberate second home for the copy). 31 cases, 151 frontend tests, 21 commits;
+  every green-on-arrival case mutation-proved. VISUAL_PASS_TBD
+  Technically: `FunnelProviders` (visitor → analytics → `BreachCatalogProvider`) on the funnel
+  layout route, reused verbatim by every page driver; the catalog provider owns summary + list
+  state on one request descriptor (`isEnabled`/`attempt`/`filters`/`page`) answered by two
+  effects whose cleanups abort the fetch in flight, so a filter change, a retry or an unmount can
+  never let an older answer land over a newer one; `fetchBreaches`/`fetchBreachSummary` take a
+  required `AbortSignal`; `resolveResultCopy` + `toneClassMap` on the result root re-point every
+  `var(--tone-*)` reader; `useScanMoment` (timer cleared on unmount, pinned by a timer-count
+  assertion), `useCountUp` (frame-driven, cancels on unmount, collapses under reduced motion),
+  `SearchField` tells its own echo from an outside change by the last query it sent. The fake
+  network answers a bare path under any query, records the parsed query and whether the request
+  was aborted. Scan/Result drivers fake only `setTimeout`/rAF and assert synchronously, because
+  testing-library's `waitFor` drains through a faked `setTimeout`.
+
 - **D1 — design handoff (closed 2026-09-19).** The screen the whole exercise is judged on was
   about to be invented while it was built, and the admin page carried three measured defects that
   no page-local fix could answer without answering them twice. Shalev ran the prompt in Claude Design and brought back the project verbatim; it is now
@@ -136,21 +156,18 @@ Full history: `docs/changelog.md`; commit-level record: `git log`.
   tests green.
 
 ## What's next
-**S5 — funnel-ui. Unblocked and next.** D1 closed: the design is translated, so S5 implements a
-design rather than inventing one. **Component names, states and screens come from
-`docs/design/component-inventory.md`** and every value comes from `frontend/src/styles/tokens.scss`
-— a one-off literal in a `.module.scss` is a finding. The eight recorded deviations are the only
-places the code may differ from the export.
+**S6 — signup. Next.** Mock sign-up with the plan picker, the k-anonymity password check through
+the backend proxy, Argon2id storage and the "you're protected" confirmation; `Protected` tracks
+`activation`. The result page's CTA already navigates to `SIGNUP_ROUTE` (`Result.utils.ts`) and
+App has no route for it yet — S6's first commit mounts it. `Wordmark`, `ErrorState`, the
+`input`/`button-*`/`message-*` mixins and the `Skeleton` mixin are the shared pieces S6 reuses;
+`PlanCard`, `TextField` and `PasswordField` come from `docs/design/component-inventory.md`.
 
-S5 carries into it: `api/breaches` (the hooks *and* `fetchBreaches`/`fetchBreachSummary`) deferred
-from S2 to be written red-first; **F0** (the provider mount proved through the App driver, BF50);
-and **F21** (BreachRow expanded reveals the description), added at D1 because the design gives the
-description its only home on the screen. S7's simulator holds one cookie jar per simulated visitor
-(BF47).
-
-Open, deliberately: the `/admin` status `<p>` and Save do not share a right edge at 768/1280 (DV3,
-a nit — the 65ch cap is the token answering the measure criterion), and every authenticated
-`/admin` state is still visually unmeasured (no `ADMIN_TOKEN` given to the reviewer).
+Carried, deliberately: the design's `Button` ghost variant and loading spinner are not built yet
+(S6's submit is their first consumer); the `/admin` variant cards are not tinted by tone
+(deviation 6 says they adopt `toneClassMap` — that is an admin change, batched); DV3 and the
+unmeasured authenticated `/admin` states from D1 stand. S7's simulator holds one cookie jar per
+simulated visitor (BF47).
 
 Review records: `docs/reviews/s3-review.md`, `docs/reviews/s3-fixes-visual-review.md`,
 `docs/reviews/d1-visual-review.md`, and the S4 triage in `docs/plan.md`. **BF36 and BF42 are

@@ -8,6 +8,7 @@
 .synced {
     font-size: tokens.$text-100;
     color: tokens.$color-text-secondary;
+    max-width: tokens.$prose-measure;
 }
 
 // Mobile first: two tiles per row, so `calc(50% - half the gap)`; at md+ every tile takes an
@@ -38,7 +39,15 @@
     font-size: tokens.$text-500;
     font-weight: tokens.$weight-bold;
     line-height: tokens.$leading-tight;
-    overflow-wrap: anywhere;
+    // `break-word`, not `anywhere`: a word breaks only when it cannot fit a line on its own,
+    // where `anywhere` also let the flex sizing split "Credential" mid-word at 768.
+    overflow-wrap: break-word;
+}
+
+// A tile whose value is a name, not a number: the name at subhead size, so a long breach title
+// takes two lines in a 768 tile instead of six, and the row does not stretch to hold it.
+.valueName {
+    font-size: tokens.$text-300;
 }
 
 .support {
