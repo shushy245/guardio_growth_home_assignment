@@ -38,7 +38,7 @@ class Analysis:
 
     `test` and `lift` are `None` independently — an experiment can have a valid z-test and no
     statable lift (a control nobody converted in), so a reader must not infer one from the
-    other.
+    other. The call needs both: see `_recommend`.
     """
 
     test: ZTestResult | None
@@ -55,13 +55,18 @@ def analyse(*, control: Proportion, variant: Proportion, required_per_arm: int) 
     move the finish line every time somebody refreshed the page.
     """
     test = two_proportion_z_test(control=control, variant=variant)
+    lift = measure_lift(control=control, variant=variant)
 
     return Analysis(
         test=test,
-        lift=measure_lift(control=control, variant=variant),
+        lift=lift,
         required_per_arm=required_per_arm,
         recommendation=_recommend(
-            test=test, control=control, variant=variant, required_per_arm=required_per_arm
+            test=test,
+            lift=lift,
+            control=control,
+            variant=variant,
+            required_per_arm=required_per_arm,
         ),
     )
 
@@ -69,12 +74,20 @@ def analyse(*, control: Proportion, variant: Proportion, required_per_arm: int) 
 def _recommend(
     *,
     test: ZTestResult | None,
+    lift: Lift | None,
     control: Proportion,
     variant: Proportion,
     required_per_arm: int,
 ) -> Recommendation:
-    """Guard clauses, cheapest refusal first; the happy path is the last line."""
-    if test is None:
+    """Guard clauses, cheapest refusal first; the happy path is the last line.
+
+    A call needs a statable lift as well as a test. The z-test is defined for a control nobody
+    converted in — the pooled rate rises as soon as the variant converts anyone — and enormous,
+    while the relative lift is infinite. Calling that would put "ship variant, with high
+    confidence" beside a lift card reading "not enough data yet" (S7 review, R-1); a full
+    sample with zero conversions in one arm is a funnel to look into, not a variant to ship.
+    """
+    if test is None or lift is None:
         return Recommendation.KEEP_RUNNING
 
     if not _is_significant(test):

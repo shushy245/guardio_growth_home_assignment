@@ -69,6 +69,34 @@ def test_a_significant_result_on_too_little_traffic_still_recommends_keeping_it_
     assert analysis.recommendation is Recommendation.KEEP_RUNNING
 
 
+def test_a_significant_result_with_one_thin_arm_still_recommends_keeping_it_running() -> None:
+    """Per arm, not in total (R-2). 9,000 visitors through the control and 900 through the
+    variant is a strongly significant read and still a fifth of the variant's required sample;
+    the sum says 9,900 and would call it."""
+    analysis = analyse(
+        control=Proportion(successes=720, trials=9000),
+        variant=Proportion(successes=135, trials=900),
+        required_per_arm=REQUIRED_PER_ARM,
+    )
+
+    assert analysis.recommendation is Recommendation.KEEP_RUNNING
+
+
+def test_a_win_over_a_control_nobody_converted_in_is_not_called() -> None:
+    """The z-test is defined and enormous, the lift is not statable (R-1). A call the dashboard
+    would print beside "Not enough data yet" is a call it must not make: a control arm nobody
+    converted in over a full sample is a broken funnel to look into, not a variant to ship."""
+    analysis = analyse(
+        control=Proportion(successes=0, trials=5000),
+        variant=Proportion(successes=100, trials=5000),
+        required_per_arm=REQUIRED_PER_ARM,
+    )
+
+    assert analysis.test is not None
+    assert analysis.lift is None
+    assert analysis.recommendation is Recommendation.KEEP_RUNNING
+
+
 def test_an_experiment_nobody_has_reached_yet_reads_as_keep_running_with_no_statistics() -> None:
     """Zero denominators. The alternative is a ZeroDivisionError on the dashboard's first
     render, before a single visitor has been through the funnel."""
@@ -127,17 +155,14 @@ def test_no_degenerate_input_produces_a_figure_that_is_not_a_number() -> None:
         (Proportion(successes=1000, trials=1000), Proportion(successes=1000, trials=1000)),
     ]
 
-    figures = [
-        figure
-        for control, variant in degenerate
-        for figure in _every_figure_in(
-            analyse(control=control, variant=variant, required_per_arm=REQUIRED_PER_ARM)
-        )
-    ]
-
-    assert all(math.isfinite(figure) for figure in figures), (
-        f"a degenerate read reported a figure that is not finite: {figures}"
-    )
+    for control, variant in degenerate:
+        analysis = analyse(control=control, variant=variant, required_per_arm=REQUIRED_PER_ARM)
+        # Per figure, so a failure names the input and the figure, not a list of them (R-9).
+        for figure in _every_figure_in(analysis):
+            assert math.isfinite(figure), (
+                f"the read of {control} vs {variant} reported a figure that is not finite: "
+                f"{figure} in {analysis}"
+            )
 
 
 def test_the_interval_and_the_p_value_agree_about_significance() -> None:

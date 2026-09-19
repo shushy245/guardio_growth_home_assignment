@@ -19,7 +19,7 @@ from app.config import Env
 from app.experiments import repository
 from app.experiments.results import FUNNEL_IN_ORDER, StepCount
 from app.experiments.simulation import simulate_traffic
-from app.funnel_events.models import FunnelEventName, FunnelEventRow
+from app.funnel_events.models import FunnelEventRow
 from app.visitors.models import VisitorAssignmentRow, VisitorRow
 from tests.drivers.http import HttpDriver
 
@@ -102,7 +102,8 @@ class _Then:
 
     def every_funnel_narrows_step_by_step(self) -> None:
         """No step counts more visitors than the one before it — a visitor who dropped out
-        never records a later step — and some did drop out before activating."""
+        never records a later step — and not everyone activated. Only the upper bound: at 200
+        visitors an arm expects ~6 activations, and `0 < activation` was a 0.15% flake (R-10)."""
         for arm in ACTIVATION_RATES:
             funnel = self._driver._funnel_of(arm)
             by_step = dict(zip(FUNNEL_IN_ORDER, funnel, strict=True))
@@ -110,16 +111,22 @@ class _Then:
                 f"arm {arm!r} funnel grows at some step: {by_step}"
             )
             landing, activation = funnel[0], funnel[-1]
-            assert 0 < activation < landing, (
-                f"arm {arm!r}: expected some but not all of {landing} to activate, got {activation}"
+            assert activation < landing, (
+                f"arm {arm!r}: expected fewer than {landing} to activate, got {activation}"
             )
 
     def every_event_is_tagged_with_its_visitors_arm(self) -> None:
-        """The API stamped the tag; the simulator sent none. Every stored event carries the flag."""
-        untagged = self._driver._session.execute(
+        """The API stamped the tag; the simulator sent none. Every stored event carries the
+        variant its visitor holds — `IS DISTINCT FROM`, so a missing tag counts as a mismatch
+        too (R-5: the first form only checked that *a* flag was stamped)."""
+        mismatched = self._driver._session.execute(
             select(func.count())
             .select_from(FunnelEventRow)
-            .where(FunnelEventRow.flag_key.is_(None))
+            .join(
+                VisitorAssignmentRow,
+                (VisitorAssignmentRow.visitor_id == FunnelEventRow.visitor_id)
+                & (VisitorAssignmentRow.flag_key == RESULT_SCREEN_TONE),
+            )
+            .where(FunnelEventRow.variant_key.is_distinct_from(VisitorAssignmentRow.variant_key))
         ).scalar_one()
-        assert untagged == 0, f"{untagged} events were stored without an experiment tag"
-        _ = FunnelEventName  # the funnel vocabulary this driver reads back is the model's
+        assert mismatched == 0, f"{mismatched} events carry a tag other than their visitor's arm"
