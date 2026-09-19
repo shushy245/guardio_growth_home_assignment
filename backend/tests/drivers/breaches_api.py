@@ -141,6 +141,22 @@ class _When:
         """`sort` and `order` are strings, not enums, so a test can send a value that is not one."""
         self._driver._list(f"?sort={sort}&order={order}")
 
+    def every_page_of_the_filtered_list_was_gathered(self, *, q: str, limit: int) -> None:
+        """Walk the filtered list page by page and keep what came back. The envelope's `total`
+        is a promise about the whole selection, and a one-page fixture cannot tell it from the
+        page's own length (S2 B17's untested half)."""
+        collected: list[str] = []
+        page = 1
+        while True:
+            self._driver._list(f"?q={quote(q)}&page={page}&limit={limit}")
+            names = [str(item["name"]) for item in self._driver._items()]
+            if not names:
+                break
+            collected.extend(names)
+            page += 1
+
+        self._driver._listed_names = collected
+
     def every_page_was_listed_while_the_catalog_was_re_synced(self, *, limit: int) -> None:
         """Walk the pages with a sync landing between each one — the real interleaving.
 
@@ -169,6 +185,13 @@ class _Then:
     def the_breach_names_are(self, *expected: str) -> None:
         actual = [str(item["name"]) for item in self._driver._items()]
         assert actual == list(expected), f"expected {list(expected)}, got {actual}"
+
+    def the_gathered_pages_hold_exactly_what_the_total_promised(self, *, total: int) -> None:
+        gathered = self._driver._listed_names
+        assert len(gathered) == total, (
+            f"the envelope promised a total of {total}; the pages held {len(gathered)}: {gathered}"
+        )
+        assert len(set(gathered)) == len(gathered), f"a record was on two pages: {gathered}"
 
     def the_catalog_was_reported_unavailable(self) -> None:
         """503, not an empty 200: a catalog we do not hold is unknown, not "no breaches"."""

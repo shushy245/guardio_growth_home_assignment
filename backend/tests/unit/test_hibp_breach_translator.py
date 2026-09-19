@@ -72,3 +72,16 @@ def test_the_hibp_translator_rejects_a_payload_that_is_not_hibps_shape() -> None
 
     assert "to_breaches" in str(error.value)
     assert "Title" in str(error.value)
+
+
+def test_the_refusal_names_which_record_of_the_payload_was_wrong() -> None:
+    """`_describe`'s whole promise is index *and* wire name — "[1].PwnCount" is what turns 1,036
+    records into the one to look at. Every case asserted the field alone (S2 B1d's untested
+    half), so an index that stopped being printed would have gone unnoticed."""
+    payload = [a_hibp_breach().build(), {**a_hibp_breach().build(), "PwnCount": "many"}]
+
+    with pytest.raises(BreachCatalogError) as error:
+        to_breaches(payload)
+
+    assert "[1]" in str(error.value)
+    assert "[1].PwnCount" in str(error.value)

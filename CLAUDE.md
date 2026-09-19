@@ -35,7 +35,7 @@ in-app statistical dashboard.
 - Feature flag = Experiment toggle (Fowler): `feature_flag` table, optimistic lock on `updated_at`, server-side stored assignment.
 
 ## Key conventions (project-specific)
-- Python forms of every house rule: `docs/python-conventions.md`. Backend test driver namespaces are `given / get / post / patch / then` (`then` = house `assert`).
+- Python forms of every house rule: `docs/python-conventions.md`. Backend test driver namespaces are `given / when / then` on an entity driver and `given / get / post / patch / then` on a transport one (`then` = house `assert`); `docs/python-conventions.md` says which is which.
 - Migrations live in `backend/migrations/` (not `alembic/`, which shadows the library).
 - `pnpm typecheck|lint|test` at the root run frontend **and** backend checks; `test:backend` includes integration tests and needs `docker compose up -d db`.
 - New Python constructs get a section in `docs/python-primer.md` in the same story.

@@ -90,6 +90,24 @@ def test_a_filtered_list_reports_the_filtered_total_not_the_table_count(
     breaches.then.the_envelope_reports(total=1, page=1, limit=20)
 
 
+def test_the_filtered_total_equals_the_items_gathered_across_all_its_pages(
+    breaches: BreachesApiDriver,
+) -> None:
+    """The other half of B17. On a one-page fixture `total` and the page's length are the same
+    number whatever the query counts, so the promise "Showing 20 of 63" makes is only tested by
+    walking the pages and counting what comes back."""
+    breaches.given.breaches_all_on_one_day(count=25)
+    breaches.given.breaches(a_breach().with_name("Adobe").with_title("Adobe").build())
+
+    breaches.when.listed_matching("breach-")
+
+    breaches.then.the_envelope_reports(total=25, page=1, limit=20)
+
+    breaches.when.every_page_of_the_filtered_list_was_gathered(q="breach-", limit=10)
+
+    breaches.then.the_gathered_pages_hold_exactly_what_the_total_promised(total=25)
+
+
 def test_a_search_that_matches_nothing_is_an_empty_page_not_an_error(
     breaches: BreachesApiDriver,
 ) -> None:

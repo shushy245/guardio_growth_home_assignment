@@ -21,8 +21,9 @@ import {
     splitHash,
 } from '~/components/PasswordField.utils';
 
-// A password too short to submit is not worth a request; the check starts at the floor.
-const isWorthChecking = (password: string): boolean => password !== '' && !isTooShort(password);
+// A password too short to submit is not worth a request; the check starts at the floor. The
+// empty box is one of those — `isTooShort('')` already holds, so it needs no clause of its own.
+const isWorthChecking = (password: string): boolean => !isTooShort(password);
 
 const checkPassword = async ({
     password,
