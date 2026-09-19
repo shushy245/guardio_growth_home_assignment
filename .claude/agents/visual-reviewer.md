@@ -35,8 +35,10 @@ viewport-independent checks come first, the screenshots last. Do not reorder it.
 2. **Read the changed files for the code-side signals — one `Bash` call, before any browser work.**
    This is the only use of the file list beyond step 3, and it catches what a render at three fixed
    widths cannot — a page can measure clean at 390, 768 and 1280 and still be built the wrong way.
-   Never `cat` the files: one `grep -nE` over all of them, with every pattern in one alternation, gives
-   you the file, the line and the quote in a single result. The signals:
+   Never `cat` the files: **one `Bash` call, one `grep -nE`, one alternation** holding every pattern
+   below — the pass B patterns in the same alternation as the responsive ones, not a second grep
+   for them — over all the files at once. That gives you the file, the line and the quote in a
+   single result. The signals:
    - a `max-width` media query in new styles → not mobile-first;
    - a width branch in the component (`matchMedia`, an `isMobile` prop or state, reading
      `innerWidth`) → reflow is meant to be CSS-only, and a width branch means every driver test for
