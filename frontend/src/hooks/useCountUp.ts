@@ -12,26 +12,29 @@ export enum CountMode {
 
 const COUNT_UP_MS = 1400;
 
-const isStill = (mode: CountMode): boolean => mode === CountMode.Still;
+// Read at render, not only in the effect: what the hook returns depends on it, so the decision
+// belongs where the value is chosen.
+const isCounting = (mode: CountMode): boolean => mode === CountMode.CountUp && !prefersReducedMotion();
 
 // Fast at first, settling into the final figure: the eye reads the number, not the motion.
 const easeOutCubic = (progress: number): number => 1 - (1 - progress) ** 3;
 
 export const useCountUp = ({ target, mode }: { target: number; mode: CountMode }): number => {
-    const [shown, setShown] = useState(target);
+    // The animated value only. The still path returns the target itself, because a target that
+    // arrives in a later render — the summary landing under the tile — would otherwise be shown
+    // one commit late: `useState` seeds once, and reconciling in an effect painted the calm
+    // tile's "Accounts exposed" as 0 before the figure (BF63).
+    const [counted, setCounted] = useState(0);
+    const counts = isCounting(mode);
 
     useEffect(() => {
-        if (isStill(mode) || prefersReducedMotion()) {
-            setShown(target);
-
-            return;
-        }
+        if (!counts) return;
         const startedAt = performance.now();
         // The handle of the frame currently waiting, so the cleanup can cancel whichever one it is.
         const pending = { frame: 0 };
         const tick = (now: number): void => {
             const progress = Math.min(1, (now - startedAt) / COUNT_UP_MS);
-            setShown(Math.round(target * easeOutCubic(progress)));
+            setCounted(Math.round(target * easeOutCubic(progress)));
             if (progress < 1) pending.frame = requestAnimationFrame(tick);
         };
         pending.frame = requestAnimationFrame(tick);
@@ -39,7 +42,7 @@ export const useCountUp = ({ target, mode }: { target: number; mode: CountMode }
         return (): void => {
             cancelAnimationFrame(pending.frame);
         };
-    }, [target, mode]);
+    }, [target, counts]);
 
-    return shown;
+    return counts ? counted : target;
 };
