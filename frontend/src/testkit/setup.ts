@@ -8,6 +8,15 @@ import { fakeHttp, HttpMethod } from '~/testkit/fake-http';
 import { restoreWebCryptoSubtle } from '~/testkit/web-crypto';
 import { aFeatureFlagDTO, aVisitorDTO } from '~/testkit/builders';
 
+// The drivers call React's own `act` around renders and timer advances, and React asks for this
+// flag before it will treat those updates as act-scoped; testing-library sets it only inside its
+// own wrappers. Declared once here so the synchronous assertions the drivers rest on are backed
+// by the environment, not by React's forbearance (S6 code review, finding 14).
+declare global {
+    var IS_REACT_ACT_ENVIRONMENT: boolean | undefined;
+}
+globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+
 // Every test starts with an empty fake network and no remembered visitor. The defaults are the
 // seeded world: a visitor can be created and the one flag is listed. A driver overrides what its
 // scenario changes; a route nothing registered fails loudly rather than reaching a server.
