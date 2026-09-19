@@ -94,7 +94,27 @@ export const receivePage = ({
 }): ListState => {
     if (isFirstPage(request) || !hasItems(current)) return { status: ListStatus.Ready, ...page };
 
-    return { status: ListStatus.Ready, items: [...current.items, ...page.items], total: page.total, page: page.page };
+    return {
+        status: ListStatus.Ready,
+        items: withoutRepeats([...current.items, ...page.items]),
+        total: page.total,
+        page: page.page,
+    };
+};
+
+// A record can arrive on two pages: the catalog refreshes behind the visitor (S2b), and a row
+// inserted above the page boundary pushes one record down onto the next page. The list is keyed
+// by name, so the repeat was a duplicate React key and a dropped row (BF75). The first copy
+// wins — it is the one already on screen.
+const withoutRepeats = (items: BreachModel[]): BreachModel[] => {
+    const seen = new Set<string>();
+
+    return items.filter((item) => {
+        if (seen.has(item.name)) return false;
+        seen.add(item.name);
+
+        return true;
+    });
 };
 
 // What the list shows when a page fails: the error state for a first page — there is nothing
@@ -134,10 +154,20 @@ export const retryRequest = (request: CatalogRequest): CatalogRequest => ({
     page: FIRST_PAGE,
 });
 
-const FILTER_KEYS: readonly (keyof CatalogFilters)[] = ['sort', 'order', 'q', 'dataClass', 'verifiedOnly'];
+// One reader per filter, and the `Record` is what forces the list to be complete: a filter
+// added to the model and forgotten here used to type-check — `readonly (keyof CatalogFilters)[]`
+// accepts any subset — and `areSameFilters` then swallowed every change to it, so the chip did
+// nothing and nothing failed (BF74).
+const filterReaders: Record<keyof CatalogFilters, (filters: CatalogFilters) => unknown> = {
+    sort: (filters) => filters.sort,
+    order: (filters) => filters.order,
+    q: (filters) => filters.q,
+    dataClass: (filters) => filters.dataClass,
+    verifiedOnly: (filters) => filters.verifiedOnly,
+};
 
 export const areSameFilters = (left: CatalogFilters, right: CatalogFilters): boolean =>
-    FILTER_KEYS.every((key) => left[key] === right[key]);
+    Object.values(filterReaders).every((read) => read(left) === read(right));
 
 // A changed filter replaces the whole selection — the caller sends what should be in force, not a
 // delta, so a control that clears a value simply leaves it out — and starts it from page one. A
