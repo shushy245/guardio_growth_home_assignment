@@ -3,7 +3,7 @@ import { act, type ReactElement } from 'react';
 import { cleanup, screen } from '@testing-library/react';
 
 import { useLoadedState } from '~/hooks/useLoadedState';
-import { RenderMode, renderWithProviders } from '~/testkit/renderWithProviders';
+import { renderWithProviders } from '~/testkit/renderWithProviders';
 
 export const LOADING = 'loading';
 
@@ -64,8 +64,7 @@ export const makeLoadedStateDriver = (): LoadedStateDriver => {
         when: {
             created: async (): Promise<void> => {
                 await act(async () => {
-                    // Strict, because that is what `main.tsx` ships and what asks twice.
-                    renderWithProviders(<Host />, { mode: RenderMode.Strict });
+                    renderWithProviders(<Host />);
                 });
             },
             theLoadAnswers: releaseTheLoad,

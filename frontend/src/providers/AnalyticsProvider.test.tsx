@@ -62,7 +62,6 @@ describe('AnalyticsProvider and the mount effect', () => {
     });
 
     it('posts one event although StrictMode runs the mount effect twice', async () => {
-        driver.given.strictMode();
         await driver.when.created();
         await driver.assert.postedEventNamesInOrder([FunnelEventName.LandingView]);
         await driver.assert.eventsPosted(1);

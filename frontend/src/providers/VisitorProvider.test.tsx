@@ -78,7 +78,6 @@ describe('VisitorProvider under StrictMode', () => {
     });
 
     it('creates exactly one visitor although the effect runs twice', async () => {
-        driver.given.strictMode();
         driver.given.theServerCreates(aVisitorDTO().withId('vis_once').build());
         await driver.when.created();
         await driver.assert.headlineIsShown("You're exposed!");

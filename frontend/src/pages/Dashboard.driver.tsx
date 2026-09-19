@@ -8,11 +8,11 @@ import { Dashboard } from '~/pages/Dashboard';
 import { LiftCardTestIds } from '~/components/LiftCard.utils';
 import { RESULT_SCREEN_TONE_FLAG } from '~/models/featureFlag';
 import { ErrorStateTestIds } from '~/components/ErrorState.utils';
+import { renderWithProviders } from '~/testkit/renderWithProviders';
 import type { ExperimentResultDTO } from '~/models/experimentResult';
 import { HypothesisCardTestIds } from '~/components/HypothesisCard.utils';
 import { DASHBOARD_ROUTE, DashboardTestIds } from '~/pages/Dashboard.utils';
 import { FunnelBarsTestIds, funnelBarTestId } from '~/charts/FunnelBars.utils';
-import { RenderMode, renderWithProviders } from '~/testkit/renderWithProviders';
 import { fakeHttp, HttpMethod, type RecordedRequest } from '~/testkit/fake-http';
 import { RecommendationBannerTestIds } from '~/components/RecommendationBanner.utils';
 
@@ -29,7 +29,6 @@ export type DashboardDriver = {
     };
     when: {
         created: () => Promise<void>;
-        createdInStrictMode: () => Promise<void>;
         unmounted: () => Promise<void>;
     };
     click: { retry: () => Promise<void> };
@@ -67,9 +66,9 @@ export const makeDashboardDriver = (): DashboardDriver => {
         return request;
     };
 
-    const render = async (mode: RenderMode): Promise<void> => {
+    const render = async (): Promise<void> => {
         await act(async () => {
-            renderWithProviders(<Dashboard />, { route: DASHBOARD_ROUTE, mode });
+            renderWithProviders(<Dashboard />, { route: DASHBOARD_ROUTE });
         });
     };
 
@@ -98,10 +97,7 @@ export const makeDashboardDriver = (): DashboardDriver => {
         },
         when: {
             created: async (): Promise<void> => {
-                await render(RenderMode.Plain);
-            },
-            createdInStrictMode: async (): Promise<void> => {
-                await render(RenderMode.Strict);
+                await render();
             },
             unmounted: async (): Promise<void> => {
                 await act(async () => {

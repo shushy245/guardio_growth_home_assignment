@@ -5,9 +5,9 @@ import { screen, waitFor } from '@testing-library/react';
 import type { VisitorDTO } from '~/models/visitor';
 import { fakeHttp, HttpMethod } from '~/testkit/fake-http';
 import type { FeatureFlagDTO } from '~/models/featureFlag';
+import { renderWithProviders } from '~/testkit/renderWithProviders';
 import { useVisitor, VisitorProvider } from '~/providers/VisitorProvider';
 import { readStoredVisitorId, storeVisitorId } from '~/storage/visitor-id';
-import { RenderMode, renderWithProviders } from '~/testkit/renderWithProviders';
 import { isFailed, variantFor, VisitorStatus } from '~/providers/VisitorProvider.utils';
 
 // A test-only consumer: renders what a page would read from the provider, and nothing else.
@@ -44,7 +44,6 @@ export type VisitorProviderDriver = {
         theServerHasForgottenVisitor: (id: string) => void;
         visitorCreationFails: () => void;
         theServerListsFlags: (...flags: FeatureFlagDTO[]) => void;
-        strictMode: () => void;
     };
     when: { created: () => Promise<void> };
     assert: {
@@ -58,8 +57,6 @@ export type VisitorProviderDriver = {
 };
 
 export const makeVisitorProviderDriver = (): VisitorProviderDriver => {
-    let mode = RenderMode.Plain;
-
     const requestsTo = (method: HttpMethod, path: string): number =>
         fakeHttp.requests().filter((request) => request.method === method && request.path === path).length;
 
@@ -98,9 +95,6 @@ export const makeVisitorProviderDriver = (): VisitorProviderDriver => {
             theServerListsFlags: (...flags: FeatureFlagDTO[]): void => {
                 fakeHttp.respond({ method: HttpMethod.Get, path: '/feature-flags', status: 200, body: flags });
             },
-            strictMode: (): void => {
-                mode = RenderMode.Strict;
-            },
         },
         when: {
             created: async (): Promise<void> => {
@@ -109,7 +103,7 @@ export const makeVisitorProviderDriver = (): VisitorProviderDriver => {
                         <VisitorProvider>
                             <VisitorProbe />
                         </VisitorProvider>,
-                        { route: '/', mode },
+                        { route: '/' },
                     );
                 });
             },

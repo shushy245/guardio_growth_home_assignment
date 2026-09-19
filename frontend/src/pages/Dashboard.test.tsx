@@ -92,8 +92,11 @@ describe('Dashboard page', () => {
     });
 
     it('survives a StrictMode double-mount with one rendered result and the first fetch aborted', async () => {
+        // StrictMode is what every driver renders now (BF87), so this case is about what the
+        // double mount does to a load that *is* abortable: two requests, the first abandoned,
+        // one funnel on screen.
         driver.given.theServerAnswers(anExperimentResultDTO().build());
-        await driver.when.createdInStrictMode();
+        await driver.when.created();
         await driver.assert.hypothesisReads(STATEMENT);
         driver.assert.exactlyOneFunnelIsRendered();
         driver.assert.resultsWereRequested(2);

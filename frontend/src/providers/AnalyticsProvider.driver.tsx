@@ -11,8 +11,8 @@ import { FunnelEventName } from '~/models/funnelEvent';
 import { isPlainObject } from '~/api/http-client.utils';
 import { isReady } from '~/providers/VisitorProvider.utils';
 import type { FunnelEventCreateDTO } from '~/models/funnelEvent';
+import { renderWithProviders } from '~/testkit/renderWithProviders';
 import { useVisitor, VisitorProvider } from '~/providers/VisitorProvider';
-import { RenderMode, renderWithProviders } from '~/testkit/renderWithProviders';
 import { AnalyticsProvider, useAnalytics } from '~/providers/AnalyticsProvider';
 import { fakeHttp, HttpMethod, type RecordedRequest } from '~/testkit/fake-http';
 
@@ -84,7 +84,6 @@ export type AnalyticsProviderDriver = {
         theVisitorCannotBeCreated: () => void;
         theServerRejectsEvents: () => void;
         aStepShownOnceTheVisitorIsReady: (name: FunnelEventName) => void;
-        strictMode: () => void;
     };
     when: {
         created: () => Promise<void>;
@@ -107,7 +106,6 @@ export type AnalyticsProviderDriver = {
 
 export const makeAnalyticsProviderDriver = (): AnalyticsProviderDriver => {
     const user = userEvent.setup();
-    let mode = RenderMode.Plain;
     let readyOnlyStep: FunnelEventName | undefined = undefined;
     let releaseVisitor: (() => void) | undefined = undefined;
     const loggedErrors = vi.spyOn(logger, 'error').mockImplementation(() => {});
@@ -181,9 +179,6 @@ export const makeAnalyticsProviderDriver = (): AnalyticsProviderDriver => {
             aStepShownOnceTheVisitorIsReady: (name: FunnelEventName): void => {
                 readyOnlyStep = name;
             },
-            strictMode: (): void => {
-                mode = RenderMode.Strict;
-            },
         },
         when: {
             created: async (): Promise<void> => {
@@ -194,7 +189,7 @@ export const makeAnalyticsProviderDriver = (): AnalyticsProviderDriver => {
                                 <AnalyticsProbe readyOnlyStep={readyOnlyStep} />
                             </AnalyticsProvider>
                         </VisitorProvider>,
-                        { route: '/', mode },
+                        { route: '/' },
                     );
                 });
             },

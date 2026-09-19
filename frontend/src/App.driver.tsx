@@ -11,8 +11,8 @@ import { FunnelEventName } from '~/models/funnelEvent';
 import { NotFoundTestIds } from '~/pages/NotFound.utils';
 import { ProtectedTestIds } from '~/pages/Protected.utils';
 import { fakeHttp, HttpMethod } from '~/testkit/fake-http';
+import { renderWithProviders } from '~/testkit/renderWithProviders';
 import { postedSteps, respondToFunnelEvents } from '~/testkit/funnel-events';
-import { RenderMode, renderWithProviders } from '~/testkit/renderWithProviders';
 
 export type AppDriver = {
     given: { route: (path: string, state?: unknown) => void };
@@ -51,10 +51,7 @@ export const makeAppDriver = (): AppDriver => {
         when: {
             created: async (): Promise<void> => {
                 await act(async () => {
-                    // Strict, because `main.tsx` ships StrictMode: an effect that fires twice on
-                    // mount is what production's development build actually does, and a driver
-                    // rendering plain certifies as single what is double there (BF58).
-                    renderWithProviders(<App />, { route, state, mode: RenderMode.Strict });
+                    renderWithProviders(<App />, { route, state });
                 });
             },
         },

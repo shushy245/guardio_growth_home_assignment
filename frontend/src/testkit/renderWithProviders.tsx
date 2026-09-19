@@ -11,7 +11,12 @@ import { type ReactElement, StrictMode } from 'react';
 
 export enum RenderMode {
     // What production ships: main.tsx wraps the app in StrictMode, so effects double-run in dev.
+    // It is the default here for the same reason — a driver that renders plain certifies as
+    // single what is double in the mode the app actually runs in, which is how the admin page's
+    // double fetch survived a test named "once" (BF58, BF87).
     Strict = 'strict',
+    // Opt out only where StrictMode's second mount is what the test is measuring around, and
+    // say why at the call site.
     Plain = 'plain',
 }
 
@@ -22,7 +27,7 @@ const wrap = (tree: ReactElement, mode: RenderMode): ReactElement =>
 // the plan from it, so a driver can open that page the way the sign-up leaves it.
 export const renderWithProviders = (
     ui: ReactElement,
-    { route = '/', state, mode = RenderMode.Plain }: { route?: string; state?: unknown; mode?: RenderMode } = {},
+    { route = '/', state, mode = RenderMode.Strict }: { route?: string; state?: unknown; mode?: RenderMode } = {},
 ): void => {
     const entry = state === undefined ? route : { pathname: route, state };
     render(wrap(<MemoryRouter initialEntries={[entry]}>{ui}</MemoryRouter>, mode));

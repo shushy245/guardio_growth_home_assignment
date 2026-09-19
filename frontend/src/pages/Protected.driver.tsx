@@ -11,8 +11,8 @@ import { SIGNUP_ROUTE } from '~/pages/Result.utils';
 import { FunnelEventName } from '~/models/funnelEvent';
 import { ProtectedTestIds } from '~/pages/Protected.utils';
 import { FunnelProviders } from '~/providers/FunnelProviders';
+import { renderWithProviders } from '~/testkit/renderWithProviders';
 import { postedSteps, respondToFunnelEvents } from '~/testkit/funnel-events';
-import { RenderMode, renderWithProviders } from '~/testkit/renderWithProviders';
 import { PROTECTED_ROUTE, type ProtectedRouteState } from '~/pages/Signup.utils';
 
 // Where a visit with nothing to confirm is sent. A probe, not the real Signup page.
@@ -56,7 +56,7 @@ export const makeProtectedDriver = (): ProtectedDriver => {
                             </Routes>
                         </FunnelProviders>,
                         // What production ships: the mount effect runs, cleans up and runs again.
-                        { route: PROTECTED_ROUTE, state, mode: RenderMode.Strict },
+                        { route: PROTECTED_ROUTE, state },
                     );
                 });
             },
