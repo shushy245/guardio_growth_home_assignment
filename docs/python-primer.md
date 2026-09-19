@@ -329,3 +329,19 @@ every commit as the gate requires.
   seven keyword arguments on `insert_signup`, and the fix is Fowler's Parameter Object — the
   handler computes every value first, builds one frozen value, and the repository writes it. The
   rule made "transform before write" visible in the signature.
+
+## Added in S7 — constructs that actually landed
+
+- **`func.count(distinct(Row.column))`** (`app/experiments/repository.py`): SQL's
+  `COUNT(DISTINCT visitor_id)` — the number of *different* visitors, not rows. A retry that
+  landed under a fresh id is a second row for one person, and a funnel counts people. The plain
+  `func.count(column)` would inflate every rate by the retry count.
+- **`select(A.col, B.col, func.count(...)).join(B, on).group_by(A.col, B.col)`**: the aggregate
+  query in SQLAlchemy Core, read top to bottom like the SQL it becomes. `.join(B, condition)`
+  needs an explicit `ON` when the two tables share no foreign key of their own (here both point
+  at `visitor`, not at each other); without it SQLAlchemy refuses with "Don't know how to join".
+  The columns in `select` that are not aggregates must all appear in `group_by`, as in Postgres.
+- **Unpacking `Row` objects in a comprehension** (`for variant_key, step, visitors in rows`): a
+  Core result row is a tuple-like value, and mypy knows the position types from the `select`, so
+  the `StepCount` built from it is fully typed with no cast. A column mapped to an `Enum` type
+  arrives as the enum member, not the stored string.
