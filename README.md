@@ -21,10 +21,13 @@ Ports bind to `127.0.0.1` only.
 |---|---|
 | `/` → `/scan` → `/result` → `/signup` → `/protected` | The funnel |
 | `/admin` | The feature flag: split, copy, on/off |
-| `/dashboard` | The read and the call |
+| `/dashboard` | The read and the call (empty until traffic goes through, see below) |
 
-Dev loop: `pnpm dev` (needs `uv` and `pnpm`) runs the same stack with hot reload.
-Checks: `pnpm typecheck`, `pnpm lint`, `pnpm test` (needs `docker compose up -d db`).
+To see both arms of the test: one browser is assigned once and keeps its arm, so open a private
+window, or set the split to 100/0 on `/admin`.
+
+Dev loop: `pnpm dev` (needs `uv`, `pnpm` and Docker) runs the same stack with hot reload.
+Checks: `pnpm typecheck`, `pnpm lint`, `pnpm test` (needs `docker compose up -d db`); 433 tests.
 The pre-commit hook runs all three.
 
 ## Product decisions on the result screen
@@ -59,12 +62,13 @@ hypothesis itself lives in code, so nobody can move the finish line after a slow
 
 ## The read and the call
 
-`/dashboard` shows the funnel per arm, the three rates, the lift with 95% CI, sample progress,
-and one call: ship, keep control, or keep running. Two-proportion z-test, alpha 0.05, sample
-size from the hypothesis at power 0.8 (ADR-0006). **Significance alone does not earn a call:**
-ship needs a significant test *and* the powered sample. That is the peeking guard.
+`/dashboard` shows the funnel per arm, the relative lift with its 95% CI and p-value, sample
+progress, and one call: ship, keep control, or keep running. The three rates are in the API
+response behind it. Two-proportion z-test, alpha 0.05, sample size from the hypothesis at power
+0.8 (ADR-0006).
 
-4,000 simulated visitors through the real API, activation set at 8% calm and 10% urgent:
+The simulated run: 4,000 visitors through the real API, activation set at 8% calm and 10%
+urgent. With the stack up and `uv` installed, this is what fills `/dashboard`:
 
 ```sh
 cd backend && uv run python scripts/simulate_traffic.py --visitors 4000 --activation calm=0.08 urgent=0.10
@@ -78,8 +82,10 @@ cd backend && uv run python scripts/simulate_traffic.py --visitors 4000 --activa
 
 z = 2.64, p = 0.008, relative lift +32% (95% CI +7% to +63%). Required per arm: 4,921. Reached:
 1,885. **Call: `KEEP_RUNNING`.** Significant at this look, and still not shipped, because the
-sample is short of what the hypothesis was powered for. Full response:
-[`docs/simulation-read.json`](docs/simulation-read.json).
+sample is short of what the hypothesis was powered for. That is the peeking guard: a daily
+refresh is a sequential look, and a null test crosses p < 0.05 at some look if the reader may
+stop there. Full response: [`docs/simulation-read.json`](docs/simulation-read.json). The table
+behind it also holds 764 visitors from a crashed first run and manual testing, 4,764 in all.
 
 The simulator encodes the effect it is asked for. This validates the pipeline and the
 statistics, not the hypothesis. Only real traffic answers that.
@@ -87,7 +93,7 @@ statistics, not the hypothesis. Only real traffic answers that.
 ## Stack
 
 - **Frontend:** Vite, React 19, TS strict, axios, SCSS modules over one token file. Responsive
-  by CSS only. Vitest with a driver per component.
+  by CSS only. Vitest with a driver per screen.
 - **Backend:** FastAPI + Pydantic at the boundary, SQLAlchemy 2 + Alembic on Postgres, structlog
   with a correlation id per request, scipy. HIBP behind ports with in-memory fakes. Ruff, mypy
   strict, pytest.
@@ -104,4 +110,4 @@ the page, and no more.
 ## Time spent
 
 About two working days over three calendar days. Commit timestamps bracket roughly 16 hours of
-active work across 211 commits, plus planning and the design session before the first commit.
+active work, plus planning and the design session before the first commit.
