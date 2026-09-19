@@ -1620,7 +1620,7 @@ have since expired (the unused tokens, BF51–BF53).
   save is in flight keeps `Saving`, then the response sets `Saved`, so "Saved." stands beside a
   value that was never sent — the invariant the `handleFlagEdited` comment states. PLAUSIBLE
   (FE-3). Fix: set `Saved` only if the flag still equals the snapshot the save carried.
-- [ ] **BF65** `.env.example:20` ships `ADMIN_TOKEN=change-me-before-exposing-this`, so the
+- [x] **BF65** (closed `7d5450a`, S8 review fixes: `ADMIN_TOKEN=` is empty) `.env.example:20` shipped `ADMIN_TOKEN=change-me-before-exposing-this`, so the
   documented first step (`cp .env.example .env`) **defeats the compose `${ADMIN_TOKEN:?}` guard**:
   a user who skips the comment boots a stack whose flag write is gated by a token every cloner
   holds. BF28 moved one file left; the global HARD RULE on hardcoded credentials has no
