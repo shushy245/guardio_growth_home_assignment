@@ -68,6 +68,9 @@ $color-danger-tint: #ffe4e1; // oklch(94% 0.03 25)
 // stays at 7.68:1 on the fill, so a button disabled for the whole of a save is still legible.
 $color-disabled-fill: #dee2e5; // oklch(91% 0.006 240)
 $color-disabled-text: #3e4347; // oklch(38% 0.01 240)
+// The track of a spinner drawn on an accent fill: the on-accent white at 40%, as the design's
+// loading button draws it.
+$color-on-accent-faint: rgba(252, 252, 252, 0.4); // oklch(99% 0 0 / 0.4)
 
 // Type. One family for everything, numerals included; the variable font is self-hosted from
 // `@fontsource-variable/source-sans-3` (imported once in main.tsx), so the page never waits on a

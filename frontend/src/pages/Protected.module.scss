@@ -112,6 +112,7 @@
 
 @media (min-width: tokens.$breakpoint-lg) {
     .page {
-        padding: 120px tokens.$gutter-lg;
+        // The design's 120px of top room at 1280: one and a half of the largest spacing step.
+        padding: (tokens.$sp-11 * 1.5) tokens.$gutter-lg;
     }
 }

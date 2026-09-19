@@ -54,22 +54,42 @@
     font-weight: tokens.$weight-semibold;
 }
 
-// The design's ring, drawn on the radio itself: 20px, a 2px border idle, a 6px accent border
-// when checked. The native focus ring is moved to the card above.
+// The design's ring, drawn on the radio itself, inside a 44px box: the input is the tap target
+// (S6 visual pass, V1), so it is `$tap-target` square with the 20px ring painted at its centre
+// by a radial gradient — a 2px border idle, a 6px accent border when checked. The negative
+// margin keeps the ring where a 20px control would sit, so the box grows and the layout does not.
+// The native focus ring is moved to the card above.
+$ring-radius: 10px;
+$ring-idle-inner: 8px;
+$ring-checked-inner: 4px;
+$ring-inset: (tokens.$tap-target - 2 * $ring-radius) * 0.5;
+
 .radio {
     appearance: none;
-    width: 20px;
-    height: 20px;
-    margin: 0;
+    width: tokens.$tap-target;
+    height: tokens.$tap-target;
+    margin: (-$ring-inset) (-$ring-inset) (-$ring-inset) 0;
+    border: 0;
     border-radius: tokens.$radius-pill;
-    border: 2px solid tokens.$color-border;
-    background: tokens.$color-surface;
+    background: radial-gradient(
+        circle,
+        tokens.$color-surface $ring-idle-inner,
+        tokens.$color-border $ring-idle-inner,
+        tokens.$color-border $ring-radius,
+        transparent $ring-radius
+    );
     flex: 0 0 auto;
     cursor: pointer;
     box-sizing: border-box;
 
     &:checked {
-        border: 6px solid var(--tone-accent-strong, #{tokens.$tone-calm-accent-strong});
+        background: radial-gradient(
+            circle,
+            tokens.$color-surface $ring-checked-inner,
+            var(--tone-accent-strong, #{tokens.$tone-calm-accent-strong}) $ring-checked-inner,
+            var(--tone-accent-strong, #{tokens.$tone-calm-accent-strong}) $ring-radius,
+            transparent $ring-radius
+        );
     }
 
     &:focus-visible {
