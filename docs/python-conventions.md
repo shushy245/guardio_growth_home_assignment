@@ -29,7 +29,7 @@ enforced mechanically here, the tool is named; otherwise it is a review item.
 | No `as` casts, no `any` | No `typing.cast`, no `Any`, no `# type: ignore` in `app/**`. Wire input is narrowed by a Pydantic model at the boundary. | mypy `strict` (`disallow_any_*`, `warn_unused_ignores`) + review for `cast` |
 | Never `null` in our code | `None` is the only absence value; DB `NULL` and JSON `null` become `None` at the boundary via Pydantic / SQLAlchemy `Optional` columns. | mypy |
 | Discriminated unions over optional fields | `Literal["calm"] \| Literal["urgent"]` tags or a `StrEnum` discriminator on Pydantic models (`Field(discriminator=...)`); `is_*` predicates in a `selectors.py`-style module when narrowing is needed. | review |
-| Enums, never string literals for a discriminated set | `class FunnelEventName(StrEnum)`. | ruff `PLR2004` (magic values) partially; review |
+| Enums, never string literals for a discriminated set | `class FunnelEventName(StrEnum)`. | review. **Not `PLR2004`**: it is in the global ignore list, because the expected values in a test *are* the magic numbers, and the table credited a rule that does not run (DD-16) |
 | Explicit optionality | `def f(x: int \| None)`, never a `None` default used as a sentinel. Optional dependency = forbidden; inject a fake. | review |
 | No unused params | ruff `ARG` is not enabled (false positives on FastAPI signatures); underscore-prefix (`_request`) only when a framework signature forces it. | review |
 
@@ -43,9 +43,9 @@ enforced mechanically here, the tool is named; otherwise it is a review item.
 | Data-table lookups over if/else chains | `dict[Enum, Callable]` named `*_map` (`sort_column_map`). | review |
 | Immutability | `@dataclass(frozen=True)` for value objects; Pydantic models `frozen=True` where they are values; never mutate an argument. | review |
 | Named options over positional args | Keyword-only params after a bare `*` for any function with 2+ params (`def f(*, a, b)`). | review |
-| No boolean parameters | An enum or two functions instead of `flag: bool`. | ruff `FBT` (added when the first case appears) |
+| No boolean parameters | An enum or two functions instead of `flag: bool`. | review. `FBT` is **not** in `select` — it was written as if it were live (DD-17); selecting it is a one-line change the moment a boolean parameter is proposed |
 | Expensive objects once | `httpx2.Client`, engine, Argon2 hasher built in the composition root and injected. | review |
-| Wrap borrowed code once | `shared/ids.py` wraps ulid; `adapters/hibp/*` wraps httpx2 for HIBP; `signups/password_hash.py` wraps argon2. Nothing else imports those libraries. | review (grep) |
+| Wrap borrowed code once | `shared/ids.py` wraps ulid; `adapters/hibp/*` wraps httpx2 for HIBP; `signups/password_hash.py` wraps argon2. Two files outside the adapters import `httpx2`, both for the *type* of an injected client and neither for a URL or a header: `experiments/simulation.py` (which says so in its header) and `scripts/simulate_traffic.py`, which builds the real client the simulator is handed (DD-15). Nothing else imports any of the three. | review (grep) |
 | Command–Query Separation | A function returns a value **or** has side effects. Repositories: `insert_*` returns `None` or the id; `find_*` has no side effects. | review |
 | Error messages are on-call docs | `raise …("update_feature_flag: optimistic lock conflict — key=…, token=…")`; function name prefix + ids + expected-vs-found. | review |
 | Delete aggressively | The S1 probe route is deleted in S2. | review |
@@ -63,6 +63,15 @@ enforced mechanically here, the tool is named; otherwise it is a review item.
 | Composition root | `app/main.py` only; `Depends` for injection; `app.dependency_overrides` in tests. | review |
 | Single write per entity per flow | One `INSERT`/`UPDATE` per entity per handler; transform before write. | review |
 | The write is visible when the response is | `SessionDep` is `Depends(get_session, scope="function")`: the commit runs before the response is sent, so a client's next request finds the row (S7, found by the simulator). | `test_session_scope.py` |
+
+## Migrations
+
+| House rule | Python form | Enforced by |
+|---|---|---|
+| Forward-only | Every change is a new revision; a bad state is fixed by another forward one, never by a rollback. `downgrade()` is generated and unused. | review |
+| One logical change per revision | `backend/migrations/versions/` (not `alembic/`, which shadows the library on import). | review |
+| `IF [NOT] EXISTS` for idempotency | **Deliberately not used** (CV-12). `alembic_version` is the mechanism: a revision runs once, in order, inside a transaction, and the guard would only hide a history that had diverged from the database — which is the one thing worth failing on. The backend conventions ask for the guard because they assume hand-run DDL. | review |
+| Type-checked like the rest | `migrations` is in mypy's `files`: it is the one directory that writes production data by hand, and it was outside the strict run until the audit said so. | `uv run mypy` |
 
 ## Logging
 

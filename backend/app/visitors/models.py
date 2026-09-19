@@ -25,7 +25,11 @@ class VisitorAssignmentRow(Base):
     __tablename__ = "visitor_assignment"
 
     visitor_id: Mapped[str] = mapped_column(Text, ForeignKey("visitor.id"), primary_key=True)
-    flag_key: Mapped[str] = mapped_column(Text, ForeignKey("feature_flag.key"), primary_key=True)
+    # Indexed on its own as well as second in the primary key: the experiment read filters on
+    # the flag alone, and a composite index is usable only from its leading column.
+    flag_key: Mapped[str] = mapped_column(
+        Text, ForeignKey("feature_flag.key"), primary_key=True, index=True
+    )
     variant_key: Mapped[str] = mapped_column(Text)
     assigned_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()

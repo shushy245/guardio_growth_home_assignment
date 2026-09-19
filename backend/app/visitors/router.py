@@ -37,6 +37,9 @@ def create_visitor(
     request: Request,
     response: Response,
 ) -> VisitorResponse:
+    """`201` for a browser the server has not seen, `200` when the cookie names a visitor it
+    knows: the same body and the same cookie, with nothing created. A refresh is not a second
+    visitor, and answering `201` to one would say it was (BF26)."""
     log.info("create_visitor: started", has_cookie=VISITOR_COOKIE in request.cookies)
 
     recognised = _recognised_visitor(session=session, request=request)

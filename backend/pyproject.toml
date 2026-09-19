@@ -70,7 +70,7 @@ python_version = "3.12"
 strict = true
 warn_unreachable = true
 plugins = ["pydantic.mypy"]
-files = ["app", "tests", "scripts"]
+files = ["app", "tests", "scripts", "migrations"]
 
 [tool.pydantic-mypy]
 init_forbid_extra = true

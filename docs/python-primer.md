@@ -389,3 +389,27 @@ every commit as the gate requires.
 - **`SessionDep = Annotated[Session, Depends(...)]`**: a dependency declared once and used as a
   parameter type (`session: SessionDep`) — the same `Annotated` a handler already used inline,
   named so the scope is set in one place and cannot be forgotten at a call site.
+
+## Added in the audit fix pass — constructs that landed with it
+
+- **`scipy.stats.norm` and why `sf` beats `1 - cdf`** (`app/experiments/stats.py`, landed in S7
+  and missing from this primer until the audit noticed — DD-14): `norm.ppf(p)` is the inverse
+  normal (the z for a probability, computed once at import because it is not cheap), `norm.cdf(z)`
+  the probability below z, and `norm.sf(z)` the probability *above* it — the survival function.
+  They are mathematically the same number, and far out in the tail they are not the same
+  *float*: `1 - cdf(6)` has already rounded to 1.0 and reports p = 0, while `sf(6)` keeps its
+  significant digits. A p-value is read in that tail, so the survival function is the one to use.
+- **`@dataclass`'s `__post_init__`** (`stats.Proportion`): the hook a frozen dataclass gets after
+  its fields are assigned, and the one place to refuse an impossible value — more successes than
+  trials — without writing a constructor. `raise ValueError` there fails at the frame that built
+  the value, which is the caller with the bug, rather than several frames later inside a `sqrt`.
+- **A CTE and a self-join** (`app/experiments/repository.py`): `select(...).cte("reached")` names
+  a subquery the rest of the statement can refer to, and `reached.alias("and_reached")` gives it a
+  second name so it can be joined to itself. One row per ordered pair of steps a visitor reached
+  both of — which is what a conversion rate is counted over.
+- **`Mapping` over `dict` in a signature**: the pure assembly takes `Mapping[...]` because it only
+  reads; `dict` would promise the caller it may write. The Python form of "the parameter says what
+  the function does with it".
+- **`scripts/__init__.py`**: a directory becomes a package, so `scripts.simulate_traffic` is one
+  module name rather than two. Without it mypy sees the same file as both a top-level module and
+  a package member, and refuses the whole run — which is what the parser's first test hit.

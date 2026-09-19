@@ -11,8 +11,9 @@ The product, the experiment and the numbers are in the README. This is about the
   refuses to call a result before the powered sample is in. The simulated run is significant at
   p = 0.008 and still reads "keep running". That is on purpose.
 - **Strict test-first.** No production line without a failing test. Every commit is one case
-  red-to-green, a refactor, or a chore, with two exceptions recorded in the S5 triage; the
-  pre-commit hook runs typecheck, lint and both suites. Over 200 commits in three days.
+  red-to-green, a fix with its own red test, a refactor or a chore, with two exceptions recorded
+  in the S5 triage; the pre-commit hook runs typecheck, lint and both suites. Over 200 commits
+  in three days.
 - **Python was new to me.** My conventions are written for TypeScript. I translated them
   (`docs/python-conventions.md`) and kept a primer of every construct that landed
   (`docs/python-primer.md`). I can explain all of it.

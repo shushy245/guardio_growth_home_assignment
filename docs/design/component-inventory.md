@@ -76,7 +76,7 @@ Names are the design's, and they are what S5–S7 name their components and driv
 | `PlanCard` | idle · selected | S6 | `PlanPicker`: two cards as one radio group, the whole card the target, the ring drawn on the real radio (F7) |
 | `TextField` | idle · focus · error | D1 (mixin) · S6 | `input` mixin; the error state is a danger border and an inline message (`Signup`, F14) |
 | `PasswordField` | idle · checking · leaked · unchecked · error | S6 | F3–F6, F11, F16; the check runs in `usePasswordLeakCheck` and the field renders what it is handed (deviation 11) |
-| `StatusMessage` | info · success · warning · error | D1 (mixins) | `message` + `message-success/warning/error` mixins. **`message-error` is defined and used by nothing** — a failed load renders as the neutral chip and a save failure shares `message-warning` with a lock conflict (BF51) |
+| `StatusMessage` | info · success · warning · error | D1 (mixins) | `message` + `message-success/warning/error` mixins. `message-error` has two consumers — the sign-up's inline error and the dashboard's keep-control banner — and **the admin surfaces are still the exception**: a failed flag load renders as the neutral chip, byte-identical to the one that says "Loading flags…", and a save failure shares a tone with a lock conflict (BF51) |
 | `Skeleton` | — | S5 | Shimmer with a reduced-motion static state |
 | `ProgressIndicator` | — | S5 | The scan moment's bar (F3) |
 | `HypothesisCard` · `FunnelBars` · `LiftCard` · `RecommendationBanner` | ship · keep-control · keep-running · error | S7 | F2–F4. `FunnelBars` is the design's `FunnelChart`, built as CSS bars behind `frontend/src/charts/` with a chart-library-agnostic prop contract (S7 design call 2 in `docs/plan.md`); the series colours are `$series-1` / `$series-2` (deviation 14). The lift card leads with the **primary** metric, activation, where the mock's illustration reads "Lift on CTA click" (deviation 8) |
@@ -111,8 +111,11 @@ Screens: `Landing` (S5), `Scan` (S5), `Result` (S5, `toneClassMap` selects the `
 6. **Admin keeps its 720px page width** at 768+ rather than the design's 65ch frame, so the two
    variant cards can sit side by side with their inputs intact; prose inside is capped at the
    measure. The admin copy stays ours (`result_screen_tone`, "Admin token"), and the variant
-   cards are not yet tinted by tone: that needs `toneClassMap`, which S5 introduces, and the
-   admin page adopts it then.
+   cards are **not tinted by tone**. That was written as "S5 introduces `toneClassMap` and the
+   admin page adopts it then"; S5 came and went and the admin page did not (DD-12). It stands as
+   a deviation, not a plan: the tint would say which variant is which on a page whose two cards
+   are already labelled by their keys, and the tone lives in the variant's own config where an
+   operator edits it.
 7. **Message radius is `$radius-md` (12px)** where the design's StatusMessage used 10px, a
    value outside its own radii scale.
 8. **Placeholder copy stays placeholder.** Plan prices, "4 seats left", the 3,120,000-leak count

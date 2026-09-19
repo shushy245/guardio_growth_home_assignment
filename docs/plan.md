@@ -20,9 +20,12 @@ structured logging, functional core, TDD) carries over unchanged.
 
 1. **No production line without a failing test that demands it.** Red → Green → Refactor, one
    case at a time. Watch the test fail before making it pass.
-2. **Every commit below is one of three kinds:** `test+impl` (one case red → green, minimal
-   code), `refactor` (structure only, tests stay green), or `chore` (tooling/config with no
-   behaviour, e.g. compose file, lint config). Nothing else exists.
+2. **Every commit below is one of four kinds:** `test+impl` (one case red → green, minimal
+   code), `fix` (a defect found by a review or in use: its red test first, then the change),
+   `refactor` (structure only, tests stay green), or `chore` (tooling, config or docs with no
+   behaviour). `fix` was the fourth from the first review onwards and the contract said three
+   until the audit counted 21 of them (DD-6); `test` alone appears where a commit adds a case to
+   code that already passes it, which is what a survived mutation asks for.
 3. **Commit on every green.** Never commit red. The commit gate runs typecheck + tests + lint.
 4. **Coverage is a byproduct, but untested code is a defect.** A `/story-done` case-coverage diff
    with a planned case lacking a test blocks the story from closing.
@@ -53,44 +56,64 @@ structured logging, functional core, TDD) carries over unchanged.
 | Password storage | Reuse SHA-1 / bcrypt / Argon2id | **Argon2id via `argon2-cffi`** (OWASP Password Storage Cheat Sheet's first recommendation; bcrypt is its fallback). Unsalted SHA-1 as a credential is wrong for a security company; the write-up says so. SHA-1 is used only for the k-anonymity check and never stored. |
 | Analysis | Dashboard / notebook / both | **In-app dashboard**, parameterised by flag key so it points at the next test. |
 | Stats | z-test / chi-square / Bayesian | **Two-proportion z-test + 95% CI on absolute and relative lift + sample-size adequacy vs a stated MDE** (`scipy`). Bayesian is stretch. |
-| Charts | Hand SVG / Recharts | **Recharts**, wrapped once in a `charts/` adapter. Load the `dataviz` skill before chart code. |
+| Charts | Hand SVG / Recharts / native elements | **Native `meter` and `progress` bars behind a `charts/` adapter** — decided during S7 and recorded here, not only in the S7 notes (DD-2). Recharts was the plan; D1 draws the funnel as a label and two percentage-width bars per step, which a chart library reproduces worse than markup does, and a dependency that renders one figure is one to justify. `FunnelBars` keeps a library-agnostic series contract, so a chart that genuinely needs a library is a new file in that folder rather than a rewrite. Load the `dataviz` skill before chart code. |
 | Frontend tooling | Ad hoc / `/project-init` | **Vite + React 19 + TS strict, `/project-init` (eslint-config-shalev, husky gate), Vitest + testing-library + drivers.** Root `package.json` with `frontend` workspace; backend is Python outside the workspace. |
 
 ## Repository layout
+
+Kept current with the tree, not with the plan it was written from: the audit found it stale in
+six places at once (DD-1), and a layout that describes a repo nobody has is worse than none.
 
 ```
 /
   docker-compose.yml           db + backend + frontend
   package.json                 workspaces: ["frontend"]  (project-init anchor)
   CLAUDE.md                    project file
-  docs/plan.md  docs/adr/  docs/changelog.md  docs/python-primer.md (TS → Python map for the reader)
+  README.md                    what a reviewer reads first
+  docs/plan.md  docs/adr/  docs/changelog.md  docs/writeup.md  docs/reviews/
+  docs/python-primer.md        TS → Python map for the reader
+  docs/python-conventions.md   the house rules in their Python form
+  docs/design/                 the D1 design: component inventory and deviations
   backend/
-    pyproject.toml             uv-managed; fastapi, sqlalchemy, alembic, psycopg, httpx, argon2-cffi, scipy, structlog; dev: pytest, ruff, mypy
+    pyproject.toml             uv-managed; fastapi, sqlalchemy, alembic, psycopg, httpx2, argon2-cffi, scipy, structlog; dev: pytest, ruff, mypy
+    alembic.ini                points at migrations/ (not alembic/, which shadows the library)
+    migrations/versions/       forward-only schema history
     app/main.py                composition root: config read, adapters built, routers mounted — the only place real adapters are named
+    app/asgi.py                the process entrypoint, and the only reader of os.environ
     app/config.py              pydantic-settings; env validated at startup
-    app/logging.py             structlog JSON, correlation-id middleware
-    app/db/                    engine, session dep, alembic/
+    app/logging.py             structlog JSON; app/middleware/correlation_id.py binds the id
+    app/errors.py              the {error} contract for every non-2xx
+    app/dependencies.py        the ports as FastAPI dependencies, overridden in tests
+    app/db/                    base.py engine.py session.py (one transaction per request)
     app/ports/                 breach_catalog.py, pwned_password_range.py — typing.Protocol interfaces, no I/O
-    app/adapters/hibp/         breach_catalog.py, pwned_password_range.py — httpx, HIBP URLs/headers, wire→model translators
-    app/breaches/              models.py schemas.py repository.py sync.py (uses the port) summary.py (pure) router.py
-    app/feature_flags/         models.py schemas.py repository.py assignment.py (pure) router.py
-    app/visitors/              models.py schemas.py repository.py router.py
-    app/funnel_events/         models.py schemas.py repository.py router.py
+    app/adapters/hibp/         breach_catalog.py, pwned_password_range.py — httpx2, HIBP URLs/headers, wire→model translators
+    app/breaches/              models.py schemas.py repository.py sync.py refresh.py staleness.py summary.py (pure) router.py
+    app/feature_flags/         models.py schemas.py repository.py assignment.py (pure) admin.py router.py
+    app/visitors/              models.py schemas.py repository.py cookie.py router.py
+    app/funnel_events/         models.py schemas.py repository.py clock_skew.py (pure) router.py
     app/signups/               models.py schemas.py repository.py password_hash.py router.py
     app/pwned_passwords/       router.py (proxies through the port)
-    app/experiments/           stats.py (pure) results.py (query + assemble) router.py
+    app/experiments/           hypothesis.py stats.py recommendation.py (pure) results.py repository.py simulation.py router.py
+    app/health/                router.py (answers only if the database does)
     app/shared/                ids.py (generate_unique_id), html.py (strip tags, stdlib)
     scripts/simulate_traffic.py
     tests/unit/  tests/integration/  tests/drivers/  tests/fakes/ (port fakes)  tests/builders/
   frontend/
-    src/main.tsx               composition root: providers, router
-    src/layout/                Box Row Column FullBox FullRow FullColumn
+    src/main.tsx               composition root: StrictMode, error boundary, router
+    src/App.tsx                the route table
+    src/ui/                    box.tsx (Box Row Column FullBox FullRow FullColumn MainColumn), motion.ts, scroll.ts
     src/models/<entity>/       model.ts translator.ts selectors.ts index.ts
-    src/api/                   axios client + per-entity hooks (no TanStack)
-    src/providers/             VisitorProvider (id + variants), AnalyticsProvider (track())
-    src/pages/                 Landing Scan Result Signup Protected Admin Dashboard
-    src/components/            BreachList BreachSummary BreachFilters PlanPicker PasswordField FunnelChart LiftChart
-    src/testkit/               builders/ drivers/ setup.ts renderWithProviders
+    src/api/                   axios client + one module per endpoint group (no TanStack)
+    src/providers/             VisitorProvider (id + variants), AnalyticsProvider (track()), BreachCatalogProvider
+    src/hooks/                 useLoadedState useCountUp usePasswordLeakCheck useScanMoment useTrackOnce
+    src/pages/                 Landing Scan Result Signup Protected Admin Dashboard NotFound
+    src/components/            BreachList BreachRow BreachSummary BreachFilters SearchField PlanPicker PasswordField
+                               FlagEditor HypothesisCard LiftCard RecommendationBanner ErrorState ErrorBoundary Wordmark
+    src/charts/                FunnelBars — native meter bars behind a library-agnostic series contract
+    src/logging/  src/storage/ logger.ts (the one console seam), visitor-id.ts
+    src/styles/                tokens.scss and the shared field mixins
+    src/testkit/               builders/ fake-http.ts renderWithProviders setup.ts + the per-subject fakes
+    (a component's driver, test and styles sit beside it, not in testkit/)
 ```
 
 ## Data model (Postgres)
@@ -106,21 +129,21 @@ structured logging, functional core, TDD) carries over unchanged.
 
 | Method | Path | Notes |
 |---|---|---|
-| POST | `/api/visitors` | `201 { id, assignments: { flagKey: variantKey } }`; sets `visitor_id` cookie |
+| POST | `/api/visitors` | `201 { id, assignments: { flagKey: variantKey } }`; sets `visitor_id` cookie. **`200` when the cookie names a visitor the server knows** (BF26): the same body, the same cookie, and nothing created — a refresh is not a second visitor |
 | GET | `/api/visitors/{id}` | assignments for an existing visitor (refresh path) |
 | GET | `/api/breaches` | `page`, `limit`, `sort` (`breachDate\|pwnCount\|name`), `order`, `q`, `dataClass`, `verifiedOnly` → `{ items, total, page, limit }` |
-| GET | `/api/breaches/summary` | total breaches, total pwned accounts, breaches last 12 months, largest breach, most recent breach, top data classes, share exposing passwords |
+| GET | `/api/breaches/summary` | total breaches, total pwned accounts, breaches last 12 months, largest breach, most recent breach, top data classes, share exposing passwords, `syncedAt` (how old the record is — S2b) |
 | POST | `/api/funnel-events` | `201 {}`; body `{ id, name, occurredAt, metadata }`; **the visitor is the `visitor_id` cookie** (401 without one, 404 for a cookie naming nobody; a `visitorId` in the body is a 400 — BF47); server stamps flag/variant from the stored assignment |
 | GET | `/api/pwned-passwords/range/{prefix5}` | proxies HIBP, `text/plain`; `503 { error }` on upstream failure |
 | POST | `/api/signups` | `201 { id, createdAt }`; plan ∈ `basic\|family` |
-| GET · PATCH | `/api/feature-flags` · `/api/feature-flags/{key}` | PATCH requires `updatedAt` token → `409` on mismatch, returns `200 { updatedAt }` |
+| GET · PATCH | `/api/feature-flags` · `/api/feature-flags/{key}` | PATCH requires `updatedAt` token → `409` on mismatch, returns `200 { updatedAt }`; `400` for a split that would stop defining a variant key visitors already hold (BF31), `401` without the admin token, `404` for an unknown key |
 | GET | `/api/experiments/{flagKey}/results` | per-variant step counts, rates, lift, CI, p-value, sample adequacy, recommendation enum |
 
 ## Feature flag → result screen
 
 Flag `result_screen_tone`, two variants, 50/50 default:
 - `calm`: headline "Known breaches", sub "Here's the public record of data breaches.", CTA "Protect me", neutral tone.
-- `urgent`: headline "You're exposed!", sub "17.8B accounts have leaked. Yours could be among them.", CTA "Protect me now", red tone, pwn-count count-up.
+- `urgent`: headline "You're exposed!", sub "17.7B accounts have leaked. Yours could be among them." (the figure the summary endpoint reports and the seed migration writes — the plan said 17.8B, which was a draft number nothing produced), CTA "Protect me now", red tone, pwn-count count-up.
 
 Copy, weights and enabled-state are edited on `/admin`. The Result page reads the variant config from `VisitorProvider`; tone maps to a class via a `toneClassMap`, never an if-chain.
 
@@ -641,7 +664,7 @@ finished from the outside and is not.
 - [x] BF35 **no state transition on the page is announced.** Zero `aria-live`, `role=status` or
   `role=alert`; saving, saved, rejected token, 409, validation rejection and load failure all
   change unannounced text. Fix: a live region on the message slot.
-- [ ] BF36 the disabled Save renders at **2.58:1** contrast. Lighthouse passes it because axe
+- [x] **BF36** (closed at D1, measured in "Exit criteria, measured": Lighthouse `color-contrast` passes with Save disabled) the disabled Save renders at **2.58:1** contrast. Lighthouse passes it because axe
   skips disabled controls, so this is a case the audit structurally cannot catch and only a
   measurement finds.
 - [x] BF37 at 390 and 1280 the save result lands **below the fold** and the page does not scroll
@@ -659,7 +682,7 @@ finished from the outside and is not.
 - [x] BF40 the failed-load screen unmounts every control including the admin-token field, offers
   no retry, and does not recover when the backend returns — only a manual reload does.
 - [x] BF41 neither page has a `main` landmark (zero landmarks of any kind).
-- [ ] BF42 body text is 14px throughout the admin page, below the 16px floor, at every viewport.
+- [x] **BF42** (closed at D1, measured: `bodyTextUnder16` empty at all three viewports) body text is 14px throughout the admin page, below the 16px floor, at every viewport.
 
 #### Test-coverage gaps — fix before S3 closes
 
@@ -691,9 +714,12 @@ finished from the outside and is not.
   breaks unrelated tests. The seed is also a shallow copy: `reverse()` on one built DTO was
   demonstrated to flip a field on a DTO built by a different builder instance. Latent today (no
   production path mutates), but "one `.sort()` away".
-- The flag key `result_screen_tone` appears as a literal **17 times across 10 files** while
-  `RESULT_SCREEN_TONE_FLAG`, its declared home, has zero consumers. Two backend drivers each
-  declare their own copy.
+- The flag key `result_screen_tone` appears as a literal **41 times across 23 files** (the S3
+  count of 17 across 10 was of the tree as it stood then; the audit recounted it — DD-10). The
+  production half is fixed: `RESULT_SCREEN_TONE_FLAG` and the backend's `RESULT_SCREEN_TONE` have
+  three readers each. What is left is the test tree, where **seven** modules declare their own
+  copy of the string — each driver's is one line and independent of the others, which is why this
+  stays an RF item and not a defect.
 - Dead driver surface: `type.urgentWeight`, `assert.weightsAre`, `given.theSaveFails` are
   implemented and called by nothing; `CONFLICT_MESSAGE`/`SAVED_MESSAGE` are exported but the
   driver asserts the literal substrings instead, so the operator copy has two homes.
@@ -1032,9 +1058,13 @@ documents; no test, because every one is presentation or prose — D1 ships no l
   not rediscover it. Note the specificity trap: `Admin.module.scss`'s cap and a `box.module.scss`
   cap are both single-class selectors, so source order would decide — which is why this is a
   decision, not a one-line move.
-- **RF5** `Admin.module.scss:56` `max-width: 720px` is the only raw literal left in a
-  `.module.scss`, in the same range that writes "a one-off literal in a `.module.scss` is a
-  finding". It is deviation 6's number and has no token to disagree with. Same file `:57` writes
+- **RF5** `Admin.module.scss:56` `max-width: 720px` is a raw literal in a `.module.scss`, in the
+  same range that writes "a one-off literal in a `.module.scss` is a finding". **It was never the
+  only one** and saying so was the drift (DD-9): the stories after it added
+  `Signup.module.scss` 400px (deviation 13, recorded), `Protected.module.scss` 480px and 56px,
+  `PlanPicker.module.scss`'s ring sizes, and `RecommendationBanner.module.scss`'s two
+  `rgba(255, 255, 255, .5)` — the only raw colour in the codebase, on a non-text pair D1 never
+  measured (FE-22, FE-23). The batch is one pass over the six files, not six separate items. It is deviation 6's number and has no token to disagree with. Same file `:57` writes
   `padding: $gutter-md $gutter-md` twice for one value, and silently moved the md+ horizontal
   gutter from 24px to 32px — unrecorded.
 - **RF6** Admin's `<h1>` is `$text-400`/`$text-500` against the design's `$text-700`, and its intro
@@ -1070,7 +1100,7 @@ name, and the eight recorded deviations are the only places the code may differ.
 
 Result-screen product bar (load the `frontend-design` skill before building it):
 - Summary tiles answer "why should I care": breaches in the last 12 months, accounts exposed
-  (humanised: `17.8B`), share that leaked passwords, largest breach by name.
+  (humanised: `17.7B` on today's catalog), share that leaked passwords, largest breach by name.
 - The list is scannable on a phone: title, year, humanised count, data-class badges with
   `Passwords` highlighted, verified mark; skeleton rows while loading.
 - Sort and filter are one thumb away: horizontally scrolling chips, a sort segmented control,

@@ -177,7 +177,12 @@ def _one_visit(
 
 
 def _create_visitor(browser: httpx.Client) -> str:
-    """The arm the server put this browser in. The cookie lands in the browser's own jar."""
+    """The arm the server put this browser in. The cookie lands in the browser's own jar.
+
+    `201` and not `200`: the endpoint answers `200` for a cookie it recognises, and every
+    simulated visitor opens a browser with an empty jar, so anything but `201` means two
+    visitors shared one — the defect BF47 was.
+    """
     response = browser.post("/api/visitors")
     _expect(response, status=201, doing="create a visitor")
     assignments = response.json()["assignments"]
