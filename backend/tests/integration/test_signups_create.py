@@ -1,6 +1,7 @@
 """`POST /api/signups`: an account is created once per email, its password stored as an
 Argon2id hash, filed under the visitor the cookie names when the server knows them."""
 
+from app.signups.schemas import MAX_PASSWORD_LENGTH
 from tests.builders.signup import a_signup
 from tests.drivers.signups_api import SignupsApiDriver
 
@@ -63,6 +64,26 @@ def test_a_password_under_eight_characters_is_refused(signups: SignupsApiDriver)
 
     signups.then.the_signup_was_refused()
     signups.then.no_signup_is_stored()
+
+
+def test_a_password_at_the_length_bound_is_accepted_and_one_character_past_it_is_refused(
+    signups: SignupsApiDriver,
+) -> None:
+    """Argon2 hashes any length; the bound is about what it costs to hash it. Only a case at
+    the edge pins the number — a megabyte-long limit leaves every other case green (BF84), and
+    on an unauthenticated endpoint that is 64 MiB of memory per request, not a long password.
+    """
+    signups.given.a_visitor_exists()
+
+    signups.when.a_signup_is_submitted(a_signup().with_password("p" * MAX_PASSWORD_LENGTH))
+
+    signups.then.the_account_was_created()
+
+    signups.when.a_signup_is_submitted(
+        a_signup().with_email("longer@example.com").with_password("p" * (MAX_PASSWORD_LENGTH + 1))
+    )
+
+    signups.then.the_signup_was_refused()
 
 
 def test_a_plan_the_product_does_not_offer_is_refused(signups: SignupsApiDriver) -> None:

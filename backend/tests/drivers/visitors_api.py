@@ -5,6 +5,7 @@ Composes the shared `HttpDriver` and keeps visitor vocabulary here. The seeded
 the test's session, which is the same session the app is wired to.
 """
 
+from datetime import timedelta
 from http.cookies import SimpleCookie
 
 from sqlalchemy import delete, func, select, update
@@ -12,12 +13,12 @@ from sqlalchemy.orm import Session
 
 from app.config import Env
 from app.feature_flags.models import FeatureFlagRow
+from app.visitors.cookie import VISITOR_COOKIE, VISITOR_COOKIE_MAX_AGE
 from app.visitors.models import VisitorAssignmentRow, VisitorRow
 from tests.builders.feature_flag import a_wire_variant
 from tests.drivers.http import HttpDriver
 
 RESULT_SCREEN_TONE = "result_screen_tone"
-VISITOR_COOKIE = "visitor_id"
 
 
 UNKNOWN_VISITOR_ID = "vis_00000000000000000000000000"
@@ -201,6 +202,18 @@ class _Then:
         assert morsel["httponly"], f"visitor cookie is not HttpOnly: {morsel.OutputString()}"
         assert morsel["samesite"].lower() == "lax", (
             f"expected SameSite=Lax: {morsel.OutputString()}"
+        )
+
+    def the_visitor_cookie_outlives_the_browser_session(self) -> None:
+        """A `Max-Age` of a year, not a session cookie: a returning visitor who lost their id
+        is re-bucketed and counted twice in the funnel, once per arm (BF84)."""
+        morsel = self._driver._visitor_cookie()[VISITOR_COOKIE]
+        assert morsel["max-age"], f"visitor cookie has no Max-Age: {morsel.OutputString()}"
+        assert int(morsel["max-age"]) == int(VISITOR_COOKIE_MAX_AGE.total_seconds()), (
+            f"expected Max-Age of {VISITOR_COOKIE_MAX_AGE}: {morsel.OutputString()}"
+        )
+        assert timedelta(days=365) == VISITOR_COOKIE_MAX_AGE, (
+            f"the visitor cookie's life is stated as a year; it is {VISITOR_COOKIE_MAX_AGE}"
         )
 
     def the_visitor_cookie_is_secure(self) -> None:

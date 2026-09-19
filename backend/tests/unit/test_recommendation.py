@@ -42,6 +42,24 @@ def test_a_significant_loss_on_enough_traffic_recommends_keeping_the_control() -
     assert analysis.recommendation is Recommendation.KEEP_CONTROL
 
 
+def test_a_call_is_made_at_exactly_the_required_sample_and_not_one_visitor_short() -> None:
+    """The threshold itself, which no other case sits on: `>= required` weakened to `> required`
+    leaves every one of them green (BF84). The pair is the same rates either side of the line."""
+    fully_powered = analyse(
+        control=Proportion(successes=394, trials=REQUIRED_PER_ARM),
+        variant=Proportion(successes=492, trials=REQUIRED_PER_ARM),
+        required_per_arm=REQUIRED_PER_ARM,
+    )
+    one_visitor_short = analyse(
+        control=Proportion(successes=394, trials=REQUIRED_PER_ARM - 1),
+        variant=Proportion(successes=492, trials=REQUIRED_PER_ARM - 1),
+        required_per_arm=REQUIRED_PER_ARM,
+    )
+
+    assert fully_powered.recommendation is Recommendation.SHIP_VARIANT
+    assert one_visitor_short.recommendation is Recommendation.KEEP_RUNNING
+
+
 def test_a_difference_the_sample_cannot_support_recommends_keeping_the_test_running() -> None:
     """Plenty of traffic, no signal: 8.00% against 8.10% at 10,000 an arm is p = 0.79."""
     analysis = analyse(

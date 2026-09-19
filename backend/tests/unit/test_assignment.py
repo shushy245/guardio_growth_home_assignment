@@ -59,3 +59,22 @@ def test_a_known_visitor_lands_in_a_pinned_bucket() -> None:
     bucket = bucket_for(visitor_id="vis_01K5G6X0000000000000000000", flag_key="result_screen_tone")
 
     assert bucket == 24
+
+
+def test_a_variant_weighted_zero_is_never_assigned_even_to_the_first_bucket() -> None:
+    """The slice is `[lower, upper)`, and the visitor in bucket 0 is the only one who can tell
+    that from `[lower, upper]`: with the bound inclusive, a leading zero-weight variant takes
+    every hundredth visitor — an arm product turned off still collecting traffic (BF84).
+
+    `vis_103` is bucket 0 for this flag; the hash is deterministic, so the id is the case.
+    """
+    split = [
+        a_variant().with_key("retired").with_weight(0).build(),
+        a_variant().with_key("calm").with_weight(100).build(),
+    ]
+
+    assert bucket_for(visitor_id="vis_103", flag_key="result_screen_tone") == 0
+    assert (
+        assign_variant(visitor_id="vis_103", flag_key="result_screen_tone", variants=split)
+        == "calm"
+    )

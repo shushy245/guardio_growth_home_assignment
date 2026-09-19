@@ -5,3 +5,4 @@ export { anExperimentResultDTO } from '~/testkit/builders/experimentResult';
 export { aFeatureFlagDTO } from '~/testkit/builders/featureFlag';
 export { aFunnelEvent } from '~/testkit/builders/funnelEvent';
 export { aVisitorDTO } from '~/testkit/builders/visitor';
+export { aVisitorState } from '~/testkit/builders/visitorState';

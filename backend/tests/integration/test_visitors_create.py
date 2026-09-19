@@ -71,6 +71,7 @@ def test_the_visitor_cookie_is_http_only_lax_and_secure_outside_dev(
 
     visitors.then.the_visitor_cookie_is_http_only_and_lax()
     visitors.then.the_visitor_cookie_is_secure()
+    visitors.then.the_visitor_cookie_outlives_the_browser_session()
 
 
 def test_the_visitor_cookie_is_not_secure_in_dev(visitors: VisitorsApiDriver) -> None:
