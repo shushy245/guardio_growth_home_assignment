@@ -11,6 +11,7 @@ import type { ProtectedRouteState } from '~/pages/Signup.utils';
 export enum ProtectedTestIds {
     Page = 'ProtectedTestIds.Page',
     PlanLine = 'ProtectedTestIds.PlanLine',
+    Steps = 'ProtectedTestIds.Steps',
     BackToResults = 'ProtectedTestIds.BackToResults',
 }
 

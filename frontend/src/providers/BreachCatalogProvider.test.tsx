@@ -38,6 +38,19 @@ describe('BreachCatalogProvider', () => {
         await driver.assert.listRequestsWere({}, { dataClass: 'Passwords' });
     });
 
+    it('leaves the summary alone when a filter changes', async () => {
+        // The tiles describe the whole record, not the filtered list: widening the summary
+        // effect's dependencies to the request refetched them on every chip, sort and keystroke
+        // and flashed the skeleton each time, with every test still green (BF81).
+        driver.given.theFilteredRecordHolds('McKesson');
+        await driver.when.created();
+        await driver.assert.everyConsumerReadsTheCatalog();
+        driver.assert.summaryFetched(1);
+        await driver.click.filterByDataClass();
+        await driver.assert.itemsAre('McKesson');
+        driver.assert.summaryFetched(1);
+    });
+
     it('appends the next page under the first, and a filter change starts again from page one', async () => {
         driver.given.theFirstPageHolds('Adobe', 'Canva');
         driver.given.theSecondPageHolds('Dropbox');

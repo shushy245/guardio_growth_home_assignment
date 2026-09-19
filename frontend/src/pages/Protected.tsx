@@ -44,7 +44,7 @@ const Confirmation = ({ plan }: { plan: Plan }): ReactElement => {
                 <p className={styles.planLine} data-testid={ProtectedTestIds.PlanLine}>
                     {planLineFor(plan)}
                 </p>
-                <ol className={styles.steps}>
+                <ol className={styles.steps} data-testid={ProtectedTestIds.Steps}>
                     {nextStepsMap[plan].map((step, index) => (
                         <li key={step.title} className={styles.step}>
                             <span className={styles.stepNumber} aria-hidden="true">

@@ -68,6 +68,7 @@ export type BreachCatalogProviderDriver = {
     assert: {
         everyConsumerReadsTheCatalog: () => Promise<void>;
         catalogFetched: (times: number) => void;
+        summaryFetched: (times: number) => void;
         itemsAre: (...names: string[]) => Promise<void>;
         listRequestsWere: (...queries: Record<string, string>[]) => Promise<void>;
         listRequestWasAborted: (index: number) => void;
@@ -201,6 +202,12 @@ export const makeBreachCatalogProviderDriver = (): BreachCatalogProviderDriver =
             catalogFetched: (times: number): void => {
                 expect(fetchesOf(SUMMARY_PATH)).toHaveLength(times);
                 expect(fetchesOf(LIST_PATH)).toHaveLength(times);
+            },
+            // The tiles alone: the summary answers the record as a whole and a filter narrows
+            // the list under it, so refetching it on a chip would flash the skeleton for figures
+            // that did not change (BF81).
+            summaryFetched: (times: number): void => {
+                expect(fetchesOf(SUMMARY_PATH)).toHaveLength(times);
             },
             itemsAre: async (...names: string[]): Promise<void> => {
                 await waitFor(() => {

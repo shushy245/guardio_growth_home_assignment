@@ -15,6 +15,7 @@ describe('Protected', () => {
         driver.given.aSignupFor(Plan.Family);
         await driver.when.created();
         driver.assert.confirmationIsShownFor(Plan.Family);
+        driver.assert.nextStepsRead(['Install the extension', 'Add a family member']);
         driver.assert.backToResultsLeadsToTheResultScreen();
         await driver.assert.stepsPosted(FunnelEventName.Activation, 1);
     });
@@ -23,6 +24,7 @@ describe('Protected', () => {
         driver.given.aSignupFor(Plan.Basic);
         await driver.when.created();
         driver.assert.confirmationIsShownFor(Plan.Basic);
+        driver.assert.nextStepsRead(['Install the extension', 'Turn on breach alerts']);
     });
 
     it('sends a visit with no sign-up behind it back to the sign-up, recording nothing', async () => {
