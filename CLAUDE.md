@@ -51,6 +51,19 @@ in-app statistical dashboard.
 ## What's done
 Full history: `docs/changelog.md`; commit-level record: `git log`.
 
+- **S8 — docs (closed 2026-09-19).** The repo could be run but not read: the README held a
+  run recipe and the admin note, nothing answered the brief's first question, and the ADRs
+  had no index. Now: a README a reviewer reads in minutes (run, product calls, experiment and
+  flag how-to, the read and the call, stack, time spent), `docs/writeup.md` (approach, where
+  AI helped, where it was wrong and how it was caught, more time), `docs/adr/README.md`. Both
+  reader files cut by half on Shalev's note that the interviewer has seen dozens of these —
+  **keep them short**. D1 verified on a clean clone: two commands, catalogue pulled, simulator
+  run, 208 + 225 green. Claims audit: 14 findings, 6 correctness in the prose, 0 in the
+  numbers, all fixed; `.env.example` now ships `ADMIN_TOKEN=` empty (BF65). 5 commits, no code.
+  Technically: the docs quote the build, not the plan — the plan still says Recharts and
+  17.8B; `/dashboard` renders counts, lift, CI, p, sample and the call, the three rates are
+  API-only; the time figure is commit gaps ≤ 90 min summed (~16 h), method stated.
+
 - **S7 — simulation-and-dashboard (closed 2026-09-19).** The experiment had a flag, stored
   assignments and a table of events, and no way to read them. Now: a simulator that walks
   visitors through the real API one browser each, `GET /api/experiments/{flagKey}/results`
@@ -95,39 +108,14 @@ Full history: `docs/changelog.md`; commit-level record: `git log`.
   mutation-proved), BF59 filed; visual: V1–V8, two fixed (44px radio, error association as F17),
   the spinner-on-disabled contrast fixed from the code review. Triage in `docs/plan.md`.
 
-- **S5 — funnel-ui (closed 2026-09-19).** The funnel had a design and a data layer and no
-  screens between them. Landing, Scan and Result are built to the D1 design — tiles, search,
-  chips, verified toggle, sort, results line, expandable rows, one CTA node that is a fixed bar at
-  390 and inline in the header at 768+ by CSS alone — and every sort and filter is a server query.
-  A visitor outside the experiment gets the calm control framing from a frontend constant
-  (ADR-0004, a deliberate second home for the copy). 34 cases, 155 frontend tests, 28 commits (21 test+impl, 3 refactor, 4 chore — two of the chores carried presentation fixes into components after the visual pass, recorded in the triage);
-  every green-on-arrival case mutation-proved. Three independent visual passes (urgent, calm, confirmation,
-  the split retuned between them): accessibility 100 on all three screens, V1–V7 fixed the same
-  day, V8–V13 recorded with their preconditions in `docs/reviews/s5-visual-review.md`.
-  **D1 finding 1 is fully closed:** the CTA computes `#003b3e` under `toneCalm` and `#681500`
-  under `toneUrgent`, measured. Unmeasured, stated: every interactive and error state
-  (`visual-review-deep` on request), the real reduced-motion feature, `/result` below the fold.
-  Technically: `FunnelProviders` (visitor → analytics → `BreachCatalogProvider`) on the funnel
-  layout route, reused verbatim by every page driver; the catalog provider owns summary + list
-  state on one request descriptor (`isEnabled`/`attempt`/`filters`/`page`) answered by two
-  effects whose cleanups abort the fetch in flight, so a filter change, a retry or an unmount can
-  never let an older answer land over a newer one; `fetchBreaches`/`fetchBreachSummary` take a
-  required `AbortSignal`; `resolveResultCopy` + `toneClassMap` on the result root re-point every
-  `var(--tone-*)` reader; `useScanMoment` (timer cleared on unmount, pinned by a timer-count
-  assertion), `useCountUp` (frame-driven, cancels on unmount, collapses under reduced motion),
-  `SearchField` tells its own echo from an outside change by the last query it sent. The fake
-  network answers a bare path under any query, records the parsed query and whether the request
-  was aborted. The Scan and SearchField drivers fake only `setTimeout` and BreachSummary's only
-  rAF/`performance`/`Date`, and each asserts synchronously after `act`, because testing-library's
-  `waitFor` drains through a faked `setTimeout`. The review: 16 findings, 0 correctness, 10 fixed
-  (3 as new cases F31–F33), 4 batched, BF58 filed against `/admin`; triage in `docs/plan.md`.
-
 ## What's next
-**S8 — docs. Next.** README (run, product decisions, the feature-flag how-to for product, the
-hypothesis, the simulated read and its call, time spent), `docs/writeup.md`, `docs/adr/README.md`
-index, and D1 (the README commands run verbatim on a clean clone). The numbers to quote are in
-`docs/simulation-read.json` and ADR-0006; the read includes the crashed first run's 750
-visitors and 14 manual ones (4,764 in the table), stated in the plan.
+**Full-codebase audit fix pass. Next.** Four Opus reviews (2026-09-19) are triaged in
+`docs/plan.md` → "Full-codebase audit (four agents on Opus, 2026-09-19)": BF60–BF87 plus a
+docs-drift list. **BF60 first**: the experiment read counts numerator and denominator steps
+independently, so a rate can exceed 100% and the endpoint then answers a permanent 500. Record:
+`docs/reviews/full-audit-2026-09-19.md`. S8 (docs) closed; E2 stretch stories (S9–S14) stand
+behind the fix pass. Reader-facing docs stay short — a change to behaviour updates the README in
+the same commit, in as few words as the fact needs.
 
 Carried, deliberately: the design's `Button` ghost variant has no consumer and is not built; the
 `/admin` variant cards are not tinted by tone (deviation 6); BF58 (admin flag-list effect under
@@ -136,7 +124,7 @@ unmeasured authenticated `/admin` states from D1 stand. Unmeasured in S7: the `s
 banners, the loading and error states, non-text contrast of the bar fills, real reduced motion.
 RF-backlog (S7): R-8, V5, V9's precondition — see the S7 triage in `docs/plan.md`.
 
-Review records: `docs/reviews/s7-visual-review.md`, `docs/reviews/s6-visual-review.md`,
+Review records: `docs/reviews/full-audit-2026-09-19.md`, `docs/reviews/s7-visual-review.md`, `docs/reviews/s6-visual-review.md`,
 `docs/reviews/s5-visual-review.md`, `docs/reviews/s3-review.md`,
 `docs/reviews/s3-fixes-visual-review.md`, `docs/reviews/d1-visual-review.md`, and the S4–S7
 triages in `docs/plan.md`.

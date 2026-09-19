@@ -1512,7 +1512,7 @@ RF-backlog additions (batched, not now):
   every jsdom test. A lint rule that refuses a non-`styles` string in `className` would make it
   mechanical (the `mechanical-over-prose` memory); until then the visual pass is the check.
 
-### S8 — docs (~0.5h)
+### S8 — docs (~0.5h) — **closed 2026-09-19**
 
 Objective: a cold reader can run it, understand the decisions, and read the result.
 
@@ -1522,12 +1522,51 @@ until S7's C11 produces the numbers S8's README quotes. **Shared seams:** none �
 code.
 
 Cases:
-- D1. README commands run verbatim on a clean clone (manual, recorded in `docs/changelog.md`)
+- [x] D1. README commands run verbatim on a clean clone (manual, recorded in `docs/changelog.md`) — a fresh clone in the scratchpad: stack up from the two commands, catalogue pulled, flag seeded, simulator run, `pnpm test` 208 + 225 green. The only obstacle was a `pnpm dev` stack left on the ports, not the README.
 
 Commits:
-- C1 `[chore]` README: run, product decisions, feature-flag how-to for product, hypothesis, simulated result and call, time spent
-- C2 `[chore]` write-up: approach, where AI helped, where it was wrong and how it was caught, what I'd do with more time
-- C3 `[chore]` `docs/changelog.md`, final ADR index, clean-clone verification
+- [x] C1 `[chore]` README: run, product decisions, feature-flag how-to for product, hypothesis, simulated result and call, time spent (`c12aa28`)
+- [x] C2 `[chore]` write-up: approach, where AI helped, where it was wrong and how it was caught, what I'd do with more time (`f9bac1f`)
+- [x] C2b `[chore]` both cut to a quick read after Shalev's note — the interviewer has seen dozens (`ddac344`)
+- [x] C3 `[chore]` `docs/changelog.md`, final ADR index, clean-clone verification (`8b4f215`)
+- [x] C4 `[chore]` review fixes (`7d5450a`)
+
+### S8 — review triage (Opus, separate agent, 2026-09-19) — **all closed 2026-09-19**
+
+A claims audit of the four docs against the repository: 14 findings, 6 correctness (all in
+what the prose claimed, none in the numbers — every figure in the read matched
+`docs/simulation-read.json` field for field, and the required sample recomputed by hand),
+2 robustness, 6 style. All fixed in one commit (`7d5450a`); nothing carried.
+
+Correctness (fixed):
+- [x] R-1 README said `/dashboard` shows "the three rates"; it renders counts, the lift with CI
+  and p, sample progress and the call. The rates are in the API response. Reworded.
+- [x] R-2 `.env.example` shipped `ADMIN_TOKEN=change-me-before-exposing-this`, so `cp` then
+  `up` booted with a token every cloner holds and the compose `:?` guard never fired —
+  BF28 moved one file left, and the README's "no default" was false. Ships empty now; the
+  backend's `min_length=1` refuses it on the dev/test path too. (Also BF65 in the full audit.)
+- [x] R-3 "4,000 simulated visitors" without the 764 from the crashed run and manual testing
+  that the table also holds. One sentence added.
+- [x] R-4 the write-up's TDD claim was absolute where the S5 triage records two exceptions.
+  Stated with the exceptions.
+- [x] R-5 "two reviews found the same defect five times": it was one code review, five of
+  eleven findings, and the dead tone seam was one instance. Reworded.
+- [x] R-6 "211 commits" was stale the moment it was committed. Count dropped, hours kept.
+
+Robustness (fixed):
+- [x] R-7 the simulator's preconditions (stack up, `uv`) and that a fresh `/dashboard` reads
+  empty until it runs. One line each.
+- [x] R-8 `pnpm dev` also needs Docker. Stated.
+
+Style (fixed, because the reader constraint is a short read):
+- [x] R-9 the write-up's Approach retold the README's product and experiment content. Cut to
+  plan-first, the read, TDD, Python-new.
+- [x] R-10 the peeking guard explained twice in sixteen lines. Once.
+- [x] R-11 seven "with more time" items. Five.
+- [x] R-12 "a driver per component" — 8 of 13 components have none; every page does. "Per screen."
+- [x] R-13 nothing said how to see both arms of the test. One line: private window, or 100/0.
+  The suite size (433) is now on the README.
+- [x] R-14 two write-up bullets opened in framework vocabulary. Lead with the plain sentence.
 
 ### Full-codebase audit (four agents on Opus, 2026-09-19) — **open**
 

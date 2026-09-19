@@ -19,8 +19,11 @@ code. Commit-level detail lives in `git log`; the plan holds what is still ahead
   token, `docker compose up -d --build` — health 200, 1,031 breaches pulled from HIBP, the flag
   seeded, the results endpoint answering on an empty table, the landing page served; the
   simulator command ran; `pnpm install` and `pnpm test` green (208 frontend, 225 backend). The
-  check found the leftover `pnpm dev` servers holding the ports, not a README defect. 4 commits,
-  no code.
+  check found the leftover `pnpm dev` servers holding the ports, not a README defect. An
+  independent claims audit then checked every statement in the four files against the
+  repository: every number in the read matched the JSON, and 14 things the prose claimed did
+  not — the worst a placeholder admin token in `.env.example` that defeated the compose guard
+  after `cp` — all fixed the same hour (triage in `docs/plan.md`). 5 commits, no code.
 
 ## S7 — simulation-and-dashboard (closed 2026-09-19)
 
