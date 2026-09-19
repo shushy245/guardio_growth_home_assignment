@@ -4,6 +4,7 @@
   "version": "0.1.0",
   "packageManager": "pnpm@11.3.0",
   "scripts": {
+    "dev": "sh infra/dev.sh",
     "dev:db": "docker compose up -d db",
     "dev:backend": "cd backend && uv run --env-file ../.env uvicorn app.asgi:app --port 8000 --reload",
     "dev:frontend": "pnpm --filter @breach-scan/frontend dev",

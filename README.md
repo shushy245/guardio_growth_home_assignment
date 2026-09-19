@@ -18,10 +18,10 @@ Every published port binds to `127.0.0.1`. The stack is a development stack and 
 the machine it runs on and nowhere else; reaching it from a phone on the same network needs a
 deliberate rebind in `docker-compose.yml`.
 
-While editing, the same three processes run with hot reload, one per terminal: `pnpm dev:db`,
-`pnpm dev:backend` (uvicorn `--reload`; needs `uv`), `pnpm dev:frontend` (vite, proxying `/api`
-to :8000). Unlike the compose backend, `dev:backend` does not apply migrations — run
-`cd backend && uv run --env-file ../.env alembic upgrade head` once on a fresh database.
+While editing, `pnpm dev` (needs `uv`) runs the same stack with hot reload: the compose
+database, the migrations, then uvicorn `--reload` and the vite dev server in parallel, with
+`/api` proxied to :8000. One Ctrl-C stops both servers; the database stays up. The three parts
+are also separate scripts — `dev:db`, `dev:backend`, `dev:frontend` — for a terminal each.
 
 `pnpm test` runs both suites and needs the same `.env` plus the compose database
 (`docker compose up -d db`), which the backend integration tests run against.
