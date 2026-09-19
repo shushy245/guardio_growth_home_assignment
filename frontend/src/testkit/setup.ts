@@ -5,6 +5,7 @@ import { afterEach, beforeEach, vi } from 'vitest';
 import { forgetVisitorId } from '~/storage/visitor-id';
 import { aMediaQueryList } from '~/testkit/media-query';
 import { fakeHttp, HttpMethod } from '~/testkit/fake-http';
+import { restoreWebCryptoSubtle } from '~/testkit/web-crypto';
 import { aFeatureFlagDTO, aVisitorDTO } from '~/testkit/builders';
 
 // Every test starts with an empty fake network and no remembered visitor. The defaults are the
@@ -34,4 +35,5 @@ afterEach(() => {
     cleanup();
     // A driver that faked the clock hands it back, so no later test runs on a stopped one.
     vi.useRealTimers();
+    restoreWebCryptoSubtle();
 });
