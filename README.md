@@ -103,5 +103,4 @@ the page, and no more.
 
 ## Time spent
 
-About two working days over three calendar days. Commit timestamps bracket roughly 16 hours of
-active work across 211 commits, plus planning and the design session before the first commit.
+About 9-10 hours.
