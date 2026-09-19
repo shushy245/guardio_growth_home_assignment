@@ -1,0 +1,131 @@
+{
+  "flagKey": "result_screen_tone",
+  "hypothesis": {
+    "statement": "An urgent framing of the result screen raises the activation rate (visitors who complete a scan and go on to activate) by at least 20% relative.",
+    "baselineRate": 0.08,
+    "minimumDetectableRelativeLift": 0.2
+  },
+  "metrics": {
+    "primary": {
+      "numerator": "activation",
+      "denominator": "scan_completed"
+    },
+    "secondary": {
+      "numerator": "cta_click",
+      "denominator": "scan_completed"
+    },
+    "guardrail": {
+      "numerator": "activation",
+      "denominator": "cta_click"
+    }
+  },
+  "control": {
+    "key": "calm",
+    "steps": [
+      {
+        "name": "landing_view",
+        "visitors": 2414
+      },
+      {
+        "name": "scan_started",
+        "visitors": 2034
+      },
+      {
+        "name": "scan_completed",
+        "visitors": 1940
+      },
+      {
+        "name": "cta_click",
+        "visitors": 675
+      },
+      {
+        "name": "signup_started",
+        "visitors": 391
+      },
+      {
+        "name": "activation",
+        "visitors": 144
+      }
+    ],
+    "primary": {
+      "successes": 144,
+      "trials": 1940,
+      "rate": 0.07422680412371134
+    },
+    "secondary": {
+      "successes": 675,
+      "trials": 1940,
+      "rate": 0.3479381443298969
+    },
+    "guardrail": {
+      "successes": 144,
+      "trials": 675,
+      "rate": 0.21333333333333335
+    }
+  },
+  "variant": {
+    "key": "urgent",
+    "steps": [
+      {
+        "name": "landing_view",
+        "visitors": 2337
+      },
+      {
+        "name": "scan_started",
+        "visitors": 1992
+      },
+      {
+        "name": "scan_completed",
+        "visitors": 1885
+      },
+      {
+        "name": "cta_click",
+        "visitors": 670
+      },
+      {
+        "name": "signup_started",
+        "visitors": 386
+      },
+      {
+        "name": "activation",
+        "visitors": 185
+      }
+    ],
+    "primary": {
+      "successes": 185,
+      "trials": 1885,
+      "rate": 0.09814323607427056
+    },
+    "secondary": {
+      "successes": 670,
+      "trials": 1885,
+      "rate": 0.35543766578249336
+    },
+    "guardrail": {
+      "successes": 185,
+      "trials": 670,
+      "rate": 0.27611940298507465
+    }
+  },
+  "test": {
+    "z": 2.6374545814671224,
+    "pValue": 0.008353081051542961
+  },
+  "lift": {
+    "absolute": {
+      "point": 0.023916431950559217,
+      "low": 0.006127478538075458,
+      "high": 0.041705385363042975
+    },
+    "relative": {
+      "point": 0.32220748600058946,
+      "low": 0.07349519680427274,
+      "high": 0.6285425787095991
+    }
+  },
+  "sample": {
+    "requiredPerArm": 4921,
+    "reachedPerArm": 1885
+  },
+  "recommendation": "KEEP_RUNNING"
+}

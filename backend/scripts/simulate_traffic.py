@@ -1,6 +1,7 @@
 """Drive simulated visitors through a running API and print the experiment's read.
 
-    uv run python scripts/simulate_traffic.py --visitors 4000 --activation calm=0.08 urgent=0.10
+    uv run python scripts/simulate_traffic.py --visitors 4000 --activation calm=0.08 urgent=0.10 \
+        > docs/simulation-read.json
 
 Argument parsing and the real HTTP client live here; the walk itself is
 `app.experiments.simulation`, which the integration tests drive against an in-process app. The
@@ -16,6 +17,7 @@ import random
 import sys
 
 import httpx2 as httpx
+import structlog
 
 from app.experiments.hypothesis import RESULT_SCREEN_TONE
 from app.experiments.simulation import MAX_ACTIVATION_RATE, simulate_traffic
@@ -60,6 +62,9 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str]) -> None:
+    # Data on stdout, diagnostics on stderr, as a CLI is expected to: structlog's default printer
+    # writes to stdout, and the first run put its progress lines in front of the JSON.
+    structlog.configure(logger_factory=structlog.PrintLoggerFactory(file=sys.stderr))
     args = build_parser().parse_args(argv)
     activation_rates = dict(args.activation)
 

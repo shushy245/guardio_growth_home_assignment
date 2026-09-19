@@ -1451,6 +1451,13 @@ Commits:
   `LiftCard`, `RecommendationBanner`
 - C11 `[chore]` run the 4,000-visitor simulation; capture the read for the README; ADR-0006 frequentist read
 
+**Simulated read (2026-09-19, `docs/simulation-read.json`).** 4,000 visitors at
+`--activation calm=0.08 urgent=0.10` against the compose backend, on a table that also held
+the crashed first run's 750 visitors (B14) and 14 manual ones — 4,764 in all. Control
+144/1,940 (7.4%), variant 185/1,885 (9.8%); z = 2.64, p = 0.008; absolute lift +2.4 points
+(+0.6 to +4.2); relative lift +32% (+7% to +63%); required 4,921 per arm, reached 1,885 →
+**`KEEP_RUNNING`**, the peeking guard doing its job on a significant look (ADR-0006).
+
 ### S8 — docs (~0.5h)
 
 Objective: a cold reader can run it, understand the decisions, and read the result.
