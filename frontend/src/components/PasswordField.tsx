@@ -2,7 +2,7 @@
 // nothing — the page holds the password and runs the check — so the same field can render the
 // inline validation the design shows on submit. What the check says is a lookup by status, never
 // a chain of branches (Open/Closed).
-import type { ChangeEvent, ReactElement } from 'react';
+import { type ChangeEvent, type ReactElement, useId } from 'react';
 
 import {
     CHECKING_MESSAGE,
@@ -28,6 +28,10 @@ export const PasswordField = ({
     check: PasswordCheck;
     validationError: string | undefined;
 }): ReactElement => {
+    // The message's id, so the field describes itself by it: a screen reader hears the error
+    // with the field, not somewhere else on the page.
+    const errorId = useId();
+
     const handleChange = (event: ChangeEvent<HTMLInputElement>): void => {
         onChange(event.target.value);
     };
@@ -38,15 +42,17 @@ export const PasswordField = ({
             <input
                 className={validationError === undefined ? styles.input : styles.inputInvalid}
                 type="password"
+                name="password"
                 autoComplete="new-password"
                 aria-invalid={validationError !== undefined}
+                aria-describedby={validationError === undefined ? undefined : errorId}
                 value={value}
                 data-testid={PasswordFieldTestIds.Input}
                 onChange={handleChange}
             />
             {checkNoticeMap[check.status](check)}
             {validationError === undefined ? undefined : (
-                <span className={styles.error} role="alert" data-testid={PasswordFieldTestIds.Error}>
+                <span id={errorId} className={styles.error} role="alert" data-testid={PasswordFieldTestIds.Error}>
                     {validationError}
                 </span>
             )}

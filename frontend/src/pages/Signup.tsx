@@ -2,7 +2,7 @@
 // at every width; only the whitespace around it grows. The page holds the form's state and runs
 // the leak check on the password; the fields render what they are handed.
 import { useNavigate } from 'react-router';
-import { type ChangeEvent, type FormEvent, type ReactElement, useState } from 'react';
+import { type ChangeEvent, type FormEvent, type ReactElement, useId, useState } from 'react';
 
 import { logger } from '~/logging/logger';
 import { createSignup } from '~/api/signups';
@@ -47,6 +47,7 @@ export const Signup = (): ReactElement => {
     const [validation, setValidation] = useState(NO_VALIDATION_ERRORS);
     const [submission, setSubmission] = useState<Submission>(IDLE_SUBMISSION);
     const check = usePasswordLeakCheck(password);
+    const emailErrorId = useId();
 
     const handleEmailChange = (event: ChangeEvent<HTMLInputElement>): void => {
         setEmail(event.target.value);
@@ -95,15 +96,22 @@ export const Signup = (): ReactElement => {
                         <input
                             className={validation.email === undefined ? styles.input : styles.inputInvalid}
                             type="email"
+                            name="email"
                             inputMode="email"
                             autoComplete="email"
                             aria-invalid={validation.email !== undefined}
+                            aria-describedby={validation.email === undefined ? undefined : emailErrorId}
                             value={email}
                             data-testid={SignupTestIds.Email}
                             onChange={handleEmailChange}
                         />
                         {validation.email === undefined ? undefined : (
-                            <span className={styles.error} role="alert" data-testid={SignupTestIds.EmailError}>
+                            <span
+                                id={emailErrorId}
+                                className={styles.error}
+                                role="alert"
+                                data-testid={SignupTestIds.EmailError}
+                            >
                                 {validation.email}
                             </span>
                         )}

@@ -98,6 +98,7 @@ describe('Signup', () => {
         await driver.click.submit();
         driver.assert.emailErrorIsShown();
         driver.assert.passwordErrorIsShown();
+        driver.assert.errorsAreAnnouncedByTheirFields();
         driver.assert.signupsSent(0);
     });
 

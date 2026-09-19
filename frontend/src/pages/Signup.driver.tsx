@@ -13,10 +13,10 @@ import { isPlainObject } from '~/api/http-client.utils';
 import { planCardMap } from '~/components/PlanPicker.utils';
 import { FunnelProviders } from '~/providers/FunnelProviders';
 import { renderWithProviders } from '~/testkit/renderWithProviders';
-import { PasswordFieldTestIds } from '~/components/PasswordField.utils';
 import { postedSteps, respondToFunnelEvents } from '~/testkit/funnel-events';
 import { fakeHttp, HttpMethod, type RecordedRequest } from '~/testkit/fake-http';
-import { PROTECTED_ROUTE, type ProtectedRouteState, SignupTestIds } from '~/pages/Signup.utils';
+import { PASSWORD_TOO_SHORT_MESSAGE, PasswordFieldTestIds } from '~/components/PasswordField.utils';
+import { EMAIL_INVALID_MESSAGE, PROTECTED_ROUTE, type ProtectedRouteState, SignupTestIds } from '~/pages/Signup.utils';
 import { rangePathsRequested, theRangeIsCleanFor, theRangeIsSlowToSay, theRangeSays } from '~/testkit/pwned-passwords';
 
 const SIGNUPS_PATH = '/signups';
@@ -70,6 +70,7 @@ export type SignupDriver = {
         checkCompletedClean: () => Promise<void>;
         emailErrorIsShown: () => void;
         passwordErrorIsShown: () => void;
+        errorsAreAnnouncedByTheirFields: () => void;
         serverMessageIsShown: (message: string) => Promise<void>;
         submitIsBusy: () => Promise<void>;
         submitIsOffered: () => void;
@@ -218,6 +219,16 @@ export const makeSignupDriver = (): SignupDriver => {
             },
             passwordErrorIsShown: (): void => {
                 expect(screen.getByTestId(PasswordFieldTestIds.Error)).toBeInTheDocument();
+            },
+            // A screen reader hears the message with the field, not somewhere else on the page:
+            // the input is marked invalid and describes itself by the message's id.
+            errorsAreAnnouncedByTheirFields: (): void => {
+                expect(screen.getByTestId(SignupTestIds.Email)).toBeInvalid();
+                expect(screen.getByTestId(SignupTestIds.Email)).toHaveAccessibleDescription(EMAIL_INVALID_MESSAGE);
+                expect(screen.getByTestId(PasswordFieldTestIds.Input)).toBeInvalid();
+                expect(screen.getByTestId(PasswordFieldTestIds.Input)).toHaveAccessibleDescription(
+                    PASSWORD_TOO_SHORT_MESSAGE,
+                );
             },
             serverMessageIsShown: async (message: string): Promise<void> => {
                 await waitFor(() => {
