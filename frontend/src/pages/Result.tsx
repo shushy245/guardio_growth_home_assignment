@@ -53,10 +53,12 @@ export const Result = (): ReactElement => {
                     </Column>
                 </Row>
             </header>
-            <Column className={styles.body}>
-                <BreachSummary tone={copy.tone} />
-                <BreachFilters />
-                <BreachList />
+            <Column className={styles.bodyBand}>
+                <Column className={styles.body}>
+                    <BreachSummary tone={copy.tone} />
+                    <BreachFilters />
+                    <BreachList />
+                </Column>
             </Column>
         </MainColumn>
     );

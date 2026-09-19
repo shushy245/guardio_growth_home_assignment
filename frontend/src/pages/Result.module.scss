@@ -77,13 +77,18 @@ $sticky-bar-height: tokens.$control-height + tokens.$sp-3 * 2;
     width: 100%;
 }
 
+// The same band-and-row shape as the header, so the cap is applied identically in both: the band
+// carries the gutters, the inner column the content cap. Capping a padded box instead put the
+// body's content 64px inside the headline's edge at 1280.
+.bodyBand {
+    padding: tokens.$gutter-sm;
+}
+
 .body {
     gap: tokens.$sp-5;
-    padding: tokens.$gutter-sm;
     width: 100%;
     max-width: tokens.$content-max;
     margin: 0 auto;
-    box-sizing: border-box;
 }
 
 @media (min-width: tokens.$breakpoint-md) {
@@ -121,7 +126,7 @@ $sticky-bar-height: tokens.$control-height + tokens.$sp-3 * 2;
         width: auto;
     }
 
-    .body {
+    .bodyBand {
         padding: tokens.$gutter-md;
     }
 }
@@ -131,7 +136,7 @@ $sticky-bar-height: tokens.$control-height + tokens.$sp-3 * 2;
         padding: tokens.$gutter-lg;
     }
 
-    .body {
+    .bodyBand {
         padding: tokens.$gutter-lg;
     }
 }

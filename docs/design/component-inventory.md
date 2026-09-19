@@ -94,12 +94,18 @@ Screens: `Landing` (S5), `Scan` (S5), `Result` (S5, `toneClassMap` selects the `
    (responsive contract).
 2. **One CTA node on the result screen.** The mock renders two buttons (a header one under
    `isNotMobile`, a sticky one under `isMobile`). The app renders one and moves it with CSS
-   (S5 F20).
+   (S5 F20). **Precondition:** the node sits first in the DOM (inside the header), so at 390,
+   where the stylesheet fixes it to the bottom of the viewport, the first `Tab` from the top of
+   the document lands on it before the search above it. One node, two placements means one width
+   tabs it out of visual order whichever end it sits at; first was chosen so the primary action is
+   reached first (S5 visual review, V8).
 3. **Sort segments are 44px tall,** not the design's 36px inside a 44px track: every
    interactive element meets the tap-target floor on its own box.
 4. **The "Largest breach" tile names the breach.** The design shows only the count (`1.96B`);
    the plan's product bar asks for the name, so the tile carries the title with the count as
-   its support line.
+   its support line. The name reads at `$text-300`, not the tile's `$text-500`: a name is not a
+   number, and at 28px a long title needed six lines in a 768 tile and broke mid-word (S5 visual
+   review, V2).
 5. **Colours are sRGB hex,** not oklch (see Token translation). A later move to oklch is a
    one-line change per token; the source values are in the comments.
 6. **Admin keeps its 720px page width** at 768+ rather than the design's 65ch frame, so the two
@@ -116,6 +122,9 @@ Screens: `Landing` (S5), `Scan` (S5), `Result` (S5, `toneClassMap` selects the `
    number the landing page does not have (the catalog is loaded by the scan moment, not before
    it), and a literal would go stale the day the record grows. The lead reads "against the public
    record of known data breaches" instead; the count is on the result screen, where it is live.
+10. **The chip scroller fades at its right edge at 390.** The design's row simply clips; the
+   fade is the cue that it scrolls, added after the visual pass found the fourth chip cut with no
+   affordance (V4). Gone at md+, where the chips wrap.
 
 ## Decisions taken at translation (Shalev said "go ahead"; flagged in chat)
 
