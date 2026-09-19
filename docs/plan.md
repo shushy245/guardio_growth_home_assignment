@@ -1131,6 +1131,11 @@ Cases:
   - F30. (added at C10) the tiles carry "Record synced 2 hours ago" from the summary's `syncedAt`
     — S2b made the age visible on the wire so the screen could say it (pure `formatSyncedAgo`
     plus a driver assertion)
+  - F31. (from the review, F-2) the sign-up route is mounted, so the result screen's CTA lands on
+    a page — a placeholder until S6 — never on a route the table does not know
+  - F32. (from the review, F-6) a failed *Load more* keeps the rows already on screen and offers
+    Load more again; only a failed first page shows the error state
+  - F33. (from the review, F-7) tapping the sort already in force sends no second request
   - (harness) the funnel pages need the visitor and analytics providers above them, and the
     breach catalog state has to survive the `/scan` → `/result` navigation without a second
     fetch — so the three providers are one `FunnelProviders` component mounted once by `App` on
@@ -1164,8 +1169,82 @@ F11, F16, F18; C9 F12 + F19 + F20; then F0, F30 (the synced line), and the C10 r
 green-on-arrival case was proved by a mutation that fails only it. `frontend-design` was **not**
 loaded: D1 already fixed the design, and the skill is for inventing one. The visual pass ran as
 two independent `visual-reviewer` runs against a rebuilt bundle, one per variant, with the split
-retuned to 100/0 between them and restored to 50/50 after; the S6 route is not mounted yet, so
-the CTA lands on an empty outlet until S6.
+retuned to 100/0 between them and restored to 50/50 after. The review then found the CTA landing
+on a route the table did not know — a blank document, not an empty outlet — and F31 mounts a
+placeholder until S6.
+
+### S5 — review triage (Opus, separate agent, 2026-09-19) — **all closed 2026-09-19**
+
+Sixteen findings and one visual record (three `visual-reviewer` runs, V1–V13, triaged in
+`docs/reviews/s5-visual-review.md`). Zero confirmed correctness defects. Every fixed item went
+red first or was proved by a mutation the review itself ran.
+
+Testing (fixed):
+- [x] F-1 the F6 tone-class test was **vacuous**: Vitest does not compile CSS modules, the import
+  echoes any key back, and the assertion held for a rule that does not exist — its own comment
+  claimed the opposite. It now reads `Result.module.scss` from disk and fails when the urgent rule
+  is removed (proved). The BreachRow driver's unreachable `?? 'badgeDanger'` is a throw.
+- [x] F-4 `stepsPosted(name, 0)` inside `waitFor` was a zero-strength absence (true on its first
+  look); F0's second half is a synchronous read after `act`.
+- [x] F-5 no S5 driver rendered under StrictMode while `main.tsx` ships it, and two comments
+  claimed StrictMode safety unbacked. The catalog provider and Scan drivers render Strict now and
+  pass. **The review's flip of the App driver surfaced a pre-existing S3 defect — BF58 below.**
+
+Robustness (fixed, each a new case):
+- [x] F-2 → **F31** `/signup` had no route: the result screen's CTA rendered a **blank document**
+  on main (verified by render), and the plan called it "an empty outlet". A placeholder page is
+  mounted until S6, as the landing route was until S5.
+- [x] F-6 → **F32** a failed *Load more* set `Failed` unconditionally, discarding every row on
+  screen and restarting at page one; `failPage` keeps the rows for a later page and offers Load
+  more again.
+- [x] F-7 → **F33** re-tapping the sort in force re-queried a byte-identical URL; an identical
+  selection is now the same request object, so the effect keyed on it does not run.
+- [x] F-11's untested half: `TileValueKind` shipped in a chore with no failing test; a bare-assert
+  utils test pins it (mutation-proved).
+
+Style / structure (fixed):
+- [x] F-3 the `.then` `signal.aborted` guards were unreachable (axios rejects an aborted request
+  with `CanceledError` even after the answer arrived — proved by mutation: deleting the `.then`
+  guard changed nothing, deleting the `.catch` return failed F23); the comment pointed at the
+  wrong line. Guards gone, comment corrected.
+- [x] F-8 `isListLoading` and `BreachFiltersTestIds.Search` had no reader; F-9 "Clear filters" had
+  two homes.
+- [x] F-12 `CLAUDE.md` said V8–V11 (it is V8–V13) and that the Result driver fakes timers (it does
+  not; Scan, SearchField and BreachSummary do). Corrected.
+
+Git history (recorded, not rewritten — trunk):
+- [x] F-11 `187a528` and `c30ed64` are labelled `chore` and change `.tsx`/`.ts` — the tile-kind
+  enum with a required model field, `name="q"` on the search input, and the header/body band
+  restructures. They are presentation fixes from the visual pass, but a DOM restructure and a new
+  model field are `refactor` at best and the enum needed a red test (now has one). The changelog's
+  "every commit red-first or a pure refactor" stood only because the chores sat outside the count;
+  corrected to say what happened. Going forward, a visual-pass fix that touches a component is a
+  `refactor` (or `test+impl` when it adds a rule), never a `chore`.
+
+RF-backlog additions (batched, not now):
+- F-10 one-off literals in `.module.scss`: the switch geometry (`26px` ×3, `20px`, `18px`, `3px`,
+  `0.15s` ×2), the badge's `min-height: 28px`, the skeleton widths `40%`/`60%`. Decide once
+  whether control geometry earns tokens (`$switch-track`, `$badge-height`, `$motion-quick`) or an
+  allow-list of decorative literals; apply the answer everywhere at once.
+- F-13 `BreachSummary` reads `new Date()` in the render body for the synced line — the one caller
+  spends the purity `formatSyncedAgo` bought. A `useNow()` or a clock in the catalog state when a
+  second consumer appears.
+- F-14 builders use fixed literals, not `Chance` — pre-existing project-wide (already in the S3
+  RF-backlog); S5 followed the adjacent pattern rather than starting a second one.
+- `fetchBreaches`/`fetchBreachSummary` have no dedicated test; the carry-in from S2 said "written
+  red-first" and they were written under the Scan driver's red test and exercised by every driver
+  since — the letter is unmet, the spirit covered. Decide whether a thin wrapper earns its own test.
+
+BF filed:
+- [ ] **BF58** (S3, found by the S5 review) `Admin.tsx`'s flag-list effect is not StrictMode-
+  idempotent: under `RenderMode.Strict` the App test "fetches the flag list once on the admin page"
+  fails with two fetches. Dev-only (StrictMode double-invokes mount effects), so no production
+  double fetch, but the test's name certifies as single something that is double in the mode
+  production ships. Fix in the next admin story: the in-flight ref pattern `VisitorProvider` uses.
+
+Case coverage: F0–F30 all named by a test (table in the review record's summary and the
+`/story-done` report); F31–F33 added from the review, each red first. Two tests beyond the plan:
+skeleton tiles, and one load for many consumers.
 
 ### S6 — signup (~1h)
 

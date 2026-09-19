@@ -22,15 +22,20 @@ code. Commit-level detail lives in `git log`; the plan holds what is still ahead
   seeded copy on purpose (ADR-0004): the funnel must not go dark because the flag service did. The
   landing lead names no breach count, because the page has none to name yet. The scan and
   result data ride one shared load, so a direct visit to /result loads it itself with skeletons.
-- **Result** — 31 cases (F0–F30, 9 of them from the story-start pre-mortem and mid-story
-  additions), each named by a test; 56 frontend tests added (95→151), 12 of the green-on-arrival
-  cases pinned by a mutation that fails only them; 21 commits, every one red-first or a pure
-  refactor. Three independent visual passes, urgent then calm then a confirmation: the urgent run measured every screen
+- **Result** — 34 cases (F0–F33: 9 from the story-start pre-mortem and mid-story additions, 3
+  from the review), each named by a test; 60 frontend tests added (95→155), 13 of the
+  green-on-arrival cases pinned by a mutation that fails only them; 28 commits — 21 red-first, 3
+  pure refactors, 4 chores, two of which carried presentation fixes into components after the
+  visual pass and are recorded as mislabelled rather than rewritten. Three independent visual passes, urgent then calm then a confirmation: the urgent run measured every screen
   at three widths with accessibility 100 on each and found one tap-target defect and three render
   defects, all fixed the same day; the calm run confirmed the fixes and measured the one
   thing the tests cannot — the same button computes the calm colour under one class and the
   urgent colour under the other, so the A/B test's two looks are now proved on screen, not only
-  in a stylesheet. Record: `docs/reviews/s5-visual-review.md`.
+  in a stylesheet. An independent code review then found no correctness defect and sixteen things
+  worth fixing or writing down, three of them real: the one test guarding that colour switch
+  could not fail, the result screen's button led to a blank page, and two housekeeping commits
+  had carried real changes. All three fixed the same day. Record: `docs/reviews/s5-visual-review.md`
+  and the triage in `docs/plan.md`.
 
 ## D1 — design handoff (closed 2026-09-19)
 

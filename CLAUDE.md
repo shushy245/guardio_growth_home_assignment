@@ -53,10 +53,10 @@ Full history: `docs/changelog.md`; commit-level record: `git log`.
   chips, verified toggle, sort, results line, expandable rows, one CTA node that is a fixed bar at
   390 and inline in the header at 768+ by CSS alone — and every sort and filter is a server query.
   A visitor outside the experiment gets the calm control framing from a frontend constant
-  (ADR-0004, a deliberate second home for the copy). 31 cases, 151 frontend tests, 21 commits;
+  (ADR-0004, a deliberate second home for the copy). 34 cases, 155 frontend tests, 28 commits (21 test+impl, 3 refactor, 4 chore — two of the chores carried presentation fixes into components after the visual pass, recorded in the triage);
   every green-on-arrival case mutation-proved. Three independent visual passes (urgent, calm, confirmation,
   the split retuned between them): accessibility 100 on all three screens, V1–V7 fixed the same
-  day, V8–V11 recorded with their preconditions in `docs/reviews/s5-visual-review.md`.
+  day, V8–V13 recorded with their preconditions in `docs/reviews/s5-visual-review.md`.
   **D1 finding 1 is fully closed:** the CTA computes `#003b3e` under `toneCalm` and `#681500`
   under `toneUrgent`, measured. Unmeasured, stated: every interactive and error state
   (`visual-review-deep` on request), the real reduced-motion feature, `/result` below the fold.
@@ -70,8 +70,10 @@ Full history: `docs/changelog.md`; commit-level record: `git log`.
   assertion), `useCountUp` (frame-driven, cancels on unmount, collapses under reduced motion),
   `SearchField` tells its own echo from an outside change by the last query it sent. The fake
   network answers a bare path under any query, records the parsed query and whether the request
-  was aborted. Scan/Result drivers fake only `setTimeout`/rAF and assert synchronously, because
-  testing-library's `waitFor` drains through a faked `setTimeout`.
+  was aborted. The Scan and SearchField drivers fake only `setTimeout` and BreachSummary's only
+  rAF/`performance`/`Date`, and each asserts synchronously after `act`, because testing-library's
+  `waitFor` drains through a faked `setTimeout`. The review: 16 findings, 0 correctness, 10 fixed
+  (3 as new cases F31–F33), 4 batched, BF58 filed against `/admin`; triage in `docs/plan.md`.
 
 - **D1 — design handoff (closed 2026-09-19).** The screen the whole exercise is judged on was
   about to be invented while it was built, and the admin page carried three measured defects that
