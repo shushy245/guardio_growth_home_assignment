@@ -55,6 +55,11 @@ export const FlagEditor = ({
     onSaved: (saved: { flagKey: string; lockToken: string }) => void;
 }): ReactElement => {
     const [save, setSave] = useState<SaveStatus>(SaveStatus.Idle);
+    // Whether anything was edited since the request in flight left. The answer to that request
+    // can only confirm what it carried, so an edit typed during the round trip must not be
+    // covered by "Saved." (BF64) — a ref, not state, because nothing on screen depends on it
+    // until the response lands.
+    const editedSinceSaveStarted = useRef(false);
     // Save sits below the fold of a long flag at 390 and at 1280, so the answer to a click can
     // land entirely off screen — the click reads as having done nothing at all.
     const messageRef = useRef<HTMLParagraphElement | undefined>(undefined);
@@ -73,6 +78,7 @@ export const FlagEditor = ({
     // its state — it is what disables the button, and re-enabling it mid-request would let a
     // second save overlap the first.
     const handleFlagEdited = (edited: FeatureFlagModel): void => {
+        if (isSaving(save)) editedSinceSaveStarted.current = true;
         setSave((current) => (isSaving(current) ? current : SaveStatus.Idle));
         onChange(edited);
     };
@@ -83,13 +89,16 @@ export const FlagEditor = ({
 
     const handleSave = (): void => {
         setSave(SaveStatus.Saving);
+        editedSinceSaveStarted.current = false;
         void updateFeatureFlag({ flag, adminToken })
             .then((lockToken) => {
                 // Don't read after write: the server returns only the new token, so only the
                 // token is applied. Handing back the flag captured at click time would write a
                 // snapshot over whatever the operator typed during the round trip.
                 onSaved({ flagKey: flag.key, lockToken });
-                setSave(SaveStatus.Saved);
+                // The token is applied either way — the row was written, and the next save
+                // needs the new one — but only an unedited form can be called saved.
+                setSave(editedSinceSaveStarted.current ? SaveStatus.Idle : SaveStatus.Saved);
             })
             .catch((error: unknown) => {
                 if (statusOfError(error) === HTTP_CONFLICT) {

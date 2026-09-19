@@ -64,6 +64,20 @@ describe('FlagEditor', () => {
         driver.assert.urgentCtaLabelIs('Typed while the save was in flight');
     });
 
+    it('does not say "Saved." over a value typed after the request went out', async () => {
+        // The claim the message makes is that what is on screen is what is stored. A copy field
+        // edited mid-flight was never sent, so the answer to the request it overlaps cannot
+        // confirm it (BF64).
+        driver.given.theFlag(aFeatureFlagDTO().withUpdatedAt(FIRST_TOKEN).build());
+        driver.given.theSaveHangs(SECOND_TOKEN);
+        await driver.when.created();
+        await driver.click.save();
+        await driver.type.urgentCtaLabel('Typed while the save was in flight');
+        await driver.when.theSaveResponds();
+        driver.assert.noSaveMessageIsShown();
+        driver.assert.saveIsOffered();
+    });
+
     it('drops the saved confirmation as soon as the operator edits again', async () => {
         driver.given.theFlag(aFeatureFlagDTO().withUpdatedAt(FIRST_TOKEN).build());
         driver.given.theSaveSucceedsWithToken(SECOND_TOKEN);
