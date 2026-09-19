@@ -1270,6 +1270,17 @@ Cases:
 - F9. leaked password still submits and navigates to `/protected` (driver)
 - F10. Protected page tracks `activation` once on mount (driver)
 
+Pre-mortem cases (story-start 2026-09-19), red-first like the rest:
+- B9. a signup from a browser with no visitor cookie, or a cookie naming nobody, is still stored — with no visitor. The funnel fails open when the visitor service is down (ADR-0004); the purchase step must not dead-end on it
+- B10. a duplicate email is refused by the unique index (`ON CONFLICT DO NOTHING … RETURNING`), never a read-then-insert — two concurrent signups cannot both land
+- B11. the 201 body and the log carry no password and no hash
+- F11. `PasswordField` asks once per typing pause, not once per keystroke (debounced like `SearchField`)
+- F12. a double tap on submit sends one signup: the button is busy while the request is in flight
+- F13. the `passwordWasPwned` sent belongs to the password submitted — a warning from an earlier password is not carried onto an edited one
+- F14. the design's validation and server-error states: an invalid email or a password under 8 characters shows the inline message and sends nothing; a 409 shows "That email already has an account."; a 5xx shows the failure message and the form stays editable
+- F15. a visit to `/protected` with no signup behind it goes back to `/signup`, and tracks nothing
+- F16. no Web Crypto `subtle` (plain http off localhost — the S4 finding for `randomUUID`) shows the unchecked note, never a crash
+
 Commits:
 - C1 `[test+impl B1]` `password_hash.py` (Argon2id via `argon2-cffi`)
 - C2 `[chore]` `signup` migration + model + `Plan` enum
