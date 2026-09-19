@@ -20,7 +20,6 @@ export const LOADING_MORE_LABEL = 'Loading more…';
 
 export const EMPTY_FILTER_TITLE = 'No breaches match your filters';
 export const EMPTY_FILTER_DESCRIPTION = 'Try a different search term, or clear your filters to see the whole record.';
-export const EMPTY_FILTER_CLEAR_LABEL = 'Clear filters';
 
 export const LIST_FAILED_TITLE = "Couldn't load breaches";
 export const LIST_FAILED_DESCRIPTION = 'Something went wrong loading the breach record.';

@@ -76,8 +76,6 @@ export const isLoadingMore = (state: ListState): state is Extract<ListState, { s
 export const hasItems = (state: ListState): state is Extract<ListState, LoadedList> =>
     isListReady(state) || isLoadingMore(state);
 
-export const isListLoading = (state: ListState): boolean => state.status === ListStatus.Loading;
-
 export const hasListFailed = (state: ListState): boolean => state.status === ListStatus.Failed;
 
 export const hasMorePages = (state: LoadedList): boolean => state.items.length < state.total;

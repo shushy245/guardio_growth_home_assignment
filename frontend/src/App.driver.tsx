@@ -21,6 +21,7 @@ export type AppDriver = {
         visitorsCreated: (count: number) => void;
         flagListsFetched: (count: number) => void;
         stepsPosted: (name: FunnelEventName, count: number) => Promise<void>;
+        noStepPosted: (name: FunnelEventName) => void;
     };
 };
 
@@ -64,6 +65,12 @@ export const makeAppDriver = (): AppDriver => {
                 await waitFor(() => {
                     expect(postedSteps(name)).toHaveLength(count);
                 });
+            },
+            // Synchronous on purpose: an absence inside `waitFor` is true on its first look and
+            // proves nothing. `when.created()` settled the tree inside `act`, so a step that was
+            // going to be posted has been.
+            noStepPosted: (name: FunnelEventName): void => {
+                expect(postedSteps(name)).toHaveLength(0);
             },
         },
     };

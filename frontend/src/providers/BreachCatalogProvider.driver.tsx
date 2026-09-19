@@ -4,7 +4,7 @@ import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
 
 import type { BreachDTO } from '~/models/breach';
 import { aBreachDTO, aBreachSummaryDTO } from '~/testkit/builders';
-import { renderWithProviders } from '~/testkit/renderWithProviders';
+import { RenderMode, renderWithProviders } from '~/testkit/renderWithProviders';
 import { fakeHttp, HttpMethod, type RecordedRequest } from '~/testkit/fake-http';
 import { BreachCatalogProvider, useBreachCatalog } from '~/providers/BreachCatalogProvider';
 import { hasItems, isListReady, isSummaryReady } from '~/providers/BreachCatalogProvider.utils';
@@ -160,6 +160,8 @@ export const makeBreachCatalogProviderDriver = (): BreachCatalogProviderDriver =
                                 <CatalogProbe key={index} />
                             ))}
                         </BreachCatalogProvider>,
+                        // What production ships: the mount effects run, clean up and run again.
+                        { mode: RenderMode.Strict },
                     );
                 });
             },

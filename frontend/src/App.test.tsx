@@ -39,7 +39,7 @@ describe('App', () => {
         driver.given.route('/admin');
         await driver.when.created();
         driver.assert.adminIsShown();
-        await driver.assert.stepsPosted(FunnelEventName.LandingView, 0);
+        driver.assert.noStepPosted(FunnelEventName.LandingView);
     });
 
     it('shows the sign-up page the result screen hands the visitor on to', async () => {

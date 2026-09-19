@@ -7,8 +7,8 @@ import type { ReactElement } from 'react';
 import { Column } from '~/ui/box';
 import { BreachRow } from '~/components/BreachRow';
 import { ErrorState } from '~/components/ErrorState';
-import { withoutFilters } from '~/components/BreachFilters.utils';
 import { useBreachCatalog } from '~/providers/BreachCatalogProvider';
+import { CLEAR_FILTERS_LABEL, withoutFilters } from '~/components/BreachFilters.utils';
 import {
     hasItems,
     hasListFailed,
@@ -20,7 +20,6 @@ import {
 } from '~/providers/BreachCatalogProvider.utils';
 import {
     BreachListTestIds,
-    EMPTY_FILTER_CLEAR_LABEL,
     EMPTY_FILTER_DESCRIPTION,
     EMPTY_FILTER_TITLE,
     LIST_FAILED_DESCRIPTION,
@@ -111,7 +110,7 @@ const EmptyFilterState = ({ onClear }: { onClear: () => void }): ReactElement =>
         </p>
         <p className={styles.emptyDescription}>{EMPTY_FILTER_DESCRIPTION}</p>
         <button className={styles.clear} type="button" data-testid={BreachListTestIds.ClearFilters} onClick={onClear}>
-            {EMPTY_FILTER_CLEAR_LABEL}
+            {CLEAR_FILTERS_LABEL}
         </button>
     </Column>
 );

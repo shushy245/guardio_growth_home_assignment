@@ -53,8 +53,10 @@ export const BreachCatalogProvider = ({ children }: { children: ReactNode }): Re
     const [list, setList] = useState<ListState>({ status: ListStatus.Idle });
 
     // The summary answers the request's enabled/attempt pair and nothing else: a filter change
-    // must not refetch the tiles. The effect owns its controller and its cleanup aborts the fetch,
-    // so a retry or an unmount can never let an old answer land over a newer state.
+    // must not refetch the tiles. The effect owns its controller and its cleanup aborts the fetch;
+    // axios turns a request whose signal was aborted into a rejected CanceledError even when the
+    // answer had already arrived, so the `isCancelled` return in the catch is the whole of the
+    // stale-answer protection — there is no reachable "resolved after abort" path to guard.
     useEffect(() => {
         if (!request.isEnabled) return;
         const controller = new AbortController();
@@ -63,7 +65,7 @@ export const BreachCatalogProvider = ({ children }: { children: ReactNode }): Re
 
         fetchBreachSummary({ signal })
             .then((loaded) => {
-                if (!signal.aborted) setSummary({ status: SummaryStatus.Ready, summary: loaded });
+                setSummary({ status: SummaryStatus.Ready, summary: loaded });
             })
             .catch((error: unknown) => {
                 if (isCancelled(error)) return;
@@ -79,8 +81,8 @@ export const BreachCatalogProvider = ({ children }: { children: ReactNode }): Re
         };
     }, [request.isEnabled, request.attempt]);
 
-    // The list answers the filters and the page too. Its cleanup aborts the page in flight, which
-    // is what stops a response to an older filter landing over a newer one.
+    // The list answers the filters and the page too. Its cleanup aborts the page in flight, and the
+    // same CanceledError path is what stops a response to an older filter landing over a newer one.
     useEffect(() => {
         if (!request.isEnabled) return;
         const controller = new AbortController();
@@ -89,7 +91,7 @@ export const BreachCatalogProvider = ({ children }: { children: ReactNode }): Re
 
         fetchBreaches({ filters: toListQuery(request), signal })
             .then((page) => {
-                if (!signal.aborted) setList((current) => receivePage({ current, page, request }));
+                setList((current) => receivePage({ current, page, request }));
             })
             .catch((error: unknown) => {
                 if (isCancelled(error)) return;

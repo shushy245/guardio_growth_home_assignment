@@ -10,8 +10,8 @@ import { FunnelProviders } from '~/providers/FunnelProviders';
 import { SCAN_MOMENT_MS, ScanTestIds } from '~/pages/Scan.utils';
 import { ErrorStateTestIds } from '~/components/ErrorState.utils';
 import { aBreachDTO, aBreachSummaryDTO } from '~/testkit/builders';
-import { renderWithProviders } from '~/testkit/renderWithProviders';
 import { postedSteps, respondToFunnelEvents } from '~/testkit/funnel-events';
+import { RenderMode, renderWithProviders } from '~/testkit/renderWithProviders';
 import { fakeHttp, HttpMethod, type RecordedRequest } from '~/testkit/fake-http';
 
 const SUMMARY_PATH = '/breaches/summary';
@@ -113,7 +113,8 @@ export const makeScanDriver = (): ScanDriver => {
                                 <Route path="/result" element={<ResultRouteProbe />} />
                             </Routes>
                         </FunnelProviders>,
-                        { route: '/scan' },
+                        // What production ships: the mount effects run, clean up and run again.
+                        { route: '/scan', mode: RenderMode.Strict },
                     );
                 });
             },
