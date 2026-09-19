@@ -17,7 +17,7 @@ from sqlalchemy.orm import Session
 
 from app.config import Env
 from app.experiments import repository
-from app.experiments.results import FUNNEL_IN_ORDER, StepCount
+from app.experiments.results import FUNNEL_IN_ORDER, StepPairCount
 from app.experiments.simulation import simulate_traffic
 from app.funnel_events.models import FunnelEventRow
 from app.visitors.models import VisitorAssignmentRow, VisitorRow
@@ -35,14 +35,16 @@ class SimulationDriver:
         self.when = _When(self)
         self.then = _Then(self)
 
-    def _counts(self) -> list[StepCount]:
-        return repository.count_visitors_per_step(
+    def _counts(self) -> list[StepPairCount]:
+        return repository.count_visitors_per_step_pair(
             session=self._session, flag_key=RESULT_SCREEN_TONE
         )
 
     def _funnel_of(self, arm: str) -> list[int]:
         visitors_at = {
-            count.step: count.visitors for count in self._counts() if count.variant_key == arm
+            count.reached: count.visitors
+            for count in self._counts()
+            if count.variant_key == arm and count.reached == count.and_reached
         }
 
         return [visitors_at.get(step, 0) for step in FUNNEL_IN_ORDER]

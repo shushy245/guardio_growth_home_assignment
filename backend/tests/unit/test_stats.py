@@ -154,3 +154,16 @@ def test_the_required_sample_rounds_up() -> None:
     required = required_sample_per_arm(baseline_rate=0.08, minimum_detectable_relative_lift=0.20)
 
     assert required == 4921
+
+
+def test_a_proportion_with_more_successes_than_trials_is_refused_where_it_is_built() -> None:
+    """The counts arrive from one query that cannot produce this, so a proportion that holds it
+    is a defect in the caller, not a data state. It is refused at construction, next to the
+    cause, rather than reaching `sqrt` of a negative pooled variance several frames later."""
+    with pytest.raises(ValueError, match="successes=2, trials=1"):
+        Proportion(successes=2, trials=1)
+
+
+def test_a_proportion_with_negative_counts_is_refused() -> None:
+    with pytest.raises(ValueError, match="successes=-1, trials=10"):
+        Proportion(successes=-1, trials=10)

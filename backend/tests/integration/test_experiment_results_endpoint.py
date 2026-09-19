@@ -79,6 +79,31 @@ def test_an_experiment_nobody_has_reached_reads_calmly_with_null_statistics(
     experiments.then.the_recommendation_is(Recommendation.KEEP_RUNNING)
 
 
+def test_a_visitor_who_activated_without_a_scan_cannot_push_a_rate_past_its_own_denominator(
+    experiments: ExperimentsApiDriver,
+) -> None:
+    """The write endpoint accepts `activation` from a visitor who never completed a scan —
+    `/signup` is reachable by link and by bookmark. Counted on its own it makes successes
+    exceed trials: a rate above 100% on the wire, and a pooled rate above 1 takes the z-test's
+    square root of a negative number, so the read 500s and keeps 500ing, because the rows stay.
+    """
+    experiments.given.a_visitor_in_arm("calm", took=(SCAN_COMPLETED, CTA_CLICK, ACTIVATION))
+    experiments.given.a_visitor_in_arm("calm", took=(ACTIVATION,))
+    experiments.given.a_visitor_in_arm("urgent", took=(SCAN_COMPLETED, CTA_CLICK, ACTIVATION))
+    experiments.given.a_visitor_in_arm("urgent", took=(ACTIVATION,))
+
+    experiments.when.the_results_are_read()
+
+    experiments.then.the_read_succeeded()
+    experiments.then.the_step_reads(arm="control", step=ACTIVATION, visitors=2)
+    experiments.then.the_metric_reads(
+        arm="control", metric="primary", successes=1, trials=1, rate=1.0
+    )
+    experiments.then.the_metric_reads(
+        arm="variant", metric="primary", successes=1, trials=1, rate=1.0
+    )
+
+
 def test_an_unknown_flag_is_not_found(experiments: ExperimentsApiDriver) -> None:
     experiments.when.the_results_are_read_for_an_unknown_flag()
 

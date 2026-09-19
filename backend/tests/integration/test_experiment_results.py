@@ -63,3 +63,35 @@ def test_a_visitor_with_no_assignment_for_the_flag_is_in_neither_arm(
     experiment_results.when.the_funnel_is_read()
 
     experiment_results.then.nothing_was_counted()
+
+
+def test_a_visitor_who_reached_a_step_without_the_one_it_converts_from_is_not_counted_for_the_pair(
+    experiment_results: ExperimentResultsDriver,
+) -> None:
+    """`/signup` is reachable by link and by bookmark, so `activation` with no `scan_completed`
+    is a shape the write endpoint accepts with a 201. The funnel still shows the visitor where
+    they were; the rate they were never eligible for does not count them."""
+    experiment_results.given.a_visitor_in_arm("calm", took=(ACTIVATION,))
+
+    experiment_results.when.the_funnel_is_read()
+
+    experiment_results.then.the_arm_counted(arm="calm", step=ACTIVATION, visitors=1)
+    experiment_results.then.the_arm_counted_reaching_both(
+        arm="calm", reached=ACTIVATION, and_reached=SCAN_COMPLETED, visitors=0
+    )
+
+
+def test_a_visitor_who_recorded_a_step_twice_is_counted_once_for_the_pair_it_belongs_to(
+    experiment_results: ExperimentResultsDriver,
+) -> None:
+    """The same retry as above, read through a rate rather than a step: `funnel_event` is
+    idempotent per client id, not per (visitor, step), so a second `activation` row would
+    otherwise put one visitor into a numerator twice."""
+    experiment_results.given.a_visitor_in_arm("calm", took=(SCAN_COMPLETED, ACTIVATION))
+    experiment_results.given.the_visitor_recorded_again(ACTIVATION, tagged_as="calm")
+
+    experiment_results.when.the_funnel_is_read()
+
+    experiment_results.then.the_arm_counted_reaching_both(
+        arm="calm", reached=ACTIVATION, and_reached=SCAN_COMPLETED, visitors=1
+    )

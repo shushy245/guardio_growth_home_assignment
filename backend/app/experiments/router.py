@@ -42,7 +42,7 @@ def get_experiment_results(
     read = assemble_results(
         flag_key=flag_key,
         hypothesis=hypothesis,
-        counts=repository.count_visitors_per_step(session=session, flag_key=flag_key),
+        counts=repository.count_visitors_per_step_pair(session=session, flag_key=flag_key),
     )
     log.info("get_experiment_results: completed", **ctx, **_summary_of(read))
 

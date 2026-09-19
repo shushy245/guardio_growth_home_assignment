@@ -1,11 +1,19 @@
 """The experiment's read, assembled from counted rows — pure once the rows are in hand.
 
-`StepCount` is the shape the repository hands back: one row per (arm, step) that at least one
-visitor reached. A step nobody in an arm reached has no row, and the assembly reads absence as
-zero rather than asking the database to invent empty groups.
+`StepPairCount` is the shape the repository hands back: one row per (arm, step, step) that at
+least one visitor reached **both** halves of. A pair nobody reached has no row, and the
+assembly reads absence as zero rather than asking the database to invent empty groups.
 
-Everything below `StepCount` is arithmetic over those rows and the hypothesis: the funnel per
-arm in step order, the three rates, and the analysis on the primary one.
+Why pairs and not steps: a rate is not two step counts divided. A visitor who recorded
+`activation` without ever completing a scan (`/signup` is reachable by link and by bookmark) is
+in the activation count and not in the scan count, and dividing one by the other put the primary
+metric above 100% and the pooled z-test under a square root of a negative number — a 500 that
+never cleared, because the rows persist. The numerator is counted over the visitors who also
+reached the denominator, so `successes <= trials` holds by construction; the pair whose two
+halves are the same step is the plain count the funnel is drawn from.
+
+Everything below `StepPairCount` is arithmetic over those rows and the hypothesis: the funnel
+per arm in step order, the three rates, and the analysis on the primary one.
 """
 
 from collections.abc import Iterable, Mapping
@@ -26,11 +34,17 @@ FUNNEL_IN_ORDER = tuple(FunnelEventName)
 
 
 @dataclass(frozen=True)
-class StepCount:
-    """How many distinct visitors in one arm reached one step."""
+class StepPairCount:
+    """How many distinct visitors in one arm reached both `reached` and `and_reached`.
+
+    The same step twice is the arm's count at that step. Two different steps is what a rate is
+    counted over, in either order — the pair says the visitor reached both, never in what
+    sequence, because the funnel's order is the plan's, not the clock's.
+    """
 
     variant_key: str
-    step: FunnelEventName
+    reached: FunnelEventName
+    and_reached: FunnelEventName
     visitors: int
 
 
@@ -89,7 +103,7 @@ class ExperimentRead:
 
 
 def assemble_results(
-    *, flag_key: str, hypothesis: Hypothesis, counts: Iterable[StepCount]
+    *, flag_key: str, hypothesis: Hypothesis, counts: Iterable[StepPairCount]
 ) -> ExperimentRead:
     """Only the two arms the hypothesis names are read. A third variant on the flag has no
     place in a two-arm comparison, and its visitors are left out of both samples rather than
@@ -125,33 +139,46 @@ def assemble_results(
     )
 
 
-def _group_by_arm(counts: Iterable[StepCount]) -> dict[str, dict[FunnelEventName, int]]:
-    grouped: dict[str, dict[FunnelEventName, int]] = {}
+StepPair = tuple[FunnelEventName, FunnelEventName]
+
+
+def _group_by_arm(counts: Iterable[StepPairCount]) -> dict[str, dict[StepPair, int]]:
+    grouped: dict[str, dict[StepPair, int]] = {}
     for count in counts:
-        grouped.setdefault(count.variant_key, {})[count.step] = count.visitors
+        grouped.setdefault(count.variant_key, {})[(count.reached, count.and_reached)] = (
+            count.visitors
+        )
 
     return grouped
 
 
-def _read_arm(*, key: str, counts: Mapping[str, Mapping[FunnelEventName, int]]) -> ArmRead:
-    visitors_at = counts.get(key, {})
+def _read_arm(*, key: str, counts: Mapping[str, Mapping[StepPair, int]]) -> ArmRead:
+    visitors_reaching = counts.get(key, {})
 
     return ArmRead(
         key=key,
         steps=tuple(
-            StepRead(name=step, visitors=visitors_at.get(step, 0)) for step in FUNNEL_IN_ORDER
+            StepRead(name=step, visitors=_visitors_at(step, visitors_reaching))
+            for step in FUNNEL_IN_ORDER
         ),
-        primary=_read_metric(PRIMARY_METRIC, visitors_at),
-        secondary=_read_metric(SECONDARY_METRIC, visitors_at),
-        guardrail=_read_metric(GUARDRAIL_METRIC, visitors_at),
+        primary=_read_metric(PRIMARY_METRIC, visitors_reaching),
+        secondary=_read_metric(SECONDARY_METRIC, visitors_reaching),
+        guardrail=_read_metric(GUARDRAIL_METRIC, visitors_reaching),
     )
 
 
+def _visitors_at(step: FunnelEventName, visitors_reaching: Mapping[StepPair, int]) -> int:
+    """The arm's count at one step: the pair whose two halves are that step."""
+    return visitors_reaching.get((step, step), 0)
+
+
 def _read_metric(
-    definition: MetricDefinition, visitors_at: Mapping[FunnelEventName, int]
+    definition: MetricDefinition, visitors_reaching: Mapping[StepPair, int]
 ) -> MetricRead:
-    successes = visitors_at.get(definition.numerator, 0)
-    trials = visitors_at.get(definition.denominator, 0)
+    """The numerator is the pair, never the numerator step on its own: only visitors who
+    reached the denominator were ever eligible to convert."""
+    successes = visitors_reaching.get((definition.numerator, definition.denominator), 0)
+    trials = _visitors_at(definition.denominator, visitors_reaching)
 
     return MetricRead(
         successes=successes,

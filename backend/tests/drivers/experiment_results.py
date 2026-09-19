@@ -1,5 +1,5 @@
-"""Driver for `experiments.repository.count_visitors_per_step` — the read the dashboard's funnel
-is built from.
+"""Driver for `experiments.repository.count_visitors_per_step_pair` — the read the dashboard's
+funnel and its three rates are built from.
 
 Rows are seeded straight into the tables rather than through the API. The API can only put a
 visitor in the arm the hash chooses for them, and these scenarios need a visitor in a *chosen*
@@ -13,7 +13,7 @@ from sqlalchemy import insert
 from sqlalchemy.orm import Session
 
 from app.experiments import repository
-from app.experiments.results import StepCount
+from app.experiments.results import StepPairCount
 from app.funnel_events.models import FunnelEventName, FunnelEventRow
 from app.shared.ids import generate_unique_id
 from app.visitors.models import VisitorAssignmentRow, VisitorRow
@@ -25,7 +25,7 @@ class ExperimentResultsDriver:
     def __init__(self, session: Session) -> None:
         self._session = session
         self._last_visitor_id: str | None = None
-        self._counts: list[StepCount] = []
+        self._counts: list[StepPairCount] = []
         self.given = _Given(self)
         self.when = _When(self)
         self.then = _Then(self)
@@ -65,14 +65,20 @@ class ExperimentResultsDriver:
             )
         )
 
-    def _count_for(self, *, arm: str, step: FunnelEventName) -> int:
-        """Absent is zero: a step nobody in the arm reached has no row, and reads as 0."""
+    def _count_for(
+        self, *, arm: str, reached: FunnelEventName, and_reached: FunnelEventName
+    ) -> int:
+        """Absent is zero: a pair nobody in the arm reached has no row, and reads as 0."""
         matching = [
             count.visitors
             for count in self._counts
-            if count.variant_key == arm and count.step == step
+            if count.variant_key == arm
+            and count.reached == reached
+            and count.and_reached == and_reached
         ]
-        assert len(matching) <= 1, f"more than one count for ({arm!r}, {step}): {self._counts}"
+        assert len(matching) <= 1, (
+            f"more than one count for ({arm!r}, {reached}, {and_reached}): {self._counts}"
+        )
 
         return matching[0] if matching else 0
 
@@ -112,7 +118,7 @@ class _When:
         self._driver = driver
 
     def the_funnel_is_read(self) -> None:
-        self._driver._counts = repository.count_visitors_per_step(
+        self._driver._counts = repository.count_visitors_per_step_pair(
             session=self._driver._session, flag_key=RESULT_SCREEN_TONE
         )
 
@@ -122,10 +128,21 @@ class _Then:
         self._driver = driver
 
     def the_arm_counted(self, *, arm: str, step: FunnelEventName, visitors: int) -> None:
-        actual = self._driver._count_for(arm=arm, step=step)
+        """The funnel's own count: visitors who reached the step, whatever else they did."""
+        actual = self._driver._count_for(arm=arm, reached=step, and_reached=step)
         assert actual == visitors, (
             f"expected {visitors} visitor(s) in arm {arm!r} at {step}, counted {actual}: "
             f"{self._driver._counts}"
+        )
+
+    def the_arm_counted_reaching_both(
+        self, *, arm: str, reached: FunnelEventName, and_reached: FunnelEventName, visitors: int
+    ) -> None:
+        """What a rate is counted over: visitors in the arm who reached both steps."""
+        actual = self._driver._count_for(arm=arm, reached=reached, and_reached=and_reached)
+        assert actual == visitors, (
+            f"expected {visitors} visitor(s) in arm {arm!r} at both {reached} and "
+            f"{and_reached}, counted {actual}: {self._driver._counts}"
         )
 
     def nothing_was_counted(self) -> None:

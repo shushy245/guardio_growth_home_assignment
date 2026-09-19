@@ -28,10 +28,30 @@ _POWER_VALUE = float(stats.norm.ppf(POWER))
 
 @dataclass(frozen=True)
 class Proportion:
-    """One arm: how many of its visitors converted, out of how many reached the step."""
+    """One arm: how many of its visitors converted, out of how many reached the step.
+
+    `successes <= trials` is the invariant every formula below rests on, so it is checked here
+    rather than assumed. The counts come from one query that cannot produce more converters
+    than eligible visitors (`repository.count_visitors_per_step_pair` counts the numerator over
+    visitors who also reached the denominator), which makes a violation a defect in the caller
+    and not a state of the data — and a defect is worth a loud error at the frame that built the
+    value, not a `sqrt` of a negative pooled variance three frames later.
+    """
 
     successes: int
     trials: int
+
+    def __post_init__(self) -> None:
+        if self.trials < 0 or self.successes < 0:
+            raise ValueError(
+                f"Proportion: counts cannot be negative — successes={self.successes}, "
+                f"trials={self.trials}"
+            )
+        if self.successes > self.trials:
+            raise ValueError(
+                "Proportion: more successes than trials — a rate above 100% and a pooled "
+                f"variance below zero — successes={self.successes}, trials={self.trials}"
+            )
 
 
 @dataclass(frozen=True)
