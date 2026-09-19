@@ -79,7 +79,7 @@ Names are the design's, and they are what S5–S7 name their components and driv
 | `StatusMessage` | info · success · warning · error | D1 (mixins) | `message` + `message-success/warning/error` mixins. **`message-error` is defined and used by nothing** — a failed load renders as the neutral chip and a save failure shares `message-warning` with a lock conflict (BF51) |
 | `Skeleton` | — | S5 | Shimmer with a reduced-motion static state |
 | `ProgressIndicator` | — | S5 | The scan moment's bar (F3) |
-| `HypothesisCard` · `FunnelChart` · `LiftCard` · `RecommendationBanner` | ship · keep-control · keep-running · error | S7 | F2–F4 |
+| `HypothesisCard` · `FunnelBars` · `LiftCard` · `RecommendationBanner` | ship · keep-control · keep-running · error | S7 | F2–F4. `FunnelBars` is the design's `FunnelChart`, built as CSS bars behind `frontend/src/charts/` with a chart-library-agnostic prop contract (S7 design call 2 in `docs/plan.md`); the series colours are `$series-1` / `$series-2` (deviation 14). The lift card leads with the **primary** metric, activation, where the mock's illustration reads "Lift on CTA click" (deviation 8) |
 
 Screens: `Landing` (S5), `Scan` (S5), `Result` (S5, `toneClassMap` selects the `tone-calm` /
 `tone-urgent` mixin's custom properties), `Signup` and `Protected` (S6), `Dashboard` (S7),
@@ -135,6 +135,13 @@ Screens: `Landing` (S5), `Scan` (S5), `Result` (S5, `toneClassMap` selects the `
 13. **The sign-up form is capped at 400px at 768+**, not the mock's 340px card, so the leaked
    warning and the email keep a longer line at the wider widths. Chosen at build time, not
    measured; the S6 visual pass is what confirms it. Single column at every width, as stated.
+14. **The funnel series keep the design's tone accents against the dataviz validator.** The
+   `dataviz` skill's palette check (2026-09-19) passes `#005256` / `#8b2000` on CVD separation
+   (protan ΔE 11.7, tritan 24.5), normal-vision separation (21.4) and contrast, and fails them on
+   the light-mode lightness band (L 0.40 / 0.42, the band starts higher) and the calm chroma floor
+   (0.068). The colours stay: each series is an arm and each arm is a tone, so the bar wears the
+   ink its result screen wears, and the legend and the per-bar labels carry identity beside the
+   colour. A brighter pair would pass the band and stop naming the arms.
 
 ## Decisions taken at translation (Shalev said "go ahead"; flagged in chat)
 

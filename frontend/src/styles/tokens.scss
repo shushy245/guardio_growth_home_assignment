@@ -57,6 +57,16 @@ $tone-urgent-on-accent: #fcfcfc; // oklch(99% 0 0)
     --tone-on-accent: #{$tone-urgent-on-accent};
 }
 
+// Colour — chart series. The dashboard's two funnel series are the two arms, and an arm *is* a
+// tone, so the series colours are the tone accents: colour follows the entity, and the legend
+// reads "calm" / "urgent" in the same ink the result screen wears. The dataviz validator
+// (skill `dataviz`, 2026-09-19) passes the pair on CVD separation (protan 11.7), normal-vision
+// separation (21.4) and contrast, and fails it on the light-mode lightness band (0.40 / 0.42) and
+// the calm chroma floor (0.068) — recorded as deviation 14 in the component inventory rather
+// than repainting the arms in colours that would no longer name them.
+$series-1: $tone-calm-accent; // oklch(40% 0.13 200) — the control arm, the design's first bar
+$series-2: $tone-urgent-accent; // oklch(42% 0.15 35) — the variant arm, the design's second bar
+
 // Colour — semantic and disabled
 $color-success: #005121; // oklch(38% 0.12 150)
 $color-success-tint: #def1e1; // oklch(94% 0.03 150)
