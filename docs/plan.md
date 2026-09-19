@@ -1587,6 +1587,38 @@ never promised that. The rest is accumulation: rules stated in one file and skip
 (`AbortSignal`, `no-restricted-syntax`, `**ctx` re-spread), and dismissals whose preconditions
 have since expired (the unused tokens, BF51–BF53).
 
+**Story `audit-fixes`** (opened 2026-09-19, tag `story/audit-fixes`) — the fix pass over this
+triage. Every box below is a case: a correctness or robustness box is red-first with the red test
+named in the box, a testing box *is* the red test, and the docs-drift boxes are one `chore`.
+Order: correctness (BF60–BF67) → robustness (BF68–BF76) → testing (BF77–BF87, the partials,
+T-13) → docs drift. The RF-backlog additions at the end of the section are explicitly **out** of
+scope; they stay batched.
+
+- **Owns:** the whole tree. A cross-cutting fix pass — no directory is off-limits.
+- **Depends on:** S1–S8, all closed. Nothing downstream waits on it.
+- **Parallel:** **none possible.** It owns every directory a sibling story would touch; a second
+  story opened against this repo while it runs is a SERIAL pair — stop and ask.
+
+Pre-mortem (2026-09-19, before any code — each is a case, red-first):
+
+- [ ] **P1** BF60's fix moves the published read. The dashboard counts rows the 4,000-visitor
+  simulator wrote and ADR-0006 quotes `p = 0.008`; if the monotonic-visitor restriction changes a
+  rate, the ADR and the README drift silently. Case: assert the restricted count equals the naive
+  one for a fully monotonic funnel, then re-run the read and re-state the figures if they moved.
+- [ ] **P2** The "also reached the denominator" count double-counts. `funnel_event` is idempotent
+  per client id, not per `(visitor, name)`, so a visitor with two `activation` rows inflates the
+  numerator. Case: two `activation` rows for one visitor count once.
+- [ ] **P3** (concurrency) BF87 flips `RenderMode.Strict` on for twelve drivers at once; their
+  effects then double-invoke and the failures will read like BF58/BF70 — a mount-abort-remount
+  race, not a new defect. Order is load-bearing: BF70's one cancel convention lands **first**, and
+  an aborted visitor load must not leave the provider loading forever after unmount.
+- [ ] **P4** BF66 composes the retired selectors back over `main.tsx` and `http-client.utils.ts`
+  and will surface real violations there. The fix is the code; re-widening the `off` is HARD
+  RULE 3.
+- [ ] **P5** BF62's label restructure breaks both form drivers at once — the `^`-anchored
+  `getByLabelText` regexes pass by construction today. The exact-name assertion goes red before
+  any JSX moves, or the fix proves nothing.
+
 #### Correctness — fix first, each red-first
 
 - [ ] **BF60** `backend/app/experiments/results.py:150-160` + `stats.py:66-68` — the primary,
