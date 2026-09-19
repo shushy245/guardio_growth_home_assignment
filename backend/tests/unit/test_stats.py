@@ -12,7 +12,12 @@ that sidedness is stated.
 
 import pytest
 
-from app.experiments.stats import Proportion, measure_lift, two_proportion_z_test
+from app.experiments.stats import (
+    Proportion,
+    measure_lift,
+    required_sample_per_arm,
+    two_proportion_z_test,
+)
 
 
 def test_two_points_of_difference_on_a_thousand_visitors_an_arm_is_not_significant() -> None:
@@ -111,3 +116,32 @@ def test_the_relative_interval_is_wider_above_the_point_than_below_it() -> None:
     )
 
     assert lift.relative.high - lift.relative.point > lift.relative.point - lift.relative.low
+
+
+def test_the_required_sample_matches_the_textbook_figure_for_the_stated_hypothesis() -> None:
+    """The plan's hypothesis: 8% activation, a 20% relative lift to detect, alpha 0.05, power
+    0.8. Every published calculator puts that at about 4,920 visitors an arm."""
+    required = required_sample_per_arm(baseline_rate=0.08, minimum_detectable_relative_lift=0.20)
+
+    assert required == pytest.approx(4920, rel=0.05)
+
+
+def test_a_larger_effect_needs_less_traffic_to_detect() -> None:
+    """The direction of the whole formula in one assertion: a sign slip or an inverted ratio
+    passes the figure above only by coincidence, and fails here."""
+    small_effect = required_sample_per_arm(
+        baseline_rate=0.08, minimum_detectable_relative_lift=0.10
+    )
+    large_effect = required_sample_per_arm(
+        baseline_rate=0.08, minimum_detectable_relative_lift=0.50
+    )
+
+    assert large_effect < small_effect
+
+
+def test_the_required_sample_rounds_up() -> None:
+    """A fractional visitor is not a sample size, and rounding down would let the dashboard
+    call a test adequately powered one visitor before it is."""
+    required = required_sample_per_arm(baseline_rate=0.08, minimum_detectable_relative_lift=0.20)
+
+    assert required == 4921

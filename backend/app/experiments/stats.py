@@ -18,8 +18,12 @@ from scipy import stats
 # The one place the test's size is set. The p-value and both intervals read it, so a reader
 # can never be shown a p-value at one threshold beside an interval at another.
 ALPHA = 0.05
+# The chance of detecting a real effect of the stated size. 0.8 is the conventional floor: a
+# test powered below it is one that can miss a win it was built to find.
+POWER = 0.80
 # Computed once at import: every call would otherwise pay for the same inverse normal.
 _CRITICAL_VALUE = float(stats.norm.ppf(1 - ALPHA / 2))
+_POWER_VALUE = float(stats.norm.ppf(POWER))
 
 
 @dataclass(frozen=True)
@@ -133,3 +137,28 @@ def _log_variance_of(arm: Proportion) -> float:
     rate = _rate_of(arm)
 
     return (1 - rate) / (rate * arm.trials)
+
+
+def required_sample_per_arm(
+    *, baseline_rate: float, minimum_detectable_relative_lift: float
+) -> int:
+    """How many visitors each arm needs before a lift of this size could be called.
+
+    The effect is stated as a **relative** lift because that is how the hypothesis is written —
+    "at least 20% better", not "at least 1.6 points better" — and because a relative target
+    keeps its meaning when the baseline drifts.
+
+    One-sided power, two-sided alpha: the convention every published calculator uses, and the
+    reason `_POWER_VALUE` is `ppf(POWER)` while `_CRITICAL_VALUE` is `ppf(1 - ALPHA / 2)`.
+    """
+    target_rate = baseline_rate * (1 + minimum_detectable_relative_lift)
+    pooled_rate = (baseline_rate + target_rate) / 2
+    numerator = (
+        _CRITICAL_VALUE * math.sqrt(2 * pooled_rate * (1 - pooled_rate))
+        + _POWER_VALUE
+        * math.sqrt(baseline_rate * (1 - baseline_rate) + target_rate * (1 - target_rate))
+    ) ** 2
+
+    # Ceiling, never round: a fractional visitor is not a sample size, and rounding down would
+    # let the dashboard call a test powered one visitor before it is.
+    return math.ceil(numerator / (target_rate - baseline_rate) ** 2)
