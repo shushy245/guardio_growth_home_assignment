@@ -102,7 +102,7 @@ const Flags = ({
     if (isFailedToLoad(state)) {
         return (
             <Column className={styles.intro}>
-                <p className={styles.message} role="status" data-testid={AdminTestIds.LoadError}>
+                <p className={styles.messageError} role="alert" data-testid={AdminTestIds.LoadError}>
                     {LOAD_FAILED_MESSAGE}
                 </p>
                 <button className={styles.retry} type="button" data-testid={AdminTestIds.Retry} onClick={onRetry}>

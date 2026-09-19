@@ -25,7 +25,13 @@ $color-surface-sunken: #eef2f5; // oklch(96% 0.006 240) — info messages, segme
 $color-skeleton: #e4e8eb; // oklch(93% 0.006 240) — skeleton blocks
 $color-text-primary: #121c23; // oklch(22% 0.02 240)
 $color-text-secondary: #4e575d; // oklch(45% 0.015 240) — notes, meta lines, labels of tiles
-$color-border: #d0d5d9; // oklch(87% 0.008 240)
+$color-border: #d0d5d9; // oklch(87% 0.008 240) — separators and card edges, decorative
+// The boundary of a control the visitor has to find: an input's only edge, a chip, a plan card,
+// the password field's spinner track. WCAG 2.2 SC 1.4.11 asks 3:1 of exactly that, and the
+// design's own border is 1.48:1 on white and 1.40:1 on the page (BF52, deviation 15). Measured:
+// 3.29:1 on $color-surface, 3.11:1 on $color-bg. A card's edge keeps the lighter value, because
+// a card is identified by its content and its fill, not by its outline.
+$color-border-control: #868f96; // oklch(65% 0.012 240)
 $color-brand: #004867; // oklch(38% 0.09 235) — the wordmark only
 $color-focus-ring: #007bab; // oklch(55% 0.16 235)
 

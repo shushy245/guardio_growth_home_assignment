@@ -43,6 +43,7 @@ export type AdminDriver = {
         loadErrorIsShown: () => Promise<void>;
         loadFailureIsShownWithoutTheServersWords: () => Promise<void>;
         loadFailureWasLogged: () => void;
+        theFailedLoadDoesNotLookLikeTheLoadingOne: () => void;
         adminTokenFieldIsShown: () => void;
         flagIsShown: () => Promise<void>;
     };
@@ -181,6 +182,14 @@ export const makeAdminDriver = (): AdminDriver => {
                     expect.stringContaining('loadFlags'),
                     expect.objectContaining({ detail: SERVER_ERROR_DETAIL }),
                 );
+            },
+            // Byte-identical chips: the failed load rendered the same neutral box as "Loading
+            // flags…", so an operator whose load failed saw the box they had been watching and
+            // only the words changed (BF51).
+            theFailedLoadDoesNotLookLikeTheLoadingOne: (): void => {
+                const failed = screen.getByTestId(AdminTestIds.LoadError);
+                expect(failed).toHaveClass('messageError');
+                expect(failed).not.toHaveClass('message');
             },
             adminTokenFieldIsShown: (): void => {
                 expect(screen.getByTestId(AdminTestIds.AdminToken)).toBeInTheDocument();

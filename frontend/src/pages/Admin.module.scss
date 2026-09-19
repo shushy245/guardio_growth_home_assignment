@@ -42,6 +42,13 @@
     @include fields.message;
 }
 
+// A failed load is not a state to mistake for the one before it: the neutral chip is what
+// "Loading flags…" wears, and the two were byte-identical until BF51.
+.messageError {
+    @include fields.message;
+    @include fields.message-error;
+}
+
 .flags {
     gap: tokens.$sp-6;
 }

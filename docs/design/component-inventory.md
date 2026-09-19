@@ -146,6 +146,15 @@ Screens: `Landing` (S5), `Scan` (S5), `Result` (S5, `toneClassMap` selects the `
    ink its result screen wears, and the legend and the per-bar labels carry identity beside the
    colour. A brighter pair would pass the band and stop naming the arms.
 
+15. **Controls get a darker border than the design's token.** `$color-border` (#d0d5d9) is
+   1.48:1 on white and 1.40:1 on the page; WCAG 2.2 SC 1.4.11 asks 3:1 of the boundary that
+   identifies a control, and an input's border is its only boundary (BF52, found in D1's own
+   review and carried until the audit fix pass). `$color-border-control` (#868f96, measured
+   3.29:1 on `$color-surface` and 3.11:1 on `$color-bg`) is used by the input mixin, the filter
+   chips, the plan cards and their radio ring, the password field's spinner track and the
+   disabled button's edge. Separators and card edges keep the design's lighter value: a card is
+   identified by its fill and its content, not by its outline.
+
 ## Decisions taken at translation (Shalev said "go ahead"; flagged in chat)
 
 - Self-host the font (above).

@@ -105,18 +105,21 @@ export const saveMessage = (save: SaveStatus): string | undefined => saveMessage
 
 // Which of the message styles an answer wears. A table rather than a branch, so a new SaveStatus
 // has to decide how it looks instead of silently inheriting the success tone.
+// Four tones, not three: a lock conflict and a rejected save are different things to do next —
+// reload and reapply, or try again — and they read as one warning until BF51.
 export enum SaveTone {
     Neutral = 'neutral',
     Saved = 'saved',
-    Unsaved = 'unsaved',
+    Conflict = 'conflict',
+    Failed = 'failed',
 }
 
 const saveToneMap: Record<SaveStatus, SaveTone> = {
     [SaveStatus.Idle]: SaveTone.Neutral,
     [SaveStatus.Saving]: SaveTone.Neutral,
     [SaveStatus.Saved]: SaveTone.Saved,
-    [SaveStatus.Conflict]: SaveTone.Unsaved,
-    [SaveStatus.Failed]: SaveTone.Unsaved,
+    [SaveStatus.Conflict]: SaveTone.Conflict,
+    [SaveStatus.Failed]: SaveTone.Failed,
 };
 
 export const saveTone = (save: SaveStatus): SaveTone => saveToneMap[save];

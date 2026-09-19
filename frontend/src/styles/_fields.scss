@@ -18,7 +18,7 @@
     font: inherit;
     padding: 0 tokens.$sp-4;
     min-height: tokens.$control-height;
-    border: 1px solid tokens.$color-border;
+    border: 1px solid tokens.$color-border-control;
     border-radius: tokens.$radius-md;
     background: tokens.$color-surface;
     color: tokens.$color-text-primary;
@@ -69,6 +69,11 @@
     padding: 0 tokens.$sp-6;
     border-radius: tokens.$radius-md;
     cursor: pointer;
+    // As the `input` mixin above declares it, and for a sharper reason here: `button-primary`
+    // goes from `border: 0` to a 1px border the instant it disables, so under the `content-box`
+    // default the button grew 2px taller on every click — a visible jump on the one control the
+    // page is about (BF53). With the border inside the box the height is the height.
+    box-sizing: border-box;
 }
 
 // The tone seam, live: the custom property is what a `tone-calm` / `tone-urgent` class on an
@@ -84,7 +89,7 @@
     &:disabled {
         background: tokens.$color-disabled-fill;
         color: tokens.$color-disabled-text;
-        border: 1px solid tokens.$color-border;
+        border: 1px solid tokens.$color-border-control;
         cursor: not-allowed;
     }
 

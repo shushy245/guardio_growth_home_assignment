@@ -93,8 +93,14 @@
     @include fields.message-success;
 }
 
-.unsaved {
+// Someone else's save is in the way: a warning, and the next step is to reload and reapply.
+.conflict {
     @include fields.message-warning;
+}
+
+// The save was refused: an error, and the next step is to try again.
+.failed {
+    @include fields.message-error;
 }
 
 .warning {

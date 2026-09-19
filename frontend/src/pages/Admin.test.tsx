@@ -36,6 +36,7 @@ describe('Admin page', () => {
         await driver.when.created();
         await driver.assert.loadFailureIsShownWithoutTheServersWords();
         driver.assert.loadFailureWasLogged();
+        driver.assert.theFailedLoadDoesNotLookLikeTheLoadingOne();
     });
 
     it('keeps the admin token field and offers a retry when the flags cannot be loaded', async () => {

@@ -118,7 +118,8 @@ export const FlagEditor = ({
     const saveToneClassMap: Record<SaveTone, string | undefined> = {
         [SaveTone.Neutral]: undefined,
         [SaveTone.Saved]: styles.saved,
-        [SaveTone.Unsaved]: styles.unsaved,
+        [SaveTone.Conflict]: styles.conflict,
+        [SaveTone.Failed]: styles.failed,
     };
 
     return (

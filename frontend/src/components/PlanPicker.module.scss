@@ -22,7 +22,7 @@
     flex-direction: column;
     gap: tokens.$sp-2;
     padding: tokens.$sp-5;
-    border: 1.5px solid tokens.$color-border;
+    border: 1.5px solid tokens.$color-border-control;
     border-radius: tokens.$radius-md;
     background: tokens.$color-surface;
     cursor: pointer;
@@ -74,8 +74,8 @@ $ring-inset: (tokens.$tap-target - 2 * $ring-radius) * 0.5;
     background: radial-gradient(
         circle,
         tokens.$color-surface $ring-idle-inner,
-        tokens.$color-border $ring-idle-inner,
-        tokens.$color-border $ring-radius,
+        tokens.$color-border-control $ring-idle-inner,
+        tokens.$color-border-control $ring-radius,
         transparent $ring-radius
     );
     flex: 0 0 auto;

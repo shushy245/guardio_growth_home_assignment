@@ -295,6 +295,11 @@ export const makeFlagEditorDriver = (): FlagEditorDriver => {
                 await waitFor(() => {
                     expect(messageOf()).toHaveTextContent('Reload the page');
                 });
+                // A lock conflict is someone else's save to reapply over; a failure is a save
+                // that did not happen. They shared one tone, so the words were the only thing
+                // telling them apart (BF51).
+                expect(messageOf()).toHaveClass('conflict');
+                expect(messageOf()).not.toHaveClass('failed');
             },
             failureMessageIsShown: async (message: string): Promise<void> => {
                 await waitFor(() => {
@@ -308,6 +313,8 @@ export const makeFlagEditorDriver = (): FlagEditorDriver => {
                     expect(messageOf()).toHaveTextContent('could not be saved');
                 });
                 expect(messageOf()).not.toHaveTextContent(SERVER_ERROR_DETAIL);
+                expect(messageOf()).toHaveClass('failed');
+                expect(messageOf()).not.toHaveClass('conflict');
             },
             saveFailureWasLogged: (): void => {
                 expect(loggedErrors).toHaveBeenCalledWith(
