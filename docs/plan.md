@@ -1236,7 +1236,7 @@ RF-backlog additions (batched, not now):
   since — the letter is unmet, the spirit covered. Decide whether a thin wrapper earns its own test.
 
 BF filed:
-- [ ] **BF58** (S3, found by the S5 review) `Admin.tsx`'s flag-list effect is not StrictMode-
+- [x] **BF58** (closed `a4df40e`, with BF70) (S3, found by the S5 review) `Admin.tsx`'s flag-list effect is not StrictMode-
   idempotent: under `RenderMode.Strict` the App test "fetches the flag list once on the admin page"
   fails with two fetches. Dev-only (StrictMode double-invokes mount effects), so no production
   double fetch, but the test's name certifies as single something that is double in the mode
@@ -1671,15 +1671,15 @@ Pre-mortem (2026-09-19, before any code — each is a case, red-first):
 
 #### Robustness
 
-- [ ] **BF68** `backend/app/health/router.py:11-13`, `config.py:39` — with an unreachable
+- [x] **BF68** (closed `b600368`) `backend/app/health/router.py:11-13`, `config.py:39` — with an unreachable
   database the app boots, `/api/health` answers 200 "ok" and every data endpoint 500s;
   `database_url` is the one unvalidated setting. BF18's lesson in another guise. CONFIRMED
   (BE-5). Fix: `SELECT 1` in the health handler → 503 `{ error }`; a scheme validator on the URL.
-- [ ] **BF69** `frontend/src/App.tsx:19-29`, `main.tsx` — no catch-all route and no error
+- [x] **BF69** (closed `adc8b94`) `frontend/src/App.tsx:19-29`, `main.tsx` — no catch-all route and no error
   boundary: an unknown URL or a render-time throw (`FunnelBars` with >2 series, a hook outside
   its provider) is a **blank document**, the F31 failure as a class. (FE-5, FE-6). Fix: a `*`
   route and one boundary at the composition root rendering `ErrorState`.
-- [ ] **BF70** the abort/cleanup rule is stated in `api/breaches.ts` and `api/experiments.ts`
+- [x] **BF70** (closed `a4df40e`) the abort/cleanup rule is stated in `api/breaches.ts` and `api/experiments.ts`
   ("the signal is required") and absent in `visitors.ts`, `feature-flags.ts`, `signups.ts`,
   `funnel-events.ts`, all called from effects. `VisitorProvider.tsx:17-21` is the only effect with
   no cleanup (`void load.then(setState)`), a failed session is terminal for the visit with no
@@ -1688,31 +1688,35 @@ Pre-mortem (2026-09-19, before any code — each is a case, red-first):
   comments — which is the mechanical cause of the still-open **BF58**. (FE-7, FE-8, FE-10, CV-3,
   CV-4). Fix: one signature convention across `src/api/**`, one load-with-cancel shape, a `retry`
   on the visitor provider; BF58 closes with it.
-- [ ] **BF71** `backend/app/feature_flags/router.py:57-76` — the orphan guard (BF31) reads
+  **Carried, deliberately:** the visitor provider now has a `reload` (`useLoadedState` gives it
+  one) but nothing exposes it. There is no screen for a failed session — D1 designed none — and
+  a retry with no caller is the dead code this same audit flags elsewhere. Exposing it is a
+  product decision, not a fix: it needs a screen that tells the visitor the session failed.
+- [x] **BF71** (accepted and recorded, `a8dcf99`) `backend/app/feature_flags/router.py:57-76` — the orphan guard (BF31) reads
   `visitor_assignment` and writes the flag in one READ COMMITTED transaction while
   `create_visitor` inserts in another: a visitor created inside the PATCH can be assigned the key
   being removed. PLAUSIBLE (BE-4). Fix: `SELECT … FOR UPDATE` on the flag row before the read, or
   accept the one-visitor race and record it.
-- [ ] **BF72** `backend/app/experiments/simulation.py:112-121,173-181` — one non-201 raises out
+- [x] **BF72** (closed `e62010c`) `backend/app/experiments/simulation.py:112-121,173-181` — one non-201 raises out
   of the whole run and the rows written so far stay in the table with no run marker; it happened
   (the 750 crashed-run visitors in the published read). (BE-6). Fix: per-visitor catch with a
   failure threshold, and a run id in the event `metadata`.
-- [ ] **BF73** `backend/app/adapters/hibp/breach_catalog.py:81` — `Domain`, `Title`, `LogoPath`
+- [x] **BF73** (closed `e62010c`) `backend/app/adapters/hibp/breach_catalog.py:81` — `Domain`, `Title`, `LogoPath`
   are declared non-nullable; a JSON `null` from HIBP fails validation and, by B1d's
   all-or-nothing rule, aborts the whole 1,036-record sync. Today's payload writes `""`, so it does
   not reproduce live. PLAUSIBLE (BE-8). Fix: `str | None` and let `_none_if_empty` cover both.
-- [ ] **BF74** `frontend/src/providers/BreachCatalogProvider.utils.ts:137` — `FILTER_KEYS` is
+- [x] **BF74** (closed `c2c158a`) `frontend/src/providers/BreachCatalogProvider.utils.ts:137` — `FILTER_KEYS` is
   typed `readonly (keyof CatalogFilters)[]`, which accepts any subset; a filter added to the
   model and forgotten here would have every change swallowed by `areSameFilters` with no error.
   CONFIRMED by mutation (FE-9). Fix: derive it from a `Record<keyof CatalogFilters, true>`.
-- [ ] **BF75** `frontend/src/components/BreachList.tsx:59` — rows keyed by `breach.name` across
+- [x] **BF75** (closed `c2c158a`) `frontend/src/components/BreachList.tsx:59` — rows keyed by `breach.name` across
   appended pages; a refresh between page 1 and page 2 (S2b makes it a real event) can put one
   record on both pages: a duplicate key, a dropped row. (FE-11). Fix: de-duplicate by name in
   `receivePage`.
-- [ ] **BF76** `backend/app/breaches/schemas.py:45` — `extra="forbid"` on the query model makes
+- [x] **BF76** (kept strict and recorded, `e62010c`) `backend/app/breaches/schemas.py:45` — `extra="forbid"` on the query model makes
   `GET /api/breaches?utm_source=news` a 400. CONFIRMED (BE-7). Decide: keep and record in the
   docstring (a body must be strict; a query string cannot be forged by an extra key), or `ignore`.
-- [ ] (decision, record) `/dashboard` and `GET /api/experiments/{flagKey}/results` are public
+- [x] (closed `a8dcf99`) (decision, record) `/dashboard` and `GET /api/experiments/{flagKey}/results` are public
   while `/admin`'s write is gated; deliberate within the loopback posture, recorded nowhere.
   (FE-12). One sentence beside the admin-gate note.
 
