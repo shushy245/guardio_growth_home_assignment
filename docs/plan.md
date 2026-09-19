@@ -1364,7 +1364,7 @@ Unmeasured, stated: the spinners in motion, hover and active states, the interac
 768 and 1280, the Basic-plan `/protected`, the real reduced-motion feature.
 
 
-### S7 — simulation-and-dashboard (~1.5h)
+### S7 — simulation-and-dashboard (~1.5h) — **closed 2026-09-19**
 
 Objective: simulated traffic through the real API and a PM-readable dashboard with a statistical call.
 
@@ -1457,6 +1457,60 @@ the crashed first run's 750 visitors (B14) and 14 manual ones — 4,764 in all. 
 144/1,940 (7.4%), variant 185/1,885 (9.8%); z = 2.64, p = 0.008; absolute lift +2.4 points
 (+0.6 to +4.2); relative lift +32% (+7% to +63%); required 4,921 per arm, reached 1,885 →
 **`KEEP_RUNNING`**, the peeking guard doing its job on a significant look (ADR-0006).
+
+
+### S7 — review triage (Opus, separate agent, 2026-09-19) — **all closed 2026-09-19**
+
+Eleven findings and one visual record (two `visual-reviewer` runs plus a targeted re-measure,
+V1–V9, triaged in `docs/reviews/s7-visual-review.md`). Zero blockers. The one correctness
+finding was a call the dashboard could print beside a lift it could not state; the two testing
+findings were claims the reviewer proved untested by mutation. The visual pass found the one
+defect no jsdom test can see: a raw class name that matches no hashed rule.
+
+Correctness (fixed, red-first):
+- [x] R-1 `analyse` could answer `SHIP_VARIANT` with `lift=None` (a control nobody converted in
+  over a full sample), so the banner would read "with high confidence" beside "Not enough data
+  yet". A call now needs a statable lift as well as a test (`d285ee6`).
+- [x] V9 the banner's tone class was the raw enum string beside the hashed module class, so the
+  warning tint never painted. Routed through `styles.*` like the two neighbouring maps; confirmed
+  by re-measure at 390 and 1280 — `#f7e6c3` / `#423000`, 10.31:1 (`b9d0718`). **Precondition,
+  recorded on the map:** Vitest compiles CSS modules non-scoped, so `styles.wait` and `'wait'`
+  are one string in every test and only a capture tells them apart.
+
+Testing (fixed, mutation-proved):
+- [x] R-2 `_has_enough_traffic` took the smaller arm but every test used equal arms; `max`
+  survived the suite. A 9,000-against-900 case fails it now.
+- [x] R-3 reversing the two funnel series passed all nine dashboard tests; the legend assertion
+  reads in order now, and the series order is which arm wears which colour (deviation 14).
+- [x] R-5 the simulation driver's "tagged with its visitor's arm" checked only that a flag was
+  stamped; it joins the assignment and compares with `IS DISTINCT FROM` now.
+- [x] R-9 the degenerate-input walk asserted over a collected list; it asserts per figure.
+- [x] R-10 `0 < activation` at 200 visitors was a 0.15% flake per arm; only the upper bound
+  stays, and the "keeps walking" mutation is still caught by it.
+
+Style / structure (fixed):
+- [x] R-4 a `_ = FunnelEventName` that existed to silence an unused import — deleted with it.
+- [x] R-6 `hasStatistics` was tested and unconsumed while the lift card re-checked the fields
+  inline; it is a type predicate and the card narrows through it.
+- [x] R-7 `withRelativeLift` had no caller; deleted.
+
+Dismissed with the rule recorded:
+- [x] R-11 `9416524` and `b9d0718` are `refactor:` commits that change rendered output. The
+  house rule since S5's triage is that a visual-pass fix in a component is a `refactor`, never
+  a `chore` (the S6 memory records it); the reviewer read S5's earlier `chore` as the
+  precedent. The rule stands; the messages say what they change.
+
+RF-backlog additions (batched, not now):
+- R-8 the retry tests (`Dashboard`, and `Admin` before it) register the recovered route after
+  `when.created()` — a Given after a When, in the one scenario shape ("the backend comes back")
+  where the precondition genuinely changes mid-test. A `when.theServerRecovers()` would name it
+  honestly; do it once for both. The two `share: 80 / 1250` expectations in the F2 body should be
+  named constants.
+- V5 the funnel chart carries its counts only in each bar's accessible name; the dataviz skill's
+  per-mark hover tooltip (`title` on the `meter`) is the one-line addition when a reader asks.
+- V9's precondition: with `classNameStrategy: 'non-scoped'` a raw class string is invisible to
+  every jsdom test. A lint rule that refuses a non-`styles` string in `className` would make it
+  mechanical (the `mechanical-over-prose` memory); until then the visual pass is the check.
 
 ### S8 — docs (~0.5h)
 

@@ -3,6 +3,33 @@
 The product diary: one entry per story, newest first, in the words of someone who never saw the
 code. Commit-level detail lives in `git log`; the plan holds what is still ahead.
 
+## S7 — simulation-and-dashboard (closed 2026-09-19)
+
+- **Pain** — The experiment had a feature flag, stored assignments and a table of funnel
+  events, and no way to read them: nobody could say whether the urgent result screen was
+  winning, and nothing had ever sent traffic through the funnel to find out.
+- **Fix** — A simulator that walks visitors through the real API one browser each, a results
+  endpoint that turns the stored events into two funnels and a two-proportion test, and a
+  dashboard that shows the hypothesis, the funnel by variant, the lift with its interval and
+  one of three calls — ship, keep control, keep running *(instead of a Bayesian read, rejected
+  because its prior is a decision a reader cannot inspect on the screen, and a growth team
+  checks a z-test by hand — ADR-0006)*.
+- **Trade-off** — The call waits for the sample the hypothesis was powered for even when the
+  p-value is already small, so the simulated run reads "keep running" at p = 0.008; that is the
+  peeking guard doing its job, and a reader who wants the call sooner needs a sequential test.
+  The hypothesis lives in code, not on the admin page, so the finish line cannot be moved after
+  a slow week; changing it is a commit.
+- **Result** — 18 planned cases (B1–B13, F1–F5) plus B14, found by the first live run — the
+  API committed after answering, so a client's next request could not see the row it had just
+  created — and R-1/R-2 from the review, each named by a test; 57 tests added (backend
+  192→225, frontend 184→208); 17 commits (11 red-first, 3 refactors, 3 chores;
+  `+4,242 / −32` lines over 70 files, lockfiles excluded). 4,000 simulated visitors at 8%
+  against 10%: control 7.4%, variant 9.8%, p = 0.008, relative lift +32% (+7% to +63%), and
+  `KEEP_RUNNING` at 1,885 of 4,921 per arm (`docs/simulation-read.json`). Accessibility 100 in
+  two independent passes; the second found the one defect no test can see — a raw class name
+  that painted the banner grey — fixed and re-measured the same hour. Record:
+  `docs/reviews/s7-visual-review.md` and the triage in `docs/plan.md`.
+
 ## S6 — signup (closed 2026-09-19)
 
 - **Pain** — A visitor who tapped "Protect me" landed on a placeholder heading: there was no

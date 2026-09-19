@@ -51,6 +51,24 @@ in-app statistical dashboard.
 ## What's done
 Full history: `docs/changelog.md`; commit-level record: `git log`.
 
+- **S7 — simulation-and-dashboard (closed 2026-09-19).** The experiment had a flag, stored
+  assignments and a table of events, and no way to read them. Now: a simulator that walks
+  visitors through the real API one browser each, `GET /api/experiments/{flagKey}/results`
+  (two funnels, the three rates, the pooled z-test, the lift on both scales, the required
+  sample and the call), and `/dashboard` with the hypothesis, the funnel by variant, the lift
+  card and the banner. The call needs significance *and* the powered sample *and* a statable
+  lift; the 4,000-visitor run reads `KEEP_RUNNING` at p = 0.008 (ADR-0006). 18 planned cases +
+  B14 + R-1/R-2, 57 tests (225 backend, 208 frontend), 17 commits.
+  Technically: the arm is the stored `visitor_assignment`, never the event tag; the hypothesis
+  is `hypothesis_map` in code; `SessionDep = Depends(get_session, scope="function")` commits
+  before the response is sent — B14, found live: FastAPI's default scope commits *after* the
+  response and the simulator's next request found no visitor; the chart is native `meter` bars
+  behind `charts/` with a library-agnostic series contract, the sample bar a native `progress`,
+  no inline style anywhere; `$series-1/2` alias the tone accents against the dataviz validator
+  (deviation 14). Review: 11 findings, 1 correctness (a ship call beside an unstatable lift),
+  all closed; visual: V1–V10 across three runs, V9 the raw-class defect only a capture can see.
+  Triage in `docs/plan.md`; record `docs/reviews/s7-visual-review.md`.
+
 - **S6 — signup (closed 2026-09-19).** A visitor who tapped "Protect me" landed on a
   placeholder heading; the funnel's last two steps could never be recorded, so the A/B test had
   a conversion on paper and none in a table. Now: a plan picker, an email, a password checked
@@ -104,49 +122,21 @@ Full history: `docs/changelog.md`; commit-level record: `git log`.
   `waitFor` drains through a faked `setTimeout`. The review: 16 findings, 0 correctness, 10 fixed
   (3 as new cases F31–F33), 4 batched, BF58 filed against `/admin`; triage in `docs/plan.md`.
 
-- **D1 — design handoff (closed 2026-09-19).** The screen the whole exercise is judged on was
-  about to be invented while it was built, and the admin page carried three measured defects that
-  no page-local fix could answer without answering them twice. Shalev ran the prompt in Claude Design and brought back the project verbatim; it is now
-  translated into a token scale the app reads everywhere, and an inventory that names every
-  component S5–S7 will build. The three carried findings are closed by a token each and confirmed
-  by measurement: the disabled Save passes contrast with zero items, no text renders under 16px,
-  and no line exceeds 75 characters at any viewport. Accessibility 100 on both screens.
-  Technically: `tokens.scss` translates the design's `oklch()` to sRGB hex with the source value in
-  a comment beside each (Chrome gamut-maps by reducing chroma, and the review tooling measures from
-  computed `rgb()`); `$text-100` 16px is the floor, `$prose-measure: 65ch` caps every `p`,
-  `$content-max` 1120px caps the landing `main` (per-page, not on `MainColumn` — RF4), and `button-primary:disabled` reads its pair from
-  `$color-disabled-fill`/`-text`. Source Sans 3 is self-hosted via `@fontsource-variable`, imported
-  once in `main.tsx` — a security product's page should not call a third-party origin to draw text.
-  `/admin` and the landing route are re-tokened; every `@media` is `min-width` over a breakpoint
-  token and no component branches on width. **Eight deviations** are recorded, not silent — the
-  mock's JS width branch becomes CSS-only reflow, two CTA nodes become one, sort segments grow to
-  44px.
-  **The review round is the other half of the story.** Two independent reviews found one defect
-  five times: the documents described the system that had been *designed*, not the one built. The
-  tone seam — the mechanism that switches the result screen between calm and urgent — was written
-  down, named in the inventory, and wired to nothing, so S5's urgent variant would have rendered
-  calm and the only fix would have been editing the shared button (Open/Closed). It now reads
-  `var(--tone-accent-strong, #{$tone-calm-accent-strong})` with calm as the fallback, confirmed
-  unchanged on screen by a third visual pass. 11 findings: 5 fixed, BF51–53 filed, RF4–8 batched,
-  1 dismissed with its precondition recorded. Inventory: `docs/design/component-inventory.md`;
-  reviews: `docs/reviews/d1-visual-review.md` and `docs/plan.md` → "D1 — review triage"; export:
-  `docs/design/claude-design-export/`.
-
 ## What's next
-**S7 — simulation-and-dashboard. Next.** Simulated traffic through the real API (one cookie jar
-per simulated visitor — BF47), the two-proportion z-test, the lift CI, the sample-size
-adequacy and the `SHIP_VARIANT` / `KEEP_CONTROL` / `KEEP_RUNNING` call, and the in-app dashboard
-(`HypothesisCard`, `FunnelChart`, `LiftCard`, `RecommendationBanner` in
-`docs/design/component-inventory.md`; load the `dataviz` skill before chart code; Recharts
-wrapped once in a `charts/` adapter per the plan's decisions). `signup` rows carry
-`password_was_pwned` for the "chose a leaked password anyway" read.
+**S8 — docs. Next.** README (run, product decisions, the feature-flag how-to for product, the
+hypothesis, the simulated read and its call, time spent), `docs/writeup.md`, `docs/adr/README.md`
+index, and D1 (the README commands run verbatim on a clean clone). The numbers to quote are in
+`docs/simulation-read.json` and ADR-0006; the read includes the crashed first run's 750
+visitors and 14 manual ones (4,764 in the table), stated in the plan.
 
 Carried, deliberately: the design's `Button` ghost variant has no consumer and is not built; the
 `/admin` variant cards are not tinted by tone (deviation 6); BF58 (admin flag-list effect under
 StrictMode) and BF59 (Argon2 memory × concurrency on an unauthenticated route) stand; DV3 and the
-unmeasured authenticated `/admin` states from D1 stand. Unmeasured in S6: spinners in motion,
-hover/active, interaction states at 768/1280, the Basic-plan `/protected`, real reduced motion.
+unmeasured authenticated `/admin` states from D1 stand. Unmeasured in S7: the `ship` and `stop`
+banners, the loading and error states, non-text contrast of the bar fills, real reduced motion.
+RF-backlog (S7): R-8, V5, V9's precondition — see the S7 triage in `docs/plan.md`.
 
-Review records: `docs/reviews/s6-visual-review.md`, `docs/reviews/s5-visual-review.md`,
-`docs/reviews/s3-review.md`, `docs/reviews/s3-fixes-visual-review.md`,
-`docs/reviews/d1-visual-review.md`, and the S4–S6 triages in `docs/plan.md`.
+Review records: `docs/reviews/s7-visual-review.md`, `docs/reviews/s6-visual-review.md`,
+`docs/reviews/s5-visual-review.md`, `docs/reviews/s3-review.md`,
+`docs/reviews/s3-fixes-visual-review.md`, `docs/reviews/d1-visual-review.md`, and the S4–S7
+triages in `docs/plan.md`.
