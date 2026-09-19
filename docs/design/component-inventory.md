@@ -59,7 +59,7 @@ Names are the design's, and they are what S5–S7 name their components and driv
 
 | Component | States | Story | Notes |
 |---|---|---|---|
-| `Button` | primary · secondary · ghost; default · loading · disabled | D1 (mixins) · S5 | `button-primary` / `button-secondary` mixins in `_fields.scss`; ghost and the loading spinner arrive with S5 |
+| `Button` | primary · secondary · ghost; default · loading · disabled | D1 (mixins) · S6 | `button-primary` / `button-secondary` mixins in `_fields.scss`; the loading spinner is the `button-spinner` mixin (S6, the sign-up's submit). **Ghost is not built:** no screen uses it ("Skip for now" appears on none of the seven), so it waits for a consumer (YAGNI) |
 | `StickyCtaBar` | — | S5 | One CTA node; sticky at 390, inline in the header at 768+ by CSS only (F19, F20) |
 | `SummaryTile` | loaded · skeleton | S5 | 2×2 at 390, one row of four at 768+ (flex-wrap, no grid) |
 | `SearchField` | idle · focus | S5 | |
@@ -73,9 +73,9 @@ Names are the design's, and they are what S5–S7 name their components and driv
 | `LoadMoreButton` | idle · loading | S5 | F10 |
 | `EmptyFilterState` | — | S5 | Dashed border, circle mark; distinct from the error state (F16) |
 | `ErrorState` | with retry | S5 | Sunken fill, square danger mark (F4, F11) |
-| `PlanCard` | idle · selected | S6 | F7 |
-| `TextField` | idle · focus · error | D1 (mixin) · S6 | `input` mixin |
-| `PasswordField` | idle · checking · leaked · unchecked | S6 | F3–F6 |
+| `PlanCard` | idle · selected | S6 | `PlanPicker`: two cards as one radio group, the whole card the target, the ring drawn on the real radio (F7) |
+| `TextField` | idle · focus · error | D1 (mixin) · S6 | `input` mixin; the error state is a danger border and an inline message (`Signup`, F14) |
+| `PasswordField` | idle · checking · leaked · unchecked · error | S6 | F3–F6, F11, F16; the check runs in `usePasswordLeakCheck` and the field renders what it is handed (deviation 11) |
 | `StatusMessage` | info · success · warning · error | D1 (mixins) | `message` + `message-success/warning/error` mixins. **`message-error` is defined and used by nothing** — a failed load renders as the neutral chip and a save failure shares `message-warning` with a lock conflict (BF51) |
 | `Skeleton` | — | S5 | Shimmer with a reduced-motion static state |
 | `ProgressIndicator` | — | S5 | The scan moment's bar (F3) |
@@ -125,6 +125,16 @@ Screens: `Landing` (S5), `Scan` (S5), `Result` (S5, `toneClassMap` selects the `
 10. **The chip scroller fades at its right edge at 390.** The design's row simply clips; the
    fade is the cue that it scrolls, added after the visual pass found the fourth chip cut with no
    affordance (V4). Gone at md+, where the chips wrap.
+11. **The password field's notices sit under the box, not inside it.** The design's mock draws
+   "Checking against known leaks…" inside the field, which is empty in the mock; in the app the
+   box holds the password being typed, so the checking, leaked and couldn't-check notices render
+   beneath it in the same order the mock lists them.
+12. **The Basic plan's second next step is ours.** The design shows the confirmation for Family
+   only ("Add a family member · 4 seats left"); Basic gets "Turn on breach alerts" in the same
+   slot, since a one-device plan has no seats to fill.
+13. **The sign-up form is capped at 400px at 768+**, not the mock's 340px card, so the leaked
+   warning and the email keep a longer line at the wider widths. Chosen at build time, not
+   measured; the S6 visual pass is what confirms it. Single column at every width, as stated.
 
 ## Decisions taken at translation (Shalev said "go ahead"; flagged in chat)
 

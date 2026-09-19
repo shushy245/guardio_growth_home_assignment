@@ -294,3 +294,38 @@ You will struggle to validate details, so here is what to look for:
 
 S5 was frontend only: no Python construct landed, and the backend's 170 tests ran unchanged at
 every commit as the gate requires.
+
+## Added in S6 — constructs that actually landed
+
+- **`SecretStr`** (`app/signups/schemas.py`): a Pydantic string whose `repr` and `str` are
+  `**********`. The value is read once with `.get_secret_value()`, at the one line that hashes
+  it. It is the type-level form of "never log sensitive values": a log line that spreads the
+  model cannot leak the password, and a test proves neither the body nor the log carries it.
+- **`EmailStr`** needs the `email` extra (`pydantic[email]` → `email-validator`); without it the
+  import fails at startup, naming the missing package. A `@field_validator("email",
+  mode="after")` runs after the type check and lower-cases the value, so the unique index and
+  every comparison see one spelling. `mode="after"` receives the validated `str`; `mode="before"`
+  would receive whatever arrived.
+- **`Annotated[str, Path(pattern=r"^[0-9A-F]{5}$")]`** (`app/pwned_passwords/router.py`): a
+  path parameter validated before the handler runs. A prefix that is not five upper-case hex
+  characters is a 400 from the house error handler and the port is never asked — the boundary
+  rule for a URL segment, not only a body.
+- **`response_class=PlainTextResponse`**: the route returns a `str` and FastAPI sends it as
+  `text/plain` rather than JSON-encoding it into a quoted string. The proxy is a pipe; the
+  browser parses the lines.
+- **A second `Protocol` port** (`app/ports/pwned_password_range.py`): the same shape as the
+  catalog port, a separate file because it is a separate seam — different host, no key, text not
+  JSON. `create_app` takes both; the driver passes both fakes; `asgi.py` names both adapters.
+- **`argon2.PasswordHasher`** wrapped once (`app/signups/password_hash.py`): `hash()` salts and
+  encodes the parameters into the string, `verify()` raises `VerifyMismatchError` on a wrong
+  password rather than returning `False` — the wrapper turns the exception into a boolean so
+  callers get an answer, not a control-flow surprise. The wrapper is the only module that imports
+  `argon2`.
+- **`insert(...).returning(Row.id, Row.created_at)` then `.one_or_none()`**: `RETURNING` with two
+  columns yields a row object with attributes, unlike the single-column `scalar_one_or_none()`
+  S4 used. Under `ON CONFLICT DO NOTHING` a conflict yields no row, so `None` means "already
+  taken" without a second query.
+- **A `@dataclass(frozen=True)` as a parameter object** (`NewSignup`): ruff's `PLR0913` refused
+  seven keyword arguments on `insert_signup`, and the fix is Fowler's Parameter Object — the
+  handler computes every value first, builds one frozen value, and the repository writes it. The
+  rule made "transform before write" visible in the signature.

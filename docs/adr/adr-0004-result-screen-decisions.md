@@ -64,3 +64,11 @@ out of the experiment through a session failure is invisible to the dashboard, w
 for the read but means an outage shows up as fewer visitors, not as a labelled arm. Sticky
 positioning and the inline move are unprovable in jsdom; F19 and F20 pin the single node and its
 container, and the 390 sticky behaviour is a visual-pass item, stated as such in the plan.
+
+## Amendment (S6, 2026-09-19) — the purchase step fails open the same way
+
+A visitor whose session failed reaches the sign-up with no cookie the server knows. Refusing the
+account there would turn the fail-open funnel into a dead end at its last step, so `signup.
+visitor_id` is nullable: the account is filed under the cookie's visitor when the server knows
+them, and under none otherwise — logged, never refused. The experiment cannot attribute such an
+account, which is already true of every event that visitor produced, and the read is unaffected.
