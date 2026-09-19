@@ -1,0 +1,96 @@
+@use '~/styles/tokens' as tokens;
+
+// Built at 390: the two cards stack, full width; they stay stacked at every width, as the design
+// keeps the sign-up a single column and only the surrounding whitespace grows.
+.group {
+    display: flex;
+    flex-direction: column;
+    gap: tokens.$sp-3;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    min-width: 0;
+}
+
+.legend {
+    font-size: tokens.$text-500;
+    font-weight: tokens.$weight-bold;
+    line-height: tokens.$leading-tight;
+    padding: 0;
+    margin-bottom: tokens.$sp-2;
+}
+
+.card {
+    display: flex;
+    flex-direction: column;
+    gap: tokens.$sp-2;
+    padding: tokens.$sp-5;
+    border: 1.5px solid tokens.$color-border;
+    border-radius: tokens.$radius-md;
+    background: tokens.$color-surface;
+    cursor: pointer;
+    // The selected card's 2px border is drawn from the same box, so the cards never shift.
+    box-sizing: border-box;
+    outline-offset: 2px;
+
+    &:has(:focus-visible) {
+        outline: 3px solid tokens.$color-focus-ring;
+    }
+}
+
+.cardSelected {
+    border: 2px solid var(--tone-accent-strong, #{tokens.$tone-calm-accent-strong});
+    background: var(--tone-tint, #{tokens.$tone-calm-tint});
+    // Keep the box the same size as an idle card with its thinner border.
+    padding: calc(#{tokens.$sp-5} - 0.5px);
+}
+
+.heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: tokens.$sp-3;
+}
+
+.name {
+    font-size: tokens.$text-200;
+    font-weight: tokens.$weight-semibold;
+}
+
+// The design's ring, drawn on the radio itself: 20px, a 2px border idle, a 6px accent border
+// when checked. The native focus ring is moved to the card above.
+.radio {
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    margin: 0;
+    border-radius: tokens.$radius-pill;
+    border: 2px solid tokens.$color-border;
+    background: tokens.$color-surface;
+    flex: 0 0 auto;
+    cursor: pointer;
+    box-sizing: border-box;
+
+    &:checked {
+        border: 6px solid var(--tone-accent-strong, #{tokens.$tone-calm-accent-strong});
+    }
+
+    &:focus-visible {
+        outline: none;
+    }
+}
+
+.price {
+    color: tokens.$color-text-secondary;
+}
+
+.cardSelected .price {
+    color: var(--tone-accent-strong, #{tokens.$tone-calm-accent-strong});
+    font-weight: tokens.$weight-semibold;
+}
+
+.features {
+    display: flex;
+    flex-direction: column;
+    line-height: tokens.$leading-relaxed;
+}
