@@ -15,9 +15,15 @@ import { FunnelProviders } from '~/providers/FunnelProviders';
 import { renderWithProviders } from '~/testkit/renderWithProviders';
 import { postedSteps, respondToFunnelEvents } from '~/testkit/funnel-events';
 import { fakeHttp, HttpMethod, type RecordedRequest } from '~/testkit/fake-http';
-import { PASSWORD_TOO_SHORT_MESSAGE, PasswordFieldTestIds } from '~/components/PasswordField.utils';
-import { EMAIL_INVALID_MESSAGE, PROTECTED_ROUTE, type ProtectedRouteState, SignupTestIds } from '~/pages/Signup.utils';
+import { PASSWORD_LABEL, PASSWORD_TOO_SHORT_MESSAGE, PasswordFieldTestIds } from '~/components/PasswordField.utils';
 import { rangePathsRequested, theRangeIsCleanFor, theRangeIsSlowToSay, theRangeSays } from '~/testkit/pwned-passwords';
+import {
+    EMAIL_INVALID_MESSAGE,
+    EMAIL_LABEL,
+    PROTECTED_ROUTE,
+    type ProtectedRouteState,
+    SignupTestIds,
+} from '~/pages/Signup.utils';
 
 const SIGNUPS_PATH = '/signups';
 const HTTP_CONFLICT = 409;
@@ -71,6 +77,7 @@ export type SignupDriver = {
         emailErrorIsShown: () => void;
         passwordErrorIsShown: () => void;
         errorsAreAnnouncedByTheirFields: () => void;
+        fieldsAreNamedByTheirLabelsAlone: () => void;
         serverMessageIsShown: (message: string) => Promise<void>;
         submitIsBusy: () => Promise<void>;
         submitIsOffered: () => void;
@@ -229,6 +236,14 @@ export const makeSignupDriver = (): SignupDriver => {
                 expect(screen.getByTestId(PasswordFieldTestIds.Input)).toHaveAccessibleDescription(
                     PASSWORD_TOO_SHORT_MESSAGE,
                 );
+            },
+            // Exact names, asserted while both errors are on screen: a message rendered inside
+            // its field's label becomes part of the field's name, so a screen reader announces
+            // the error where the field's identity belongs and repeats it as the description
+            // (BF62). `getByLabelText` with an anchored regex passes on exactly that.
+            fieldsAreNamedByTheirLabelsAlone: (): void => {
+                expect(screen.getByTestId(SignupTestIds.Email)).toHaveAccessibleName(EMAIL_LABEL);
+                expect(screen.getByTestId(PasswordFieldTestIds.Input)).toHaveAccessibleName(PASSWORD_LABEL);
             },
             serverMessageIsShown: async (message: string): Promise<void> => {
                 await waitFor(() => {

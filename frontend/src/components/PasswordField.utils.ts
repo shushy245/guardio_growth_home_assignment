@@ -57,6 +57,15 @@ export const wasPwned = ({ check, password }: { check: PasswordCheck; password: 
 
 export const isTooShort = (password: string): boolean => password.length < MIN_PASSWORD_LENGTH;
 
+// `aria-describedby` is a space-separated id list, and absent rather than empty when nothing
+// describes the field: an attribute pointing at no element is one a screen reader reads as a
+// missing description.
+export const describedBy = (...ids: (string | undefined)[]): string | undefined => {
+    const present = ids.filter((id): id is string => id !== undefined);
+
+    return present.length === 0 ? undefined : present.join(' ');
+};
+
 export const leakedMessage = (count: number): string =>
     `This password appeared in ${count.toLocaleString('en-US')} leaks. You can still continue, but change it where you use it.`;
 

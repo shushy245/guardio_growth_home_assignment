@@ -99,6 +99,7 @@ describe('Signup', () => {
         driver.assert.emailErrorIsShown();
         driver.assert.passwordErrorIsShown();
         driver.assert.errorsAreAnnouncedByTheirFields();
+        driver.assert.fieldsAreNamedByTheirLabelsAlone();
         driver.assert.signupsSent(0);
     });
 

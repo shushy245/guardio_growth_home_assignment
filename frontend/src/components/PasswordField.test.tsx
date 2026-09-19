@@ -25,6 +25,16 @@ describe('PasswordField', () => {
         driver.assert.fieldIsEditable();
     });
 
+    it('is named by its label alone while the leak warning describes it', async () => {
+        await driver.given.theRangeSays({ password: LEAKED_PASSWORD, count: LEAK_COUNT });
+        await driver.when.created();
+        driver.assert.fieldIsNamedByItsLabelAlone();
+        await driver.type.password(LEAKED_PASSWORD);
+        await driver.when.thePausePasses();
+        driver.assert.fieldIsNamedByItsLabelAlone();
+        driver.assert.leakWarningDescribesTheField(LEAK_COUNT);
+    });
+
     it('shows no warning for a password the range does not list', async () => {
         await driver.given.theRangeIsCleanFor(ANOTHER_PASSWORD);
         await driver.when.created();

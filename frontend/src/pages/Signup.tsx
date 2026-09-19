@@ -47,6 +47,9 @@ export const Signup = (): ReactElement => {
     const [validation, setValidation] = useState(NO_VALIDATION_ERRORS);
     const [submission, setSubmission] = useState<Submission>(IDLE_SUBMISSION);
     const check = usePasswordLeakCheck(password);
+    const emailId = useId();
+    // The error is a sibling of the input, not a child of its label: inside the label it became
+    // part of the field's accessible name as well as its description (BF62).
     const emailErrorId = useId();
 
     const handleEmailChange = (event: ChangeEvent<HTMLInputElement>): void => {
@@ -91,9 +94,12 @@ export const Signup = (): ReactElement => {
                 </Column>
                 <PlanPicker value={plan} onChange={setPlan} />
                 <Column className={styles.fields}>
-                    <label className={styles.field}>
-                        <span className={styles.label}>{EMAIL_LABEL}</span>
+                    <Column className={styles.field}>
+                        <label className={styles.label} htmlFor={emailId}>
+                            {EMAIL_LABEL}
+                        </label>
                         <input
+                            id={emailId}
                             className={validation.email === undefined ? styles.input : styles.inputInvalid}
                             type="email"
                             name="email"
@@ -115,7 +121,7 @@ export const Signup = (): ReactElement => {
                                 {validation.email}
                             </span>
                         )}
-                    </label>
+                    </Column>
                     <PasswordField
                         value={password}
                         onChange={handlePasswordChange}

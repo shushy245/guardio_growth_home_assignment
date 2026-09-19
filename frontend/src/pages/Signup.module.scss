@@ -39,9 +39,8 @@
 }
 
 .field {
+    // The column itself is the `Column` primitive; this is only what it holds.
     @include fields.field;
-    display: flex;
-    flex-direction: column;
 }
 
 .label {

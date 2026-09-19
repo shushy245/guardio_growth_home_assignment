@@ -8,7 +8,7 @@ import { removeWebCryptoSubtle } from '~/testkit/web-crypto';
 import { settleNativeAsyncWork } from '~/testkit/native-async';
 import { usePasswordLeakCheck } from '~/hooks/usePasswordLeakCheck';
 import { renderWithProviders } from '~/testkit/renderWithProviders';
-import { PASSWORD_CHECK_DEBOUNCE_MS, PasswordFieldTestIds } from '~/components/PasswordField.utils';
+import { PASSWORD_CHECK_DEBOUNCE_MS, PASSWORD_LABEL, PasswordFieldTestIds } from '~/components/PasswordField.utils';
 import {
     RANGE_PATH,
     rangePathsRequested,
@@ -49,6 +49,8 @@ export type PasswordFieldDriver = {
         uncheckedNoteIsShown: () => void;
         rangesRequested: (...prefixes: string[]) => void;
         fieldIsEditable: () => void;
+        fieldIsNamedByItsLabelAlone: () => void;
+        leakWarningDescribesTheField: (count: number) => void;
         checkFailureWasLogged: () => void;
     };
 };
@@ -141,6 +143,15 @@ export const makePasswordFieldDriver = (): PasswordFieldDriver => {
             },
             fieldIsEditable: (): void => {
                 expect(field()).toBeEnabled();
+            },
+            // Exact, not a prefix: a notice inside the label joins the accessible name, and a
+            // name that changes as the visitor types is a field a screen reader renames under
+            // them (BF62). An anchored regex would pass on exactly the polluted name.
+            fieldIsNamedByItsLabelAlone: (): void => {
+                expect(field()).toHaveAccessibleName(PASSWORD_LABEL);
+            },
+            leakWarningDescribesTheField: (count: number): void => {
+                expect(field()).toHaveAccessibleDescription(expect.stringContaining(count.toLocaleString('en-US')));
             },
             // The proxy's own 503 body reached the log — proof the failure the field reports is
             // the server's, not a fixture that never matched.
