@@ -109,6 +109,10 @@ pasted into `/admin` per session, never in the build or `localStorage`. Reads ar
 short of real auth on purpose: no accounts, no audit trail. It keeps the write from whoever finds
 the page, and no more.
 
+`/dashboard` and the results endpoint behind it are open too, deliberately: they hold counts of
+anonymous visitors and no personal data, and every published port binds to loopback. A public
+deployment would put both the dashboard and the flag list behind the same login as the write.
+
 ## Time spent
 
 About two working days over three calendar days. Commit timestamps bracket roughly 16 hours of

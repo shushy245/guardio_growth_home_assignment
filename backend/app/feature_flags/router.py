@@ -45,7 +45,21 @@ def update_feature_flag(
     session: SessionDep,
 ) -> FeatureFlagUpdated:
     """Optimistic lock: the write matches on the token the client read; zero rows is a 409 (or
-    a 404 for a key that was never there). Returns only what the client cannot know."""
+    a 404 for a key that was never there). Returns only what the client cannot know.
+
+    **The orphan guard races visitor creation, and that is accepted (BF71).** This transaction
+    reads `visitor_assignment` and writes the flag under READ COMMITTED while a visitor is
+    created in another, so a visitor assigned between the two statements can hold the very key
+    this save removes. `SELECT … FOR UPDATE` here would not close it: a plain reader does not
+    wait on a locked row, so visitor creation would have to take a share lock on every enabled
+    flag — serialising the funnel's entry point against an admin write to protect one visitor.
+
+    What that one visitor costs is bounded and safe. The experiment read counts visitors by the
+    arm they hold, and a key the flag no longer defines is neither of the two the hypothesis
+    names, so they fall out of both samples rather than into the wrong one; the result screen
+    finds no variant for the key and shows the control copy. A stale assignment is a visitor
+    outside the experiment, which is the same thing as a visitor who arrived while it was off.
+    """
     token = changes.updated_at.isoformat()
     log.info(
         "update_feature_flag: started",
