@@ -42,6 +42,12 @@ describe('App', () => {
         await driver.assert.stepsPosted(FunnelEventName.LandingView, 0);
     });
 
+    it('shows the sign-up page the result screen hands the visitor on to', async () => {
+        driver.given.route('/signup');
+        await driver.when.created();
+        driver.assert.signupIsShown();
+    });
+
     it('fetches the flag list once on the admin page', async () => {
         driver.given.route('/admin');
         await driver.when.created();

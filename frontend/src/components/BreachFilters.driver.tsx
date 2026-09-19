@@ -36,6 +36,7 @@ export type BreachFiltersDriver = {
     };
     assert: {
         lastListQueryWas: (query: Record<string, string>) => Promise<void>;
+        listRequestsSent: (count: number) => void;
         sortIsSelected: (option: SortOption) => void;
         dataClassIsSelected: (dataClass: string) => void;
         noDataClassIsSelected: () => void;
@@ -124,6 +125,9 @@ export const makeBreachFiltersDriver = (): BreachFiltersDriver => {
                 await waitFor(() => {
                     expect(lastListQuery()).toStrictEqual(query);
                 });
+            },
+            listRequestsSent: (count: number): void => {
+                expect(listRequests()).toHaveLength(count);
             },
             sortIsSelected: (option: SortOption): void => {
                 expect(screen.getByTestId(sortSegmentTestId(option))).toHaveAttribute('aria-pressed', 'true');

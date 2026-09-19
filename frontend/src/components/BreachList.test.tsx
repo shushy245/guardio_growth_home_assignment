@@ -22,6 +22,17 @@ describe('BreachList', () => {
         await driver.assert.rowsAre('Adobe', 'Canva', 'Dropbox');
     });
 
+    it('keeps the rows on screen when the next page fails, and offers Load more again', async () => {
+        driver.given.theFirstPageHolds('Adobe', 'Canva');
+        driver.given.theSecondPageFails();
+        await driver.when.created();
+        await driver.assert.rowsAre('Adobe', 'Canva');
+        await driver.click.loadMore();
+        await driver.assert.loadMoreIsOffered();
+        await driver.assert.rowsAre('Adobe', 'Canva');
+        driver.assert.errorIsNotShown();
+    });
+
     it('offers no Load more once the whole record is on screen', async () => {
         await driver.when.created();
         await driver.assert.rowsAre('Adobe');

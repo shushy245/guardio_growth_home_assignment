@@ -1,0 +1,29 @@
+@use '~/styles/tokens' as tokens;
+
+// The page gutter and cap, as every funnel page sets them (RF4); S6 replaces this file.
+.page {
+    gap: tokens.$sp-6;
+    padding: tokens.$gutter-sm;
+    min-height: 100dvh;
+    max-width: tokens.$content-max;
+    margin: 0 auto;
+    box-sizing: border-box;
+}
+
+.headline {
+    font-size: tokens.$text-500;
+    font-weight: tokens.$weight-bold;
+    margin: 0;
+}
+
+@media (min-width: tokens.$breakpoint-md) {
+    .page {
+        padding: tokens.$gutter-md;
+    }
+}
+
+@media (min-width: tokens.$breakpoint-lg) {
+    .page {
+        padding: tokens.$gutter-lg;
+    }
+}

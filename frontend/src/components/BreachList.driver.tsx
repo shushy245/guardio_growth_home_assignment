@@ -39,6 +39,7 @@ export type BreachListDriver = {
         theSecondPageHolds: (...names: string[]) => void;
         theSecondPageIsSlowToArrive: (...names: string[]) => void;
         theListCannotBeLoaded: () => void;
+        theSecondPageFails: () => void;
         theFilteredRecordIsEmpty: () => void;
     };
     when: {
@@ -111,6 +112,14 @@ export const makeBreachListDriver = (): BreachListDriver => {
                     status: 200,
                     body: pageOf(names, 2, PAGE_SIZE + names.length),
                     gate: gated(),
+                });
+            },
+            theSecondPageFails: (): void => {
+                fakeHttp.respond({
+                    method: HttpMethod.Get,
+                    path: `${LIST_PATH}?page=2`,
+                    status: HTTP_SERVICE_UNAVAILABLE,
+                    body: { error: 'the catalog is empty' },
                 });
             },
             theListCannotBeLoaded: (): void => {

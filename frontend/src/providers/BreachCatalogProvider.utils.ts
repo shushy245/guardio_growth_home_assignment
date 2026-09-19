@@ -99,6 +99,15 @@ export const receivePage = ({
     return { status: ListStatus.Ready, items: [...current.items, ...page.items], total: page.total, page: page.page };
 };
 
+// What the list shows when a page fails: the error state for a first page — there is nothing
+// else to show — and the rows already on screen for a later one, with Load more offered again.
+// "Page two failed" must not cost the visitor page one.
+export const failPage = ({ current, request }: { current: ListState; request: CatalogRequest }): ListState => {
+    if (isFirstPage(request) || !hasItems(current)) return { status: ListStatus.Failed };
+
+    return { ...current, status: ListStatus.Ready };
+};
+
 // What the list shows while a page is on its way: skeletons for a first page, the rows so far
 // for a later one.
 export const awaitPage = ({ current, request }: { current: ListState; request: CatalogRequest }): ListState => {
@@ -127,13 +136,20 @@ export const retryRequest = (request: CatalogRequest): CatalogRequest => ({
     page: FIRST_PAGE,
 });
 
+const FILTER_KEYS: readonly (keyof CatalogFilters)[] = ['sort', 'order', 'q', 'dataClass', 'verifiedOnly'];
+
+export const areSameFilters = (left: CatalogFilters, right: CatalogFilters): boolean =>
+    FILTER_KEYS.every((key) => left[key] === right[key]);
+
 // A changed filter replaces the whole selection — the caller sends what should be in force, not a
-// delta, so a control that clears a value simply leaves it out — and starts it from page one.
-export const withFilters = (request: CatalogRequest, filters: CatalogFilters): CatalogRequest => ({
-    ...request,
-    filters,
-    page: FIRST_PAGE,
-});
+// delta, so a control that clears a value simply leaves it out — and starts it from page one. A
+// selection identical to the one in force is not a change: the request stays the same object, so
+// the effect keyed on it does not run and the record is not asked the same question twice.
+export const withFilters = (request: CatalogRequest, filters: CatalogFilters): CatalogRequest => {
+    if (areSameFilters(request.filters, filters)) return request;
+
+    return { ...request, filters, page: FIRST_PAGE };
+};
 
 export const nextPage = (request: CatalogRequest): CatalogRequest => ({ ...request, page: request.page + 1 });
 

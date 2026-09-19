@@ -22,6 +22,7 @@ import {
     type CatalogFilters,
     type CatalogRequest,
     enableRequest,
+    failPage,
     IDLE_REQUEST,
     type ListState,
     ListStatus,
@@ -98,7 +99,7 @@ export const BreachCatalogProvider = ({ children }: { children: ReactNode }): Re
                     page: request.page,
                     detail: describeError(error),
                 });
-                setList({ status: ListStatus.Failed });
+                setList((current) => failPage({ current, request }));
             });
 
         return (): void => {

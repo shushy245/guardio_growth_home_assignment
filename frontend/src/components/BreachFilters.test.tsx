@@ -19,6 +19,13 @@ describe('BreachFilters', () => {
         driver.assert.sortIsSelected(SortOption.MostAccounts);
     });
 
+    it('sends no second request when the sort already in force is tapped again', async () => {
+        await driver.when.created();
+        await driver.assert.lastListQueryWas({});
+        await driver.click.sort(SortOption.Newest);
+        driver.assert.listRequestsSent(1);
+    });
+
     it('narrows the record to a data class when its chip is tapped, and widens it again on the second tap', async () => {
         driver.given.theSummary(aBreachSummaryDTO().build());
         await driver.when.created();

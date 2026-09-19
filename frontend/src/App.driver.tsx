@@ -4,6 +4,7 @@ import { screen, waitFor } from '@testing-library/react';
 
 import { App } from '~/App';
 import { AdminTestIds } from '~/pages/Admin.utils';
+import { SignupTestIds } from '~/pages/Signup.utils';
 import { LandingTestIds } from '~/pages/Landing.utils';
 import { FunnelEventName } from '~/models/funnelEvent';
 import { fakeHttp, HttpMethod } from '~/testkit/fake-http';
@@ -16,6 +17,7 @@ export type AppDriver = {
     assert: {
         landingIsShown: () => void;
         adminIsShown: () => void;
+        signupIsShown: () => void;
         visitorsCreated: (count: number) => void;
         flagListsFetched: (count: number) => void;
         stepsPosted: (name: FunnelEventName, count: number) => Promise<void>;
@@ -48,6 +50,9 @@ export const makeAppDriver = (): AppDriver => {
             },
             adminIsShown: (): void => {
                 expect(screen.getByTestId(AdminTestIds.Page)).toBeInTheDocument();
+            },
+            signupIsShown: (): void => {
+                expect(screen.getByTestId(SignupTestIds.Page)).toBeInTheDocument();
             },
             visitorsCreated: (count: number): void => {
                 expect(requestsTo(HttpMethod.Post, '/visitors')).toBe(count);
