@@ -2,6 +2,8 @@
 // way back to the results. One centred column at every width; the card keeps its measure at
 // 768+ so it never becomes a wide slab. The plan arrives as navigation state from the sign-up;
 // a visit carrying none has nothing to confirm and is sent back to the sign-up, recording nothing.
+// The state survives a reload (the router keeps it on the history entry) but not a link opened in
+// a new tab — a mock sign-up has no account page to return to (ADR-0004 amendment).
 import type { ReactElement } from 'react';
 import { Link, Navigate, useLocation } from 'react-router';
 

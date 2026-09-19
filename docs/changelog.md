@@ -3,6 +3,29 @@
 The product diary: one entry per story, newest first, in the words of someone who never saw the
 code. Commit-level detail lives in `git log`; the plan holds what is still ahead.
 
+## S6 — signup (closed 2026-09-19)
+
+- **Pain** — A visitor who tapped "Protect me" landed on a placeholder heading: there was no
+  plan to pick, no sign-up, no "you're protected", and the funnel's last two steps could never be
+  recorded — so the A/B test had a conversion on paper and none in a table.
+- **Fix** — A sign-up with a plan picker, an email and a password that is checked against known
+  leaks as it is typed — only five characters of its hash ever leave the browser, through our own
+  proxy — stored as an Argon2id hash, then a confirmation that records the activation *(instead
+  of reusing the leak check's SHA-1 as the stored credential, rejected because an unsalted fast
+  hash that a public database already indexes is not a credential — ADR-0005)*.
+- **Trade-off** — A visitor whose session failed still gets an account, with no visitor attached,
+  so the experiment cannot count them; refusing them would have turned the fail-open funnel into
+  a dead end at the purchase step (ADR-0004 amendment). And an unauthenticated endpoint that costs
+  64 MiB per hash is recorded as a stated exposure (BF59) rather than rate-limited, because this
+  stack is reachable from loopback only.
+- **Result** — 27 planned cases (B1–B11, F1–F16) plus F17 from the visual pass, each named by a
+  test; 51 tests added (backend 170→192, frontend 155→184); 14 commits (9 red-first, 2 refactors,
+  3 chores; `+3,604 / −29` lines over 71 files, lockfiles excluded). Accessibility 100 on both
+  screens in an independent pass; the flow driven end to end in a real browser against the real
+  leak API (52,372,427 leaks for "password"). The independent code review found no happy-path
+  defect and two tests that passed for the wrong reason, both fixed the same day. Record:
+  `docs/reviews/s6-visual-review.md` and the triage in `docs/plan.md`.
+
 ## S5 — funnel-ui (closed 2026-09-19)
 
 - **Pain** — The funnel had a design and a data layer and no screens between them: the landing

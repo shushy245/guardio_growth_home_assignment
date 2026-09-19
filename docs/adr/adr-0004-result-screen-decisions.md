@@ -72,3 +72,9 @@ account there would turn the fail-open funnel into a dead end at its last step, 
 visitor_id` is nullable: the account is filed under the cookie's visitor when the server knows
 them, and under none otherwise — logged, never refused. The experiment cannot attribute such an
 account, which is already true of every event that visitor produced, and the read is unaffected.
+
+The confirmation page reads the plan from the navigation state the sign-up leaves. That state
+survives a reload of `/protected` (the router stores it in the history entry; measured in the S6
+visual pass) but not a link opened in a new tab, which has nothing to confirm and returns to
+`/signup` — where the same email is a 409. A mock sign-up has no account to return to; recorded,
+not solved.

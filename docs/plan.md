@@ -1246,7 +1246,7 @@ Case coverage: F0–F30 all named by a test (table in the review record's summar
 `/story-done` report); F31–F33 added from the review, each red first. Two tests beyond the plan:
 skeleton tiles, and one load for many consumers.
 
-### S6 — signup (~1h)
+### S6 — signup (~1h) — **closed 2026-09-19**
 
 Objective: mock sign-up with plan picker, k-anonymity password warning, bcrypt storage, confirmation.
 
@@ -1292,6 +1292,77 @@ Commits:
 - C8 `[test+impl F8, F9]` Signup page (driver first) + `api/signups`
 - C9 `[test+impl F10]` Protected page (driver first)
 - C10 `[chore]` ADR-0005 Argon2id over SHA-1 reuse (and over bcrypt)
+- As landed (14 commits): C1–C10 as planned (C3 carried B9–B11, C6 carried F11 and F16,
+  C8 carried F12–F14, C9 carried F15), then from the review round `[refactor]` test
+  strengthening + dead exports + hash order, `[test+impl F17]` error association,
+  `[refactor]` stylesheet fixes (44px radio, busy fill, two tokens), `[chore]` act environment,
+  `[chore]` triage and state.
+
+### S6 — review triage (Opus, separate agent, 2026-09-19) — **all closed 2026-09-19**
+
+Fifteen findings and one visual record (two `visual-reviewer` runs, V1–V8, triaged in
+`docs/reviews/s6-visual-review.md`). Zero happy-path defects. The two testing findings were the
+real ones: two of the four leak-check behaviours were pinned by tests that passed for the wrong
+reason.
+
+Testing (fixed, red-first or mutation-proved):
+- [x] R-2 `theProxyFails()` registered the bare range path, which the fake never matches, so F6
+  passed on the fake's own 599 "no route" reply; it answers the password's prefix with the proxy's
+  503 now and the test asserts that body reached the log (the old fixture fails it — proved).
+- [x] R-5 the "clean check" sign-up test submitted while the check was still pending, so the
+  clean flag it asserted was the pending flag; it now waits for the range to be asked and settled.
+  Three tests registered a range nobody awaited; the dead givens are gone.
+- [x] R-14 `IS_REACT_ACT_ENVIRONMENT` was unset while every driver calls React's `act`; declared
+  in the setup (pre-existing since S5).
+
+Robustness:
+- [x] R-4 the handler hashed after its first query, holding a pooled connection across ~76 ms of
+  CPU; it hashes first now.
+- [x] R-15 the adapter interpolates the prefix as given; the precondition (the route is the
+  boundary) is in its docstring.
+- [ ] **BF59** R-1 `POST /api/signups` is unauthenticated, unlimited, and costs 64 MiB per hash:
+  forty concurrent requests hold ~2.5 GiB and the whole thread pool. Stated in ADR-0005;
+  a rate limit or a hashing semaphore before any deployment beyond loopback.
+- [x] R-6 a `/protected` link opened in a new tab dead-ends at a 409 — recorded in ADR-0004's
+  amendment and on the component; a reload survives (measured by the visual pass).
+
+Correctness (visual):
+- [x] R-3 the submit spinner was white on the disabled grey (1.3:1) for the whole time it showed:
+  `:disabled[aria-busy='true']` keeps the accent fill. **Confirmed** by run 2: `rgb(0, 59, 62)`
+  under a `rgb(252, 252, 252)` arc with a stalled request, at 390 and 1280.
+
+Style / structure (fixed):
+- [x] R-8 `120px` in `Protected.module.scss` and R-3's `rgba()` were the only raw values outside
+  `tokens.scss`; both read from tokens now.
+- [x] R-9 `isChecking` / `isUnchecked` had no reader; deleted. `verify_password` has no production
+  caller either — kept, it is B1 and the login a real product would need.
+- [x] R-7 ADR-0005 said "the backend never sees the password" in a paragraph about the proxy while
+  the sign-up sends it once to be hashed; scoped to the leak-check path.
+
+Git history (recorded, not rewritten — trunk):
+- [x] R-13 `c866a54` (`test+impl F8, F9, F12–F14`) also turned `PlanPicker`'s legend from a visible
+  headline into a visually-hidden group name so the page's `h1` could carry the design's headline
+  — a rendered change to the previous commit's component, unmentioned in the body and pinned by
+  no test (the visual pass measured the hidden legend and the single `h1`). `df7e70e` (`test+impl
+  B1`) carried the plan's pre-mortem block. Recorded as mislabelled rather than rewritten.
+
+RF-backlog additions (batched, not now):
+- R-10 `tests/drivers/signups_api.py` imports `_SignupBuilder` to type its parameters, as the
+  funnel-events driver already does; decide once whether builders export a public type alias.
+- R-11 `A_CREATED_SIGNUP` and `A_SIGNUP_STATE` are inline wire shapes in drivers rather than
+  builders, and the App test passes a state value itself; an `aSignupCreatedDTO()` builder and a
+  `given.aSignupFor(plan)` on the App driver when either is touched next.
+- R-12 `Protected.utils.ts` narrows router state with `isPlainObject` from the HTTP layer's utils;
+  a shared `isPlainObject` when a third reader appears.
+- V4 a 409 on sign-up is a normal user path and is logged at `error` (`handleSubmit: the sign-up
+  was refused`); a `warn` level on the logger when the second expected-failure log appears.
+- `BreachFilters.module.scss` carries its own copy of the visually-hidden rule that `_fields.scss`
+  now has as a mixin (found while adding the second site; not consolidated silently).
+
+Case coverage: B1–B11 and F1–F16 all named by a test; F17 added from the visual pass, red first.
+Unmeasured, stated: the spinners in motion, hover and active states, the interaction states at
+768 and 1280, the Basic-plan `/protected`, the real reduced-motion feature.
+
 
 ### S7 — simulation-and-dashboard (~1.5h)
 

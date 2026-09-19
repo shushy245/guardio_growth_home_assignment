@@ -43,6 +43,9 @@ class HibpPwnedPasswordRange:
         self._client = client
 
     def fetch_range(self, prefix: str) -> str:
+        """`prefix` is interpolated into the URL path as given. The route is the boundary that
+        holds it to five upper-case hex characters (`PREFIX_PATTERN`); a second caller of this
+        port must validate the same way or the source is asked for whatever it was handed."""
         url = f"{PWNED_PASSWORDS_BASE_URL}{RANGE_PATH}/{prefix}"
         try:
             response = self._client.get(f"{RANGE_PATH}/{prefix}")

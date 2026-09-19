@@ -19,8 +19,9 @@ the call goes to HIBP directly, and what is stored.
 **The browser hashes; the backend proxies; the hash is never stored.** `sha1Hex` runs in the
 browser with Web Crypto and only the five-character prefix is sent, to our own
 `GET /api/pwned-passwords/range/{prefix}`, which forwards it to HIBP with `Add-Padding: true` and
-returns the text untouched. The backend never sees the password or its hash; the visitor's
-browser never talks to a third-party origin. A proxy failure is a `503` the field renders as
+returns the text untouched. On the leak-check path the backend never sees the password or its
+hash — only five characters of the hash — and the visitor's browser never talks to a third-party
+origin. (The sign-up itself sends the password to the backend once, to be hashed; see below.) A proxy failure is a `503` the field renders as
 "couldn't check" — a fail-visible seam, never a silent clean bill. Padding makes every answer
 the same order of size, so the length of the response tells a listener nothing about how common
 the password is.
@@ -64,3 +65,10 @@ Crypto is only available in secure contexts, so on plain http off localhost the 
 — the field shows "couldn't check" and the sign-up proceeds without the flag, which is the same
 fail-open the S4 review chose for `randomUUID`. Argon2id hashing takes tens of milliseconds per
 sign-up, which is the point and is invisible at this scale.
+
+**Stated exposure (S6 review, BF59).** Argon2id's recommended parameters cost 64 MiB of memory per
+hash, and `POST /api/signups` needs no cookie and has no rate limit. Forty concurrent sign-ups —
+the default anyio thread pool — would hold ~2.5 GiB for tens of milliseconds and starve every
+other route of a worker for that long. A public deployment bounds this at the edge (a rate limit
+per address) or with a semaphore around the hash; this take-home records it rather than adding
+either, because nothing here is exposed beyond loopback.

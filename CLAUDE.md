@@ -44,9 +44,37 @@ in-app statistical dashboard.
 - `structlog.testing.capture_logs` replaces the processor chain: pass `merge_contextvars` or bound fields vanish; and build the app **before** entering capture, since `create_app` reconfigures logging.
 - Starlette ≥1.6 test client requires `httpx2`; the runtime HTTP client is `httpx2` too. Never add `httpx`.
 - Writing a red test file in the same command as a commit trips the commit gate's typecheck; commit first, then write the red test.
+- Web Crypto's `digest` resolves on Node's thread pool, a later event-loop turn `act` cannot flush: a driver chain that starts with a hash is order-dependent unless it drains `settleNativeAsyncWork()` (S6, F5 flaked once in three runs).
+- The fake network matches a route's path exactly (or a bare path against the request's pathname): a route registered on `/x` never answers `/x/segment`, and the miss is a silent 599, not a loud failure — register per segment (S6 review, R-2).
 
 ## What's done
 Full history: `docs/changelog.md`; commit-level record: `git log`.
+
+- **S6 — signup (closed 2026-09-19).** A visitor who tapped "Protect me" landed on a
+  placeholder heading; the funnel's last two steps could never be recorded, so the A/B test had
+  a conversion on paper and none in a table. Now: a plan picker, an email, a password checked
+  against known leaks as it is typed (five characters of its hash leave the browser, through our
+  proxy), stored as Argon2id, and a confirmation that records the activation. A visitor whose
+  session failed still gets an account with no visitor attached (ADR-0004 amendment); the
+  64 MiB-per-hash exposure on an unauthenticated endpoint is stated as BF59, not rate-limited.
+  27 planned cases + F17, 51 tests added (192 backend, 184 frontend), 14 commits; accessibility
+  100 on both screens; driven end to end in a real browser against the real leak API.
+  Technically: `PwnedPasswordRangePort` is a second port with its own client and host
+  (`api.pwnedpasswords.com`, `Add-Padding: true`); `PasswordHasher` wraps argon2 once, built in
+  `create_app`; `SignupCreate` takes the password as `SecretStr` and lower-cases the email in a
+  validator; `insert_signup` is `ON CONFLICT (email) DO NOTHING … RETURNING` (a 409 is the index's
+  answer) over a `NewSignup` parameter object; `signup.visitor_id` is nullable. Frontend:
+  `usePasswordLeakCheck` debounces, hashes with Web Crypto, aborts what it superseded, and keys
+  the `PasswordCheck` union to the password it checked, so `wasPwned` is derived at submit for
+  the password actually sent; `PlanPicker` is a radio group whose input is a 44px box with the
+  20px ring painted inside; `Protected` reads the plan from router state behind a type predicate
+  and tracks `activation` in a child the guard sits above. Testkit: `pwned-passwords.ts` answers
+  a range per password, `native-async.ts` drains the thread-pool turn a native digest needs (the
+  first F5 run was order-dependent without it), `web-crypto.ts` removes `subtle`,
+  `renderWithProviders` takes router `state`, and `IS_REACT_ACT_ENVIRONMENT` is declared. Review:
+  15 findings, 0 happy-path defects, 2 tests that passed for the wrong reason (fixed,
+  mutation-proved), BF59 filed; visual: V1–V8, two fixed (44px radio, error association as F17),
+  the spinner-on-disabled contrast fixed from the code review. Triage in `docs/plan.md`.
 
 - **S5 — funnel-ui (closed 2026-09-19).** The funnel had a design and a data layer and no
   screens between them. Landing, Scan and Result are built to the D1 design — tiles, search,
@@ -103,79 +131,21 @@ Full history: `docs/changelog.md`; commit-level record: `git log`.
   reviews: `docs/reviews/d1-visual-review.md` and `docs/plan.md` → "D1 — review triage"; export:
   `docs/design/claude-design-export/`.
 
-- **S4 — funnel-events (closed 2026-09-18).** The funnel could not say what a visitor did: no
-  step was recorded anywhere, so the experiment had numbers on paper and none in a table. Every
-  step a page reports is now written once, tagged with the variant the visitor was in, under the
-  identity the server's own cookie names. The review round found that the first version trusted
-  a `visitorId` in the body (one curl filed an `activation` for a stranger) and minted ids with a
-  browser function absent off localhost on plain http; 11 findings, 8 fixed red-first, 3 recorded
-  with their preconditions. 170 backend + 95 frontend tests.
-  Technically: `funnel_event` table (client-minted `evt_` pk, `ON CONFLICT DO NOTHING` +
-  `RETURNING id`, `name` as text under a CHECK carrying wire values via `values_callable`,
-  nullable `flag_key`/`variant_key` copied from the stored assignment); pure `experiment_tag`
-  that refuses two assignments (a logged 500, never a guess); `AwareDatetime` + a 5-minute
-  forward skew guard, no backward bound (precondition in `clock_skew.py`). Frontend:
-  `AnalyticsProvider` inside `VisitorProvider` on the funnel routes — `record({ id, name })` is
-  idempotent on the caller's id, `track(name)` mints one; a queue that flushes in order when the
-  session turns ready and drains with a log when it fails; the `visitorRef` is updated in the
-  provider's *effect*, so a child mounting in the same commit queues behind what is waiting.
-  `useTrackOnce(name)` holds one id per mount in `useState`. `shared/ids.utils.ts` is the id
-  seam with the `getRandomValues` fallback. Reviews: `docs/plan.md` → "S4 — review triage".
-
-- **S3 — feature-flags (closed 2026-09-18).** The A/B test on the result screen had no machinery
-  behind it: nothing decided which visitor saw which framing, and no product person could change
-  the split or the wording without a developer and a deploy. A visitor now gets an identity on
-  their first visit and is assigned a variant once, on the server, written down and never
-  recalculated; `/admin` retunes the split, the headline, the subheadline and the button, or stops
-  the test, live. A weight change moves new visitors only — what keeps the eventual read honest.
-  **The review round is a third of the story.** What shipped first discarded every edit typed
-  during a save and then displayed "Saved." over the reverted values; two tabs opened together made
-  one person into two visitors under two different variants; and compose published a repo-committed
-  admin token on every interface, reproduced from another machine on the LAN. 21 of the 23 findings
-  are fixed over 25 commits, 2 carried to D1. 153 backend + 82 frontend tests.
-  Technically: pure `assign_variant` on a `sha256` bucket (never `hash()`, salted per process);
-  `feature_flag` / `visitor` / `visitor_assignment` with a seeded flag; PATCH as one
-  `UPDATE … WHERE updated_at = :token RETURNING updated_at` stamped `clock_timestamp()`; the lock
-  token a string end to end. From the review: `POST /api/visitors` reads its own cookie and answers
-  200 with the stored assignments; `list_enabled_splits` refuses a stored split that does not cover
-  the buckets; a rename that would orphan an assignment is a 400 naming it; nginx overwrites
-  `X-Forwarded-For` with `$remote_addr`; every published port binds to loopback and `ADMIN_TOKEN`
-  has no default. `FlagEditor` is its own unit with its own driver — the extraction that made
-  BF24/25/39/43/44 reachable at all; `onSaved` applies only the token, inside the functional
-  update. Two mutation proofs, four visual passes (`docs/reviews/s3-fixes-visual-review.md`).
-
-- **S2b — catalog-refresh (closed 2026-09-18).** "Refreshed once a day" was only true across
-  restarts: the copy was re-checked at boot and never again, so a backend that stayed up served an
-  ageing catalog with no bound and nothing on the screen could say how old it was. Now every breach
-  request answers from the stored copy at once and, past 24h, refreshes it in the background after
-  replying; one refresh at a time per process, a down source retried five minutes later, and the
-  summary reports `syncedAt`. Watched live: a 25h-old copy served in 16 ms, refreshed after the
-  response under the same correlation id, next summary current; a boot that found HIBP down now
-  heals on the first visit instead of answering 503 until a restart.
-  Technically: `CatalogRefresher` (single-flight `threading.Lock`, retry gate re-checked under the
-  lock) on `app.state`; `revalidate_catalog` called at the top of each handler (a router-level
-  dependency would run before parameter validation) scheduling `BackgroundTasks`;
-  `carry_background_tasks` so an `HTTPException` response still runs them; `synced_at` on the pure
-  summary via `fetched_at` in `BreachFacts`; HTTP driver rebinds `app.state.session_factory` to the
-  savepoint so background commits cannot leak; API-driver seeds are clock-relative. ADR-0002
-  amended with the periodic-job trigger. Review: 14 findings, BF22–23 + hygiene fixed, one
-  dismissed on a recorded precondition, three batched to RF-backlog. 121 backend + 33 frontend
-  tests green.
-
 ## What's next
-**S6 — signup. Next.** Mock sign-up with the plan picker, the k-anonymity password check through
-the backend proxy, Argon2id storage and the "you're protected" confirmation; `Protected` tracks
-`activation`. The result page's CTA already navigates to `SIGNUP_ROUTE` (`Result.utils.ts`) and
-App has no route for it yet — S6's first commit mounts it. `Wordmark`, `ErrorState`, the
-`input`/`button-*`/`message-*` mixins and the `Skeleton` mixin are the shared pieces S6 reuses;
-`PlanCard`, `TextField` and `PasswordField` come from `docs/design/component-inventory.md`.
+**S7 — simulation-and-dashboard. Next.** Simulated traffic through the real API (one cookie jar
+per simulated visitor — BF47), the two-proportion z-test, the lift CI, the sample-size
+adequacy and the `SHIP_VARIANT` / `KEEP_CONTROL` / `KEEP_RUNNING` call, and the in-app dashboard
+(`HypothesisCard`, `FunnelChart`, `LiftCard`, `RecommendationBanner` in
+`docs/design/component-inventory.md`; load the `dataviz` skill before chart code; Recharts
+wrapped once in a `charts/` adapter per the plan's decisions). `signup` rows carry
+`password_was_pwned` for the "chose a leaked password anyway" read.
 
-Carried, deliberately: the design's `Button` ghost variant and loading spinner are not built yet
-(S6's submit is their first consumer); the `/admin` variant cards are not tinted by tone
-(deviation 6 says they adopt `toneClassMap` — that is an admin change, batched); DV3 and the
-unmeasured authenticated `/admin` states from D1 stand. S7's simulator holds one cookie jar per
-simulated visitor (BF47).
+Carried, deliberately: the design's `Button` ghost variant has no consumer and is not built; the
+`/admin` variant cards are not tinted by tone (deviation 6); BF58 (admin flag-list effect under
+StrictMode) and BF59 (Argon2 memory × concurrency on an unauthenticated route) stand; DV3 and the
+unmeasured authenticated `/admin` states from D1 stand. Unmeasured in S6: spinners in motion,
+hover/active, interaction states at 768/1280, the Basic-plan `/protected`, real reduced motion.
 
-Review records: `docs/reviews/s3-review.md`, `docs/reviews/s3-fixes-visual-review.md`,
-`docs/reviews/d1-visual-review.md`, and the S4 triage in `docs/plan.md`. **BF36 and BF42 are
-closed** — measured in the D1 pass.
+Review records: `docs/reviews/s6-visual-review.md`, `docs/reviews/s5-visual-review.md`,
+`docs/reviews/s3-review.md`, `docs/reviews/s3-fixes-visual-review.md`,
+`docs/reviews/d1-visual-review.md`, and the S4–S6 triages in `docs/plan.md`.
