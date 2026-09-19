@@ -1028,14 +1028,14 @@ documents; no test, because every one is presentation or prose — D1 ships no l
 
 **BF items — correctness and robustness, before or during S5:**
 
-- **BF51** `message-error` is defined and included by nothing. `Admin.tsx:126` renders a failed
+- [x] **BF51** (closed `a685c39`) `message-error` is defined and included by nothing. `Admin.tsx:126` renders a failed
   flag load with the plain neutral `message` chip — **byte-identical to the "Loading flags…" chip**,
   so an operator whose load failed sees the box they saw while it was loading and only the words
   differ. And `FlagEditor.utils.ts:114-120` maps both `SaveStatus.Failed` and `SaveStatus.Conflict`
   to `SaveTone.Unsaved`, so a server error and a lock conflict are indistinguishable. This is S3's
   own "a save that did not happen must not read like one that did" reintroduced one level down.
   Fix red-first: two driver cases, one per surface.
-- **BF52** Non-text contrast fails WCAG 2.2 SC 1.4.11 across the board: `$color-border` on
+- [x] **BF52** (closed `a685c39`, deviation 15: `$color-border-control` at 3.29:1) Non-text contrast fails WCAG 2.2 SC 1.4.11 across the board: `$color-border` on
   `$color-surface` is **1.48:1** (an input's only boundary), on `$color-bg` **1.40:1**, and the
   disabled button's "visible border" **1.13:1**; card-vs-page fill is 1.06:1 and `$shadow-sm`/`-md`
   are defined but applied nowhere, so at 768 the two variant cards read as one flat area. The
@@ -1043,7 +1043,7 @@ documents; no test, because every one is presentation or prose — D1 ships no l
   the dismissal of the visual pass's clean result:** Lighthouse tests text contrast only, so the
   "Accessibility 100" measurement never covered this pair. The value is design-faithful — it is the
   export's own token — so the fix is a deliberate deviation, not a correction.
-- **BF53** `button-base` sets `padding: 0 $sp-6` and declares no `box-sizing`, unlike the `input`
+- [x] **BF53** (closed `a685c39`) `button-base` sets `padding: 0 $sp-6` and declares no `box-sizing`, unlike the `input`
   mixin directly above it. `button-primary` toggles `border: 0` → `1px` on `:disabled`, so under a
   `content-box` default the Save button changes height by 2px the instant it disables — a visible
   jump on every click. The design compensates the padding (14/24 with no border vs 13/23 with
@@ -1629,23 +1629,26 @@ scope; they stay batched.
 - **Parallel:** **none possible.** It owns every directory a sibling story would touch; a second
   story opened against this repo while it runs is a SERIAL pair — stop and ask.
 
-Pre-mortem (2026-09-19, before any code — each is a case, red-first):
+Pre-mortem (2026-09-19, before any code — each is a case, red-first). **Outcome: two of the
+five happened, and both were caught by the case that named them.** P1 moved the read by three
+visitors and the figures were re-recorded; P5 was exactly the red the fix needed. P3 and P4
+predicted breakage that the ordering prevented, which is what the ordering was for.
 
-- [ ] **P1** BF60's fix moves the published read. The dashboard counts rows the 4,000-visitor
+- [x] **P1** (happened, `ef0a4f3` + `e62010c`) BF60's fix moves the published read. The dashboard counts rows the 4,000-visitor
   simulator wrote and ADR-0006 quotes `p = 0.008`; if the monotonic-visitor restriction changes a
   rate, the ADR and the README drift silently. Case: assert the restricted count equals the naive
   one for a fully monotonic funnel, then re-run the read and re-state the figures if they moved.
-- [ ] **P2** The "also reached the denominator" count double-counts. `funnel_event` is idempotent
+- [x] **P2** (avoided by construction: the CTE is `distinct` per (arm, visitor, step), and a case pins it) The "also reached the denominator" count double-counts. `funnel_event` is idempotent
   per client id, not per `(visitor, name)`, so a visitor with two `activation` rows inflates the
   numerator. Case: two `activation` rows for one visitor count once.
-- [ ] **P3** (concurrency) BF87 flips `RenderMode.Strict` on for twelve drivers at once; their
+- [x] **P3** (did not happen: BF70 landed first and nothing failed when Strict became the default) (concurrency) BF87 flips `RenderMode.Strict` on for twelve drivers at once; their
   effects then double-invoke and the failures will read like BF58/BF70 — a mount-abort-remount
   race, not a new defect. Order is load-bearing: BF70's one cancel convention lands **first**, and
   an aborted visitor load must not leave the provider loading forever after unmount.
-- [ ] **P4** BF66 composes the retired selectors back over `main.tsx` and `http-client.utils.ts`
+- [x] **P4** (did not happen: composing the selectors found no violation, proved by a mutation) BF66 composes the retired selectors back over `main.tsx` and `http-client.utils.ts`
   and will surface real violations there. The fix is the code; re-widening the `off` is HARD
   RULE 3.
-- [ ] **P5** BF62's label restructure breaks both form drivers at once — the `^`-anchored
+- [x] **P5** (happened: both drivers' exact-name assertions went red before any JSX moved) BF62's label restructure breaks both form drivers at once — the `^`-anchored
   `getByLabelText` regexes pass by construction today. The exact-name assertion goes red before
   any JSX moves, or the fix proves nothing.
 
@@ -1814,21 +1817,21 @@ Pre-mortem (2026-09-19, before any code — each is a case, red-first):
 
 #### Docs / plan drift — a `chore`, all CONFIRMED (DD-*, BE-14–17, CV-6, CV-12)
 
-- [ ] `docs/plan.md` Repository layout (`:61-94`) is stale in six places: `httpx` (the forbidden
+- [x] (closed `27f773b`) `docs/plan.md` Repository layout (`:61-94`) is stale in six places: `httpx` (the forbidden
   package; it is `httpx2`), `app/db/alembic/` (migrations are `backend/migrations/`),
   `src/layout/` (it is `src/ui/box.tsx`, seven primitives), `FunnelChart LiftChart` (neither
   exists — `charts/FunnelBars`, `LiftCard`, and seven shipped components unlisted),
   `testkit/drivers/` (drivers sit beside components), five directories unlisted (`charts/`,
   `hooks/`, `logging/`, `shared/`, `storage/`). (DD-1)
-- [ ] Decisions → Charts still says Recharts; the Feature-flag section (`:123`) and S5 (`:1073`)
+- [x] (closed `27f773b`) Decisions → Charts still says Recharts; the Feature-flag section (`:123`) and S5 (`:1073`)
   say 17.8B where the seed says 17.7B. (DD-2, DD-3, BE-17)
-- [ ] API contract: `POST /api/visitors` answers **200** on a recognised cookie (BF26) and the
+- [x] (closed `27f773b`) API contract: `POST /api/visitors` answers **200** on a recognised cookie (BF26) and the
   table, the router docstring and `simulation.py:146`'s hard-coded 201 disagree; the summary row
   omits `syncedAt`; the PATCH row omits the 400 for an orphaning split (BF31). (DD-7, DD-8, BE-14)
-- [ ] The TDD contract's "nothing else exists" and the write-up's "every commit is one of three
+- [x] (closed `27f773b`) The TDD contract's "nothing else exists" and the write-up's "every commit is one of three
   kinds" are contradicted by 23 commits (10 `fix:`, 2 `test:`, 10 unprefixed S1, 1 `wip`).
   Name `fix` as a kind or acknowledge the history. (DD-6, DD-13)
-- [ ] **BF36 / BF42** are unticked at `:644` / `:662` while `:811` declares and `:961` measures
+- [x] (closed `27f773b` for the ticks, `a685c39` for the code) **BF36 / BF42** are unticked at `:644` / `:662` while `:811` declares and `:961` measures
   them closed — tick them. **BF51 / BF52 / BF53** were scheduled "before or during S5" and are
   **all three still open in code** (Admin's failed-load chip is still `styles.message`;
   `SaveStatus.Failed` and `Conflict` still share `SaveTone.Unsaved`; `$color-border` on
@@ -1836,33 +1839,33 @@ Pre-mortem (2026-09-19, before any code — each is a case, red-first):
   and CLAUDE.md's "Carried, deliberately" omits them — the one state the plan's format exists to
   prevent. Either fix them (BF51 through the FlagEditor driver, BF52/BF53 as token/mixin
   changes measured by the visual pass) or carry them explicitly. (DD-4, DD-5, DD-20)
-- [ ] RF5 "the only raw literal left in a `.module.scss`" is stale: `Signup.module.scss:85`
+- [x] (closed `27f773b`) RF5 "the only raw literal left in a `.module.scss`" is stale: `Signup.module.scss:85`
   400px (deviation 13), `Protected.module.scss:18` 480px and `:25` 56px (unrecorded — FE-22),
   `RecommendationBanner.module.scss:42,45` `rgba(255,255,255,.5)` twice (the only raw colour,
   on the one non-text pair D1 never measured — FE-23), `PlanPicker.module.scss:62-64`. (DD-9)
-- [ ] The S3 RF item on the flag key understates it: 37 literal occurrences across 23 files,
+- [x] (closed `27f773b`) The S3 RF item on the flag key understates it: 37 literal occurrences across 23 files,
   **six** backend drivers each declaring `RESULT_SCREEN_TONE`; the production half is fixed
   (three readers of `RESULT_SCREEN_TONE_FLAG`). (DD-10)
-- [ ] Component inventory: `message-error` now has two consumers (the cell's other half — the
+- [x] (closed `27f773b`, and `a685c39` gave the admin surfaces their own tones) Component inventory: `message-error` now has two consumers (the cell's other half — the
   Admin surfaces — is still true, split it); deviation 6's "S5 introduces … adopts it then" is
   past tense and did not happen. (DD-11, DD-12)
-- [ ] `docs/python-primer.md` has no `scipy` entry (S7 landed it; the `sf`-over-`1 - cdf` comment
+- [x] (closed `27f773b`) `docs/python-primer.md` has no `scipy` entry (S7 landed it; the `sf`-over-`1 - cdf` comment
   is the least obvious line in `stats.py`). (DD-14)
-- [ ] `docs/python-conventions.md`: "nothing else imports those libraries" is false for `httpx2`
+- [x] (closed `27f773b`) `docs/python-conventions.md`: "nothing else imports those libraries" is false for `httpx2`
   (`simulation.py`, `scripts/simulate_traffic.py` — the first states its exemption, the second
   does not); `PLR2004` is in the **global** ignore, not tests-only, so the "partially" enforced
   row credits a rule that does not run; `FBT` reads as live and is not selected. (DD-15/CV-6,
   DD-16, DD-17)
-- [ ] `story/S6-done` points at S5's closing commit (`e8eee7d9`), so `git log
+- [x] (closed `27f773b`: the tag now sits on `61c346b`) `story/S6-done` points at S5's closing commit (`e8eee7d9`), so `git log
   story/S6..story/S6-done` is empty and S6's fifteen commits are bracketed by nothing. Move it to
   `61c346b9^` or delete it and say so. (DD-22)
-- [ ] `.env.example:1` "every value is validated at backend startup" — `TEST_DATABASE_URL` is
+- [x] (closed `27f773b`) `.env.example:1` "every value is validated at backend startup" — `TEST_DATABASE_URL` is
   read only by `tests/integration/conftest.py`; move it under a tests heading. (BE-16)
-- [ ] `backend-conventions.md` asks migrations for `IF [NOT] EXISTS`; none use it and the
+- [x] (closed `27f773b`) `backend-conventions.md` asks migrations for `IF [NOT] EXISTS`; none use it and the
   version table is the mechanism — record that in `python-conventions.md`. `backend/migrations/`
   is outside mypy's `files`, the one directory that writes production data by hand. (BE-15,
   CV-12)
-- [ ] `visitor_assignment.flag_key` still has no index and `count_visitors_per_step` now filters
+- [x] (closed `27f773b`) `visitor_assignment.flag_key` still has no index and `count_visitors_per_step` now filters
   on it on every dashboard load — the S3 RF prediction is a live query.
 
 #### RF-backlog additions (batched, not now)
