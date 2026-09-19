@@ -1,0 +1,58 @@
+@use '~/styles/tokens' as tokens;
+@use '~/styles/fields' as fields;
+
+// The three tones are the StatusMessage mixins: success for a ship, warning for a wait, error
+// for a keep-control. `message-error` gains its first consumer here (BF51 listed it as unused).
+$progress-height: 8px;
+
+.banner {
+    @include fields.message;
+    gap: tokens.$sp-2;
+    padding: tokens.$sp-4 tokens.$sp-5;
+}
+
+.title {
+    font-size: tokens.$text-100;
+    line-height: tokens.$leading-relaxed;
+    font-weight: tokens.$weight-semibold;
+    margin: 0;
+}
+
+.ship {
+    @include fields.message-success;
+}
+
+.wait {
+    @include fields.message-warning;
+}
+
+.stop {
+    @include fields.message-error;
+}
+
+.progress {
+    appearance: none;
+    -webkit-appearance: none;
+    display: block;
+    width: 100%;
+    height: $progress-height;
+    border: 0;
+    border-radius: tokens.$radius-pill;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.5);
+
+    &::-webkit-progress-bar {
+        background: rgba(255, 255, 255, 0.5);
+        border-radius: tokens.$radius-pill;
+    }
+
+    &::-webkit-progress-value {
+        background: tokens.$color-warning;
+        border-radius: tokens.$radius-pill;
+    }
+
+    &::-moz-progress-bar {
+        background: tokens.$color-warning;
+        border-radius: tokens.$radius-pill;
+    }
+}

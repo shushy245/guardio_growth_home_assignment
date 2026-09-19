@@ -1,0 +1,22 @@
+@use '~/styles/tokens' as tokens;
+@use '~/styles/fields' as fields;
+@use '~/styles/card' as card;
+
+.card {
+    @include card.card;
+}
+
+.label {
+    @include card.card-title;
+    color: tokens.$tone-calm-accent;
+}
+
+.statement {
+    font-size: tokens.$text-100;
+    line-height: tokens.$leading-relaxed;
+    margin: 0;
+}
+
+.meta {
+    @include fields.note;
+}

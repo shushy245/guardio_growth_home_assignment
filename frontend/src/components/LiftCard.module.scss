@@ -1,0 +1,38 @@
+@use '~/styles/tokens' as tokens;
+@use '~/styles/card' as card;
+
+.lift {
+    gap: tokens.$sp-1;
+}
+
+.title {
+    @include card.card-title;
+    margin-bottom: tokens.$sp-1;
+}
+
+.value {
+    font-size: tokens.$text-600;
+    line-height: tokens.$leading-tight;
+    font-weight: tokens.$weight-bold;
+}
+
+// Direction in the ink, as the design draws the win in the success green: text wears text
+// tokens, and the semantic pair is a text token, not a series colour.
+.up {
+    color: tokens.$color-success;
+}
+
+.down {
+    color: tokens.$color-danger;
+}
+
+.flat {
+    color: tokens.$color-text-secondary;
+}
+
+.interval {
+    font-size: tokens.$text-100;
+    line-height: tokens.$leading-snug;
+    color: tokens.$color-text-secondary;
+    margin-bottom: tokens.$sp-3;
+}

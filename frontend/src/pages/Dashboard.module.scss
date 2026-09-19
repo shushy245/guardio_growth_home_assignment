@@ -1,0 +1,67 @@
+@use '~/styles/tokens' as tokens;
+@use '~/styles/fields' as fields;
+@use '~/styles/card' as card;
+
+// Built at 390 first: one column of cards. 390 → 768 only the padding grows; at 1280 the funnel
+// and the lift card sit side by side (1.4 : 1, as the design's desktop frame draws them), by
+// CSS only. The content cap is per page (RF4), so it is here.
+.page {
+    gap: tokens.$sp-5;
+    padding: tokens.$gutter-sm;
+    max-width: tokens.$content-max;
+    margin: 0 auto;
+    box-sizing: border-box;
+}
+
+.title {
+    font-size: tokens.$text-500;
+    font-weight: tokens.$weight-bold;
+    margin: 0;
+}
+
+.loading {
+    @include fields.message;
+}
+
+.cards {
+    gap: tokens.$sp-4;
+}
+
+.pair {
+    flex-wrap: wrap;
+    gap: tokens.$sp-4;
+}
+
+.card {
+    @include card.card;
+    gap: tokens.$sp-4;
+}
+
+.cardTitle {
+    @include card.card-title;
+}
+
+.funnel,
+.lift {
+    flex: 1 1 100%;
+}
+
+@media (min-width: tokens.$breakpoint-md) {
+    .page {
+        padding: tokens.$sp-8 tokens.$gutter-md;
+    }
+}
+
+@media (min-width: tokens.$breakpoint-lg) {
+    .page {
+        padding: tokens.$sp-9 tokens.$gutter-lg;
+    }
+
+    .funnel {
+        flex: 1.4 1 0;
+    }
+
+    .lift {
+        flex: 1 1 0;
+    }
+}

@@ -1,0 +1,91 @@
+@use '~/styles/tokens' as tokens;
+
+// The mark spec (dataviz): a thin bar, 4px rounded at the data end and square at the baseline,
+// no track drawn, the series colour on the fill only. `meter` is styled from scratch in both
+// engines; the fill selectors differ per engine and are listed together per series.
+$bar-height: 18px;
+$data-end-radius: 4px;
+
+.chart {
+    gap: tokens.$sp-3;
+}
+
+.step {
+    gap: tokens.$sp-1;
+}
+
+.label {
+    font-size: tokens.$text-100;
+    line-height: tokens.$leading-snug;
+    color: tokens.$color-text-secondary;
+}
+
+.bars {
+    gap: tokens.$sp-1;
+}
+
+.bar {
+    appearance: none;
+    -webkit-appearance: none;
+    display: block;
+    width: 100%;
+    height: $bar-height;
+    border: 0;
+    background: transparent;
+
+    &::-webkit-meter-bar {
+        background: transparent;
+        border: 0;
+        border-radius: 0;
+        height: $bar-height;
+    }
+
+    &::-webkit-meter-optimum-value {
+        border-radius: 0 $data-end-radius $data-end-radius 0;
+    }
+
+    &::-moz-meter-bar {
+        border-radius: 0 $data-end-radius $data-end-radius 0;
+    }
+}
+
+.series1 {
+    &::-webkit-meter-optimum-value,
+    &::-moz-meter-bar {
+        background: tokens.$series-1;
+    }
+
+    &.swatch {
+        background: tokens.$series-1;
+    }
+}
+
+.series2 {
+    &::-webkit-meter-optimum-value,
+    &::-moz-meter-bar {
+        background: tokens.$series-2;
+    }
+
+    &.swatch {
+        background: tokens.$series-2;
+    }
+}
+
+.legend {
+    gap: tokens.$sp-4;
+    margin-top: tokens.$sp-2;
+    font-size: tokens.$text-100;
+    color: tokens.$color-text-secondary;
+}
+
+.legendItem {
+    align-items: center;
+    gap: tokens.$sp-2;
+}
+
+.swatch {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    flex: 0 0 auto;
+}

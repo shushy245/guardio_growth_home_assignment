@@ -1,0 +1,19 @@
+// The dashboard's card: the design's surface, border, radius and padding, one home so the three
+// cards on the page cannot drift apart.
+@use '~/styles/tokens' as tokens;
+
+@mixin card {
+    gap: tokens.$sp-2;
+    padding: tokens.$sp-5;
+    background: tokens.$color-surface;
+    border: 1px solid tokens.$color-border;
+    border-radius: tokens.$radius-md;
+    box-sizing: border-box;
+}
+
+@mixin card-title {
+    font-size: tokens.$text-100;
+    line-height: tokens.$leading-snug;
+    font-weight: tokens.$weight-semibold;
+    margin: 0;
+}
