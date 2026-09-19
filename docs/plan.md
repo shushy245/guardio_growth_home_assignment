@@ -1368,6 +1368,38 @@ Unmeasured, stated: the spinners in motion, hover and active states, the interac
 
 Objective: simulated traffic through the real API and a PM-readable dashboard with a statistical call.
 
+**Owns:** `backend/app/experiments/**` · `backend/scripts/simulate_traffic.py` ·
+`backend/tests/unit/test_stats.py` · `backend/tests/unit/test_recommendation.py` ·
+`backend/tests/integration/test_experiment_results.py` ·
+`backend/tests/drivers/experiments_api.py` · `backend/tests/builders/experiment*.py` ·
+`frontend/src/models/experimentResult/**` · `frontend/src/api/experiments.ts` ·
+`frontend/src/charts/**` · `frontend/src/pages/Dashboard.*` ·
+`frontend/src/components/{HypothesisCard,FunnelBars,LiftCard,RecommendationBanner}.*`
+**Depends on:** S3 (`feature_flag`, `visitor_assignment`), S4 (`funnel_event` rows and their
+tags), D1 (`frontend/src/styles/tokens.scss`, the inventory's dashboard row). All closed.
+**Parallel:** S8 only. **Shared seams, one named commit each:** `backend/app/main.py`
+(`include_router`), `frontend/src/App.tsx` (the `/dashboard` route),
+`frontend/src/models/index.ts` (the namespace barrel).
+
+**Two design calls made at story-start, recorded so they are not re-litigated mid-loop:**
+
+1. **An arm is the visitor's stored assignment, not the event's tag.** The results query joins
+   `visitor_assignment` and groups by *its* `variant_key`, although `funnel_event` carries a
+   denormalised one and the data-model row says the tag exists so the dashboard needs no join.
+   The primary key `(visitor_id, flag_key)` is what makes one visitor belong to exactly one arm;
+   grouping by the event tag lets a visitor whose early steps predate the flag land in the NULL
+   bucket and their later ones in an arm, which is a funnel that does not decrease monotonically
+   and a z-test whose two samples are not independent. One index lookup buys a structural
+   guarantee. The event tag keeps its job: it records what the visitor was in *when the step
+   happened*, which is the audit trail, not the denominator.
+2. **The funnel chart is CSS bars, not Recharts** (deviation from the Decisions row). D1 draws it
+   as a label and two percentage-width bars per step; Recharts would not reproduce that, adds
+   ~500KB, and its `ResponsiveContainer` measures zero in jsdom, so every F2/F3 assertion would
+   run against bars that never rendered. The bars live behind `frontend/src/charts/` with a
+   chart-library-agnostic prop contract, so a later Recharts chart is a new file in that folder
+   rather than an edit to the page. Stated plainly: the folder today holds one hand-built chart
+   and no adapter indirection beyond the module boundary.
+
 Cases:
 - B1. `two_proportion_z_test(80/1000, 100/1000)` gives p ≈ 0.11; `(800/10000, 1000/10000)` gives p < 0.001
 - B2. `lift_confidence_interval` contains the true difference for a known input and reports relative lift from rates
@@ -1383,22 +1415,44 @@ Cases:
 - F3. Dashboard shows the "keep running" state with required-vs-current sample when under-powered (driver)
 - F4. Dashboard API failure shows an error state (driver)
 
+Pre-mortem cases (story-start, red-first like any other):
+- B10. a rate of exactly 0 in both arms produces a `KEEP_RUNNING` read with `null` stats and no
+  `NaN` anywhere in the JSON body — `NaN` is not JSON, and `JSON.parse` throws on it, so a
+  degenerate experiment would take the dashboard down rather than read as "not enough data"
+- B11. the p-value and the confidence interval are the **same two-sided** test at α=0.05 — a
+  one-sided `norm.ppf(1 - α)` beside a two-sided interval calls significance at half the
+  stated threshold
+- B12. a visitor whose events carry two different `variant_key` tags is counted in exactly one
+  arm (design call 1 above), and a visitor with no assignment for the flag is in neither
+- B13. the simulator gives each simulated visitor its own cookie jar: 50 visitors produce 50
+  distinct `visitor_id` values, not one visitor with 50× the events (BF47)
+- F5. the Dashboard's fetch is aborted on unmount and survives a StrictMode double-mount — one
+  rendered result, no state update after unmount (the shape of BF58)
+
 Commits:
 - C1 `[test+impl B1]` `stats.py` z-test
 - C2 `[test+impl B2]` confidence intervals + relative lift
 - C3 `[test+impl B3]` required sample per arm
-- C4 `[test+impl B4, B5]` `recommend` rule with guards
-- C5 `[test+impl B6]` `results.py` distinct-visitor-per-step query
+- C4 `[test+impl B4, B5, B10, B11]` `recommend` rule with guards; degenerate input is
+  `KEEP_RUNNING` with `null` stats, never a `NaN` on the wire
+- C5 `[test+impl B6, B12]` `results.py` distinct-visitor-per-step query, arms from
+  `visitor_assignment`
 - C6 `[test+impl B7, B8]` results endpoint assembling the payload
-- C7 `[test+impl B9]` `scripts/simulate_traffic.py` (arg-parsed, httpx against the running API; **one cookie jar per simulated visitor** — the event endpoint identifies the browser by its `visitor_id` cookie and refuses a body that names one, BF47)
+- C7 `[test+impl B9, B13]` `scripts/simulate_traffic.py` (arg-parsed, httpx against the running API; **one cookie jar per simulated visitor** — the event endpoint identifies the browser by its `visitor_id` cookie and refuses a body that names one, BF47)
 - C8 `[test+impl F1]` `models/experimentResult`
-- C9 `[chore]` load `dataviz` skill; apply D1 tokens; `charts/` adapter over Recharts
-- C10 `[test+impl F2, F3, F4]` Dashboard page (driver first): `FunnelChart`, `LiftChart`, recommendation banner
+- C9 `[chore]` load `dataviz` skill; apply D1 tokens; `charts/` holding the hand-built bars
+- C10 `[test+impl F2, F3, F4, F5]` Dashboard page (driver first): `HypothesisCard`, `FunnelBars`,
+  `LiftCard`, `RecommendationBanner`
 - C11 `[chore]` run the 4,000-visitor simulation; capture the read for the README; ADR-0006 frequentist read
 
 ### S8 — docs (~0.5h)
 
 Objective: a cold reader can run it, understand the decisions, and read the result.
+
+**Owns:** `README.md` · `docs/writeup.md` · `docs/changelog.md` · `docs/adr/README.md`
+**Depends on:** S7 (the simulated read and the call it prints). **Parallel:** S7 only, and only
+until S7's C11 produces the numbers S8's README quotes. **Shared seams:** none — S8 writes no
+code.
 
 Cases:
 - D1. README commands run verbatim on a clean clone (manual, recorded in `docs/changelog.md`)
