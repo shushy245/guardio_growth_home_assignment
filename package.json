@@ -4,6 +4,9 @@
   "version": "0.1.0",
   "packageManager": "pnpm@11.3.0",
   "scripts": {
+    "dev:db": "docker compose up -d db",
+    "dev:backend": "cd backend && uv run --env-file ../.env uvicorn app.asgi:app --port 8000 --reload",
+    "dev:frontend": "pnpm --filter @breach-scan/frontend dev",
     "lint": "eslint . --max-warnings 0 && pnpm lint:backend",
     "lint:fix": "eslint . --fix && pnpm lint:backend:fix",
     "typecheck": "pnpm -r typecheck && pnpm typecheck:backend",
