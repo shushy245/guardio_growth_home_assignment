@@ -4,5 +4,6 @@ import * as signupModel from '~/models/signup';
 import * as visitorModel from '~/models/visitor';
 import * as featureFlagModel from '~/models/featureFlag';
 import * as funnelEventModel from '~/models/funnelEvent';
+import * as experimentResultModel from '~/models/experimentResult';
 
-export { breachModel, featureFlagModel, funnelEventModel, signupModel, visitorModel };
+export { breachModel, experimentResultModel, featureFlagModel, funnelEventModel, signupModel, visitorModel };
