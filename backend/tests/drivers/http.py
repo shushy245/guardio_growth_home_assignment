@@ -221,6 +221,11 @@ class _Then:
             f"no {event!r} log line carried {fields}; got {matching}"
         )
 
+    def no_log_line_mentions(self, fragment: str) -> None:
+        """No captured log line — event name or any field — contains `fragment`."""
+        leaking = [log for log in self._driver._logs if fragment in repr(log)]
+        assert not leaking, f"log lines leaked {fragment!r}: {leaking}"
+
     def each_overlapping_request_echoed_its_own_id(self) -> None:
         for correlation_id, response in self._driver._overlapping.items():
             actual = response.headers.get(CORRELATION_ID_HEADER)
