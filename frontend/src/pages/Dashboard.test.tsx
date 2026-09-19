@@ -19,7 +19,7 @@ describe('Dashboard page', () => {
         driver.given.theServerAnswers(anExperimentResultDTO().build());
         await driver.when.created();
         await driver.assert.hypothesisReads(STATEMENT);
-        driver.assert.funnelLegendLists('calm', 'urgent');
+        driver.assert.funnelLegendReadsInOrder('calm', 'urgent');
         driver.assert.barReads({ series: 'calm', step: 'landing_view', share: 1, value: 1250 });
         driver.assert.barReads({ series: 'calm', step: 'activation', share: 80 / 1250, value: 80 });
         driver.assert.barReads({ series: 'urgent', step: 'activation', share: 100 / 1240, value: 100 });

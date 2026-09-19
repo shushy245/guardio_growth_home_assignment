@@ -88,3 +88,7 @@ export type ExperimentResultModel = {
     sample: SampleModel;
     recommendation: Recommendation;
 };
+
+// A result with both figures measured — what `hasStatistics` narrows to, so the lift card reads
+// `test` and `lift` directly instead of re-checking each for absence.
+export type MeasuredExperimentResultModel = ExperimentResultModel & { test: ZTestModel; lift: LiftModel };

@@ -2,7 +2,7 @@
 // step from the result to what the card prints. The component file exports only the component.
 
 import { labelOfStep } from '~/shared/funnel-steps.utils';
-import type { ExperimentResultModel } from '~/models/experimentResult';
+import { type ExperimentResultModel, hasStatistics } from '~/models/experimentResult';
 
 // A test id is its own access path (docs/testing-conventions.md §test ids): the string in the DOM
 // is exactly what you grep for to find the code that renders it.
@@ -65,7 +65,7 @@ export const isMeasured = (read: LiftRead): read is Extract<LiftRead, { kind: Li
     read.kind === LiftReadKind.Measured;
 
 export const readLift = (result: ExperimentResultModel): LiftRead => {
-    if (result.test === undefined || result.lift === undefined) return { kind: LiftReadKind.Unmeasured };
+    if (!hasStatistics(result)) return { kind: LiftReadKind.Unmeasured };
     const { relative } = result.lift;
 
     return {

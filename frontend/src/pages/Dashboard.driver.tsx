@@ -35,7 +35,7 @@ export type DashboardDriver = {
     click: { retry: () => Promise<void> };
     assert: {
         hypothesisReads: (statement: string) => Promise<void>;
-        funnelLegendLists: (...labels: string[]) => void;
+        funnelLegendReadsInOrder: (...labels: string[]) => void;
         barReads: (bar: { series: string; step: string; share: number; value: number }) => void;
         liftReads: (value: string) => void;
         intervalReads: (line: string) => void;
@@ -120,11 +120,14 @@ export const makeDashboardDriver = (): DashboardDriver => {
                     expect(screen.getByTestId(HypothesisCardTestIds.Statement)).toHaveTextContent(statement);
                 });
             },
-            funnelLegendLists: (...labels: string[]): void => {
+            // In order: the legend's order is the series order, and the series order is which
+            // arm wears which colour (S7 review, R-3).
+            funnelLegendReadsInOrder: (...labels: string[]): void => {
                 const legend = screen.getByTestId(FunnelBarsTestIds.Legend);
-                for (const label of labels) {
-                    expect(within(legend).getByText(label)).toBeInTheDocument();
-                }
+                const entries = within(legend)
+                    .getAllByText(/./)
+                    .map((entry) => entry.textContent);
+                expect(entries).toStrictEqual(labels);
             },
             barReads: ({ series, step, share, value }): void => {
                 const bar = screen.getByTestId(funnelBarTestId({ series, step }));

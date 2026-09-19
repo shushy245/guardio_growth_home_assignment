@@ -79,12 +79,6 @@ class ExperimentResultDTOBuilder {
         return this;
     }
 
-    withRelativeLift({ point, low, high }: { point: number; low: number; high: number }): this {
-        this.state = { ...this.state, lift: { ...MID_RUN_LIFT, relative: { point, low, high } } };
-
-        return this;
-    }
-
     withPValue(pValue: number): this {
         this.state = { ...this.state, test: { ...MID_RUN_TEST, pValue } };
 
