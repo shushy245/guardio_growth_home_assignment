@@ -1722,35 +1722,35 @@ Pre-mortem (2026-09-19, before any code — each is a case, red-first):
 
 #### Testing — gaps and wrong-reason passes, each a red test
 
-- [ ] **BF77** `backend/app/main.py:43-50` — reducing the lifespan to `yield` leaves 225/225
+- [x] **BF77** (closed `fe1fdd8`) `backend/app/main.py:43-50` — reducing the lifespan to `yield` leaves 225/225
   green: the boot-time sync's **call** is untested wiring, BF21 one level up. CONFIRMED by
   mutation (BE-9). Fix: enter `TestClient(app)` as a context manager with the fake catalog and the
   savepoint-bound factory, assert one fetch.
-- [ ] **BF78** `backend/app/experiments/repository.py:31` — replacing
+- [x] **BF78** (closed `5678621`) `backend/app/experiments/repository.py:31` — replacing
   `flag_key == flag_key` with `flag_key IS NOT NULL` survives (M15b): S7 B12's "no assignment
   *for the flag*" half is tested only with a visitor holding no assignment at all, so a second
   enabled flag would silently count its visitors into the wrong arms. CONFIRMED (T-1). Fix:
   `given.a_visitor_assigned_to_another_flag()` → `nothing_was_counted()`.
-- [ ] **BF79** `backend/app/feature_flags/assignment.py:70` — `== 100` → `>= 100` survives (M5):
+- [x] **BF79** (closed `5678621`) `backend/app/feature_flags/assignment.py:70` — `== 100` → `>= 100` survives (M5):
   every weights test is an under-100 case, so a 60/60 split (a dead trailing arm, one arm at zero
   trials on the dashboard) is refused by a comparison nothing pins. CONFIRMED (T-2). Fix: one
   schema case and one stored-row case.
-- [ ] **BF80** `frontend/src/components/SearchField.tsx:36-40` — deleting the `lastSent` echo
+- [x] **BF80** (closed `c971c63`) `frontend/src/components/SearchField.tsx:36-40` — deleting the `lastSent` echo
   guard, the BF24-shaped case S5 C6 "pinned before it could ship", leaves 20/20 green. CONFIRMED
   (FE-13). Fix: a case where the same `q` comes back as a prop and the box keeps the visitor's text.
-- [ ] **BF81** `frontend/src/providers/BreachCatalogProvider.tsx:60-82` — widening the summary
+- [x] **BF81** (closed `b40a51e`) `frontend/src/providers/BreachCatalogProvider.tsx:60-82` — widening the summary
   effect's deps to `[request]` (every chip, sort and search refetches the tiles and flashes the
   skeleton) leaves 20/20 green. CONFIRMED (FE-14). Fix: assert one `GET /breaches/summary` after a
   filter change.
-- [ ] **BF82** `frontend/src/pages/Protected.test.tsx:22` — "confirms the Basic plan with its own
+- [x] **BF82** (closed `b40a51e`) `frontend/src/pages/Protected.test.tsx:22` — "confirms the Basic plan with its own
   next steps" asserts only the plan line; swapping in the Family steps survives (F-M23). The Basic
   steps are deviation 12, so the one design-diverging choice on the page is unpinned. CONFIRMED
   (T-3). Fix: `assert.nextStepsRead([...])` on both plan tests.
-- [ ] **BF83** `frontend/src/hooks/usePasswordLeakCheck.ts:61,71` — S6 F5 stays green with
+- [x] **BF83** (closed `c971c63`) `frontend/src/hooks/usePasswordLeakCheck.ts:61,71` — S6 F5 stays green with
   `isCurrent` removed (F-M17) and with `abort()` removed (F-M20); only both together fail it. The
   header gives them different jobs (the hash step has no request to abort). CONFIRMED (T-4). Fix:
   a case that changes the password while the *hash* is outstanding.
-- [ ] **BF84** boundary values nothing pins, each a survived mutation (T-5–T-8, T-10, T-11):
+- [x] **BF84** (closed `5af2715`) boundary values nothing pins, each a survived mutation (T-5–T-8, T-10, T-11):
   `clock_skew.py` `>`→`>=` and 5→30 min (cases sit at +1 min / +1 h); `assignment.py`
   `bucket < upper`→`<=` (a leading zero-weight variant takes ~1%; `[0, 100]` is how the S5 visual
   pass forced a variant); `clampWeight` cleared-input → `WEIGHT_TOTAL` (BF39's other half);
@@ -1758,25 +1758,25 @@ Pre-mortem (2026-09-19, before any code — each is a case, red-first):
   `max_age` → session (both carry a written rationale; the first partly mitigates BF59);
   `recommendation.py` `p < ALPHA`→`<=` and `>= required`→`>` (ADR-0006's two thresholds). One
   case each, spelled against the constant.
-- [ ] **BF85** `SearchField.driver.tsx:97`, `PasswordField.driver.tsx:102` — each advances fake
+- [x] **BF85** (closed `c971c63`) `SearchField.driver.tsx:97`, `PasswordField.driver.tsx:102` — each advances fake
   timers by the constant it imports, so `SEARCH_DEBOUNCE_MS` 300 → 0 survives (F-M26): "one
   request per settle" is proved, "after the visitor pauses" is not. CONFIRMED (T-9). Fix: advance
   to just under the constant and assert no request yet.
-- [ ] **BF86** `backend/app/experiments/simulation.py` (84% — `plan_transitions`' range guard,
+- [x] **BF86** (closed `2db8b0a`) `backend/app/experiments/simulation.py` (84% — `plan_transitions`' range guard,
   the two assignment errors and `_expect` untested), `backend/scripts/simulate_traffic.py`
   (`parse_arm_rate`, `build_parser`: no test at all, the file the README tells a reviewer to
   run), `assignment.py:60-64` (the corrupt-split `ValueError` never exercised). CONFIRMED by
   coverage (BE-10, BE-11, BE-13). Fix: bare-assert unit cases; the script's parser is three lines.
-- [ ] **BF87** `frontend/src/testkit/renderWithProviders.tsx:25` — `RenderMode.Plain` is the
+- [x] **BF87** (closed `c70a7e0`) `frontend/src/testkit/renderWithProviders.tsx:25` — `RenderMode.Plain` is the
   default and 12 of 20 drivers never opt into Strict while `main.tsx` ships it; BF58 sits in one
   of the twelve. (T-15, FE-15). Fix: flip the default to Strict and let the failures name
   themselves.
-- [ ] Partial planned cases (T-14 and the coverage table): S2 B1d asserts the wire field, never
+- [x] (closed `9bb8a38`) Partial planned cases (T-14 and the coverage table): S2 B1d asserts the wire field, never
   the *index* the case and `_describe`'s docstring promise; S2 B17's "equals the items gathered
   across all its pages" half runs on a one-page fixture; `isPlainObject`'s `!Array.isArray`
   clause is load-bearing only for `isProtectedRouteState`, which has no unit test;
   `usePasswordLeakCheck.ts:25` `password !== ''` is dead (`isTooShort('')` already holds).
-- [ ] **T-13** (decide once) the 14 entity drivers expose `given / when / then` and route
+- [x] **T-13** (decided `9bb8a38`: entity drivers keep `given / when / then`, the transport driver keeps the verbs; the conventions table now says which is which) the 14 entity drivers expose `given / when / then` and route
   ordinary HTTP calls through `when.*`; `docs/python-conventions.md` and CLAUDE.md define
   `given / get / post / patch / delete / when / then` with `when` reserved for the rare
   non-verb action, and `HttpDriver` follows that. The drivers read better; amend the table or
