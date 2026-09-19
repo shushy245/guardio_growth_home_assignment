@@ -7,13 +7,15 @@ import { removeWebCryptoSubtle } from '~/testkit/web-crypto';
 import { settleNativeAsyncWork } from '~/testkit/native-async';
 import { usePasswordLeakCheck } from '~/hooks/usePasswordLeakCheck';
 import { renderWithProviders } from '~/testkit/renderWithProviders';
-import { fakeHttp, HttpMethod, type RecordedRequest } from '~/testkit/fake-http';
-import { PASSWORD_CHECK_DEBOUNCE_MS, PasswordFieldTestIds, sha1Hex, splitHash } from '~/components/PasswordField.utils';
-
-const RANGE_PATH = '/pwned-passwords/range';
-const HTTP_SERVICE_UNAVAILABLE = 503;
-// A padding line the range API adds under `Add-Padding`: a suffix seen zero times.
-const A_PADDING_LINE = '0018A45C4D1DEF81644B54AB7F969B88D65:0';
+import { PASSWORD_CHECK_DEBOUNCE_MS, PasswordFieldTestIds } from '~/components/PasswordField.utils';
+import {
+    RANGE_PATH,
+    rangePathsRequested,
+    theProxyFails,
+    theRangeIsCleanFor,
+    theRangeIsSlowToSay,
+    theRangeSays,
+} from '~/testkit/pwned-passwords';
 
 // A test-only parent wired the way the sign-up page wires it: it holds the password, runs the
 // check on it, and hands both to the field.
@@ -67,57 +69,20 @@ export const makePasswordFieldDriver = (): PasswordFieldDriver => {
         });
     };
 
-    const rangeRequests = (): RecordedRequest[] =>
-        fakeHttp
-            .requests()
-            .filter((request) => request.method === HttpMethod.Get && request.path.startsWith(`${RANGE_PATH}/`));
-
-    const respondForPassword = async ({
-        password,
-        text,
-        gate,
-    }: {
-        password: string;
-        text: string;
-        gate?: Promise<void> | undefined;
-    }): Promise<void> => {
-        const { prefix } = splitHash(await sha1Hex(password));
-        const route = { method: HttpMethod.Get, path: `${RANGE_PATH}/${prefix}`, status: 200, body: text };
-        fakeHttp.respond(gate === undefined ? route : { ...route, gate });
-    };
-
-    const leakedText = async ({ password, count }: { password: string; count: number }): Promise<string> => {
-        const { suffix } = splitHash(await sha1Hex(password));
-
-        return [A_PADDING_LINE, `${suffix}:${count}`].join('\r\n');
-    };
-
     return {
         given: {
             theRangeSays: async ({ password, count }): Promise<void> => {
-                await respondForPassword({ password, text: await leakedText({ password, count }) });
+                await theRangeSays({ password, count });
             },
             theRangeIsCleanFor: async (password: string): Promise<void> => {
-                await respondForPassword({ password, text: A_PADDING_LINE });
+                await theRangeIsCleanFor(password);
             },
             theRangeIsSlowToSay: async ({ password, count }): Promise<void> => {
-                const gate = new Promise<void>((resolve) => {
-                    releaseSlowRange = resolve;
-                });
-                await respondForPassword({ password, text: await leakedText({ password, count }), gate });
+                releaseSlowRange = await theRangeIsSlowToSay({ password, count });
             },
-            theProxyFails: (): void => {
-                fakeHttp.respond({
-                    method: HttpMethod.Get,
-                    path: RANGE_PATH,
-                    status: HTTP_SERVICE_UNAVAILABLE,
-                    body: { error: 'the password-leak source is unavailable' },
-                });
-            },
+            theProxyFails,
             // Plain http off localhost: the browser leaves `crypto.subtle` undefined.
-            theBrowserHasNoWebCrypto: (): void => {
-                removeWebCryptoSubtle();
-            },
+            theBrowserHasNoWebCrypto: removeWebCryptoSubtle,
         },
         when: {
             created: async (): Promise<void> => {
@@ -166,9 +131,7 @@ export const makePasswordFieldDriver = (): PasswordFieldDriver => {
                 expect(screen.getByTestId(PasswordFieldTestIds.Unchecked)).toBeInTheDocument();
             },
             rangesRequested: (...prefixes: string[]): void => {
-                expect(rangeRequests().map((request) => request.path)).toStrictEqual(
-                    prefixes.map((prefix) => `${RANGE_PATH}/${prefix}`),
-                );
+                expect(rangePathsRequested()).toStrictEqual(prefixes.map((prefix) => `${RANGE_PATH}/${prefix}`));
             },
             fieldIsEditable: (): void => {
                 expect(field()).toBeEnabled();

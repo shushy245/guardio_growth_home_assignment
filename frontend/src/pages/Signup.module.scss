@@ -1,6 +1,9 @@
 @use '~/styles/tokens' as tokens;
+@use '~/styles/fields' as fields;
 
-// The page gutter and cap, as every funnel page sets them (RF4); S6 replaces this file.
+// Built at 390 first: one column, the form at full width. At md+ the form keeps its measure
+// (the design's 340px card) and centres; only the whitespace grows. The content cap is per page
+// (RF4), so it is here.
 .page {
     gap: tokens.$sp-6;
     padding: tokens.$gutter-sm;
@@ -10,20 +13,81 @@
     box-sizing: border-box;
 }
 
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: tokens.$sp-7;
+    width: 100%;
+}
+
+.intro {
+    gap: tokens.$sp-2;
+}
+
 .headline {
     font-size: tokens.$text-500;
     font-weight: tokens.$weight-bold;
     margin: 0;
 }
 
+.note {
+    @include fields.note;
+}
+
+.fields {
+    gap: tokens.$sp-5;
+}
+
+.field {
+    @include fields.field;
+    display: flex;
+    flex-direction: column;
+}
+
+.label {
+    @include fields.label;
+}
+
+.input {
+    @include fields.input;
+}
+
+.inputInvalid {
+    @include fields.input;
+    border-color: tokens.$color-danger;
+}
+
+.error {
+    color: tokens.$color-danger;
+}
+
+.serverMessage {
+    @include fields.message;
+    @include fields.message-error;
+}
+
+.submit {
+    @include fields.button-primary;
+    width: 100%;
+}
+
+.spinner {
+    @include fields.button-spinner;
+}
+
 @media (min-width: tokens.$breakpoint-md) {
     .page {
-        padding: tokens.$gutter-md;
+        align-items: center;
+        padding: tokens.$sp-10 tokens.$gutter-md;
+    }
+
+    .form {
+        max-width: 400px;
     }
 }
 
 @media (min-width: tokens.$breakpoint-lg) {
     .page {
-        padding: tokens.$gutter-lg;
+        padding: tokens.$sp-11 tokens.$gutter-lg;
     }
 }

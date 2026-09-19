@@ -1,4 +1,5 @@
 @use '~/styles/tokens' as tokens;
+@use '~/styles/fields' as fields;
 
 // Built at 390: the two cards stack, full width; they stay stacked at every width, as the design
 // keeps the sign-up a single column and only the surrounding whitespace grows.
@@ -13,11 +14,7 @@
 }
 
 .legend {
-    font-size: tokens.$text-500;
-    font-weight: tokens.$weight-bold;
-    line-height: tokens.$leading-tight;
-    padding: 0;
-    margin-bottom: tokens.$sp-2;
+    @include fields.visually-hidden;
 }
 
 .card {

@@ -4,7 +4,8 @@ import { Plan } from '~/models/signup';
 
 export const planCardTestId = (plan: Plan): string => `PlanPickerTestIds.Card.${plan}`;
 
-export const PLAN_GROUP_LABEL = 'Choose your plan';
+// The group's name for a screen reader; the page's headline is the visible one.
+export const PLAN_GROUP_LABEL = 'Plan';
 
 export type PlanCardModel = {
     name: string;
