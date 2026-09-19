@@ -378,3 +378,14 @@ every commit as the gate requires.
   check needs. ruff `RUF007` refuses `zip(seq, seq[1:])` for it: the name says what the loop is.
 - **`str.partition("=")`** returns `(before, separator, after)` with the separator empty when it
   was not found, so one call parses `calm=0.08` and tells a missing `=` apart from an empty rate.
+- **`Depends(get_session, scope="function")`** (`app/db/session.py`): FastAPI runs a yield
+  dependency's exit code — our commit — in one of two exit stacks. The default, `"request"`,
+  unwinds *after* the response has been sent; `"function"` unwinds when the handler returns,
+  before the response starts. The simulator found the difference: a 201 for a new visitor, then
+  a 404 for that visitor on the very next request, because the commit had not landed yet. The
+  in-process `TestClient` waits for the whole cycle and can never show it; the test that pins the
+  fix records the order of "transaction closed" and "response started" through a pure ASGI
+  middleware and a stand-in session factory instead.
+- **`SessionDep = Annotated[Session, Depends(...)]`**: a dependency declared once and used as a
+  parameter type (`session: SessionDep`) — the same `Annotated` a handler already used inline,
+  named so the scope is set in one place and cannot be forgotten at a call site.

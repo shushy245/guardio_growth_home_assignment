@@ -12,7 +12,7 @@ import structlog
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
-from app.db.session import get_session
+from app.db.session import SessionDep
 from app.dependencies import get_password_hasher
 from app.shared.ids import generate_unique_id
 from app.signups import repository
@@ -31,7 +31,7 @@ router = APIRouter()
 def create_signup(
     signup: SignupCreate,
     request: Request,
-    session: Annotated[Session, Depends(get_session)],
+    session: SessionDep,
     hasher: Annotated[PasswordHasher, Depends(get_password_hasher)],
 ) -> SignupCreated:
     """Never logs the email, the password or its hash: an account is personal data and a

@@ -16,7 +16,7 @@ from datetime import UTC, datetime
 from typing import Annotated
 
 import structlog
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Query, Request, status
 from sqlalchemy.orm import Session
 
 from app.breaches import repository
@@ -28,7 +28,7 @@ from app.breaches.schemas import (
     BreachSummaryResponse,
 )
 from app.breaches.summary import summarise_breaches
-from app.db.session import get_session
+from app.db.session import SessionDep
 from app.errors import carry_background_tasks
 
 log = structlog.get_logger()
@@ -70,7 +70,7 @@ def revalidate_catalog(
 @router.get("/breaches", response_model=BreachPage)
 def list_breaches(
     query: Annotated[BreachListQuery, Query()],
-    session: Annotated[Session, Depends(get_session)],
+    session: SessionDep,
     request: Request,
     background_tasks: BackgroundTasks,
 ) -> BreachPage:
@@ -91,7 +91,7 @@ def list_breaches(
 
 @router.get("/breaches/summary", response_model=BreachSummaryResponse)
 def get_breach_summary(
-    session: Annotated[Session, Depends(get_session)],
+    session: SessionDep,
     request: Request,
     background_tasks: BackgroundTasks,
 ) -> BreachSummaryResponse:

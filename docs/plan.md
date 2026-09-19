@@ -1428,6 +1428,12 @@ Pre-mortem cases (story-start, red-first like any other):
   distinct `visitor_id` values, not one visitor with 50× the events (BF47)
 - F5. the Dashboard's fetch is aborted on unmount and survives a StrictMode double-mount — one
   rendered result, no state update after unmount (the shape of BF58)
+- B14. (found by C11's first live run, 2026-09-19) the request's transaction is committed
+  before the response is sent — a client that fires its next request the moment the first
+  answers finds the row it wrote. FastAPI's default dependency scope commits *after* the
+  response; 750 simulated visitors in, a 201 was followed by a 404 for the visitor it created.
+  `TestClient` cannot show it; the test records the order of the two events through the ASGI
+  interface.
 
 Commits:
 - C1 `[test+impl B1]` `stats.py` z-test

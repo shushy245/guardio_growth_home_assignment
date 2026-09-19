@@ -30,7 +30,7 @@ in-app statistical dashboard.
 - Composition roots: `backend/app/main.py` (`create_app(settings)`) and `frontend/src/main.tsx`; `backend/app/asgi.py` is the only reader of `os.environ`.
 - Ports & Adapters for HIBP: `backend/app/ports/*` Protocols, `backend/app/adapters/hibp/*` the only HIBP-aware code, `backend/tests/fakes/*` in-memory fakes swapped via `dependency_overrides`.
 - Transaction Script backend: per entity `schemas.py` (Pydantic boundary) · `models.py` · `repository.py` · `router.py` · pure logic file. No service layer.
-- One DB transaction per request (`app/db/session.py`); handlers never commit.
+- One DB transaction per request (`app/db/session.py`), taken as `session: SessionDep`, committed **before** the response is sent (`scope="function"`); handlers never commit.
 - Correlation id per request in structlog contextvars; `{ error }` on every non-2xx.
 - Feature flag = Experiment toggle (Fowler): `feature_flag` table, optimistic lock on `updated_at`, server-side stored assignment.
 
@@ -45,6 +45,7 @@ in-app statistical dashboard.
 - Starlette ≥1.6 test client requires `httpx2`; the runtime HTTP client is `httpx2` too. Never add `httpx`.
 - Writing a red test file in the same command as a commit trips the commit gate's typecheck; commit first, then write the red test.
 - Web Crypto's `digest` resolves on Node's thread pool, a later event-loop turn `act` cannot flush: a driver chain that starts with a hash is order-dependent unless it drains `settleNativeAsyncWork()` (S6, F5 flaked once in three runs).
+- FastAPI's default dependency scope runs a yield dependency's exit code *after* the response is sent; `TestClient` cannot show it. A new yield dependency whose exit must land before the client's next request takes `scope="function"` (S7: the commit did not, and the simulator's second request found no visitor).
 - The fake network matches a route's path exactly (or a bare path against the request's pathname): a route registered on `/x` never answers `/x/segment`, and the miss is a silent 599, not a loud failure — register per segment (S6 review, R-2).
 
 ## What's done

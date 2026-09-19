@@ -16,7 +16,7 @@ from fastapi import APIRouter, Depends, HTTPException, Path, Request, Response, 
 from sqlalchemy.orm import Session
 
 from app.config import Settings
-from app.db.session import get_session
+from app.db.session import SessionDep
 from app.dependencies import get_settings
 from app.feature_flags import repository as flag_repository
 from app.feature_flags.assignment import assign_all
@@ -32,7 +32,7 @@ router = APIRouter()
 
 @router.post("/visitors", status_code=status.HTTP_201_CREATED, response_model=VisitorResponse)
 def create_visitor(
-    session: Annotated[Session, Depends(get_session)],
+    session: SessionDep,
     settings: Annotated[Settings, Depends(get_settings)],
     request: Request,
     response: Response,
@@ -98,7 +98,7 @@ def _set_visitor_cookie(response: Response, *, visitor_id: str, settings: Settin
 @router.get("/visitors/{visitor_id}", response_model=VisitorResponse)
 def get_visitor(
     visitor_id: Annotated[str, Path(min_length=1, max_length=64)],
-    session: Annotated[Session, Depends(get_session)],
+    session: SessionDep,
 ) -> VisitorResponse:
     """The refresh path: what this visitor was assigned, as stored — never recomputed."""
     assignments = repository.find_assignments(session=session, visitor_id=visitor_id)

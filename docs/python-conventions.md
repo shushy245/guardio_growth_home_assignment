@@ -62,6 +62,7 @@ enforced mechanically here, the tool is named; otherwise it is a review item.
 | Idempotent consumer | `INSERT … ON CONFLICT DO NOTHING` on the client id. | tests |
 | Composition root | `app/main.py` only; `Depends` for injection; `app.dependency_overrides` in tests. | review |
 | Single write per entity per flow | One `INSERT`/`UPDATE` per entity per handler; transform before write. | review |
+| The write is visible when the response is | `SessionDep` is `Depends(get_session, scope="function")`: the commit runs before the response is sent, so a client's next request finds the row (S7, found by the simulator). | `test_session_scope.py` |
 
 ## Logging
 

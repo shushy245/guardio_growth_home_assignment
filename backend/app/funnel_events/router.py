@@ -6,13 +6,11 @@ server handed it. No cookie is a 401 — nobody to file the step under — and a
 visitor the database no longer holds is a 404, the browser outliving a reset."""
 
 from datetime import UTC, datetime
-from typing import Annotated
 
 import structlog
-from fastapi import APIRouter, Depends, HTTPException, Request, status
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, HTTPException, Request, status
 
-from app.db.session import get_session
+from app.db.session import SessionDep
 from app.funnel_events import repository
 from app.funnel_events.clock_skew import MAX_CLOCK_SKEW_AHEAD, is_too_far_ahead
 from app.funnel_events.schemas import FunnelEventCreate, FunnelEventRecorded
@@ -31,7 +29,7 @@ router = APIRouter()
 def create_funnel_event(
     event: FunnelEventCreate,
     request: Request,
-    session: Annotated[Session, Depends(get_session)],
+    session: SessionDep,
 ) -> FunnelEventRecorded:
     visitor_id = request.cookies.get(VISITOR_COOKIE)
     ctx = {"event_id": event.id, "visitor_id": visitor_id, "name": event.name}

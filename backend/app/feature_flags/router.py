@@ -7,9 +7,8 @@ from typing import Annotated
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Path, status
-from sqlalchemy.orm import Session
 
-from app.db.session import get_session
+from app.db.session import SessionDep
 from app.feature_flags import repository
 from app.feature_flags.admin import require_admin_token
 from app.feature_flags.assignment import orphaned_variant_keys
@@ -28,7 +27,7 @@ router = APIRouter()
 
 @router.get("/feature-flags", response_model=list[FeatureFlagResponse])
 def list_feature_flags(
-    session: Annotated[Session, Depends(get_session)],
+    session: SessionDep,
 ) -> list[FeatureFlagResponse]:
     return [
         FeatureFlagResponse.model_validate(row) for row in repository.list_flags(session=session)
@@ -43,7 +42,7 @@ def list_feature_flags(
 def update_feature_flag(
     key: Annotated[str, Path(min_length=1, max_length=64)],
     changes: FeatureFlagUpdate,
-    session: Annotated[Session, Depends(get_session)],
+    session: SessionDep,
 ) -> FeatureFlagUpdated:
     """Optimistic lock: the write matches on the token the client read; zero rows is a 409 (or
     a 404 for a key that was never there). Returns only what the client cannot know."""

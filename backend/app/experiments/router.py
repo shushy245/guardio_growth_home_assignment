@@ -7,10 +7,9 @@ written through it."""
 from typing import Annotated
 
 import structlog
-from fastapi import APIRouter, Depends, HTTPException, Path, status
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, HTTPException, Path, status
 
-from app.db.session import get_session
+from app.db.session import SessionDep
 from app.experiments import repository
 from app.experiments.hypothesis import hypothesis_map
 from app.experiments.results import ExperimentRead, assemble_results
@@ -24,7 +23,7 @@ router = APIRouter()
 @router.get("/experiments/{flag_key}/results", response_model=ExperimentResultsResponse)
 def get_experiment_results(
     flag_key: Annotated[str, Path(min_length=1, max_length=64)],
-    session: Annotated[Session, Depends(get_session)],
+    session: SessionDep,
 ) -> ExperimentResultsResponse:
     ctx = {"flag_key": flag_key}
     log.info("get_experiment_results: started", **ctx)

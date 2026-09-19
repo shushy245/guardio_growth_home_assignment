@@ -13,7 +13,8 @@ every assertion (Python reserves `assert`, so the Then namespace is `then`).
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Callable, Coroutine
+from collections.abc import Callable, Coroutine, Iterator
+from contextlib import contextmanager
 from typing import Any
 
 import httpx2 as httpx
@@ -21,11 +22,12 @@ import structlog
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session, sessionmaker
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
 from structlog.testing import capture_logs
 from structlog.typing import EventDict
 
 from app.config import Env
-from app.db.session import get_session
+from app.db.session import SessionDep, get_session
 from app.main import create_app
 from app.middleware.correlation_id import CORRELATION_ID_HEADER
 from tests.builders.settings import a_settings
@@ -34,6 +36,9 @@ from tests.fakes.pwned_password_range import FakePwnedPasswordRange
 
 CRASHING_ROUTE = "/api/_test/crash"
 CRASH_DETAIL = "secret detail that must never reach the client"
+SESSION_ROUTE = "/api/_test/session"
+TRANSACTION_CLOSED = "transaction closed"
+RESPONSE_STARTED = "response started"
 
 
 class HttpDriver:
@@ -44,6 +49,8 @@ class HttpDriver:
         self._catalog = FakeBreachCatalog()
         self._pwned_passwords = FakePwnedPasswordRange()
         self._crashing_route = False
+        self._session_route = False
+        self._request_events: list[str] = []
         self._session_override: Session | None = None
         self._cookies: dict[str, str] = {}
         self._built_app: FastAPI | None = None
@@ -99,6 +106,8 @@ class HttpDriver:
             )
             if self._crashing_route:
                 _mount_crashing_route(app)
+            if self._session_route:
+                _mount_session_route(app, events=self._request_events)
             if self._session_override is not None:
                 session = self._session_override
                 app.dependency_overrides[get_session] = lambda: session
@@ -139,6 +148,12 @@ class _Given:
         no business in production code — S1 shipped one as a probe and this replaces it.
         """
         self._driver._crashing_route = True
+
+    def a_route_that_only_opens_a_session(self) -> None:
+        """A handler that asks for the request's session and does nothing with it, over a
+        session factory that records the moment the transaction closes. The one thing under
+        test is *when* that moment comes relative to the response."""
+        self._driver._session_route = True
 
     def cookie(self, *, name: str, value: str) -> None:
         """A cookie the browser under test carries from the start, before any response set one."""
@@ -232,6 +247,19 @@ class _Then:
         leaking = [log for log in self._driver._logs if fragment in repr(log)]
         assert not leaking, f"log lines leaked {fragment!r}: {leaking}"
 
+    def the_transaction_closed_before_the_response_started(self) -> None:
+        """A client that fires its next request the moment this response arrives must find
+        the row this request wrote. If the commit runs after the response is sent, it will
+        not — and no in-process test client can show it, because that client waits for the
+        whole request cycle before handing the response back."""
+        events = self._driver._request_events
+        assert TRANSACTION_CLOSED in events and RESPONSE_STARTED in events, (
+            f"expected both a transaction close and a response start, recorded {events}"
+        )
+        assert events.index(TRANSACTION_CLOSED) < events.index(RESPONSE_STARTED), (
+            f"the response started before the transaction closed: {events}"
+        )
+
     def each_overlapping_request_echoed_its_own_id(self) -> None:
         for correlation_id, response in self._driver._overlapping.items():
             actual = response.headers.get(CORRELATION_ID_HEADER)
@@ -256,6 +284,43 @@ def _mount_crashing_route(app: FastAPI) -> None:
     @app.get(CRASHING_ROUTE)
     def _raise() -> None:
         raise RuntimeError(CRASH_DETAIL)
+
+
+class _RecordingSessionFactory:
+    """Stands in for the sessionmaker: a session nobody uses, and a note when it closes."""
+
+    def __init__(self, events: list[str]) -> None:
+        self._events = events
+
+    @contextmanager
+    def begin(self) -> Iterator[Session]:
+        yield Session()
+        self._events.append(TRANSACTION_CLOSED)
+
+
+class _ResponseStartRecorder:
+    """Pure ASGI middleware: a note the moment the response's status line goes out."""
+
+    def __init__(self, app: ASGIApp, *, events: list[str]) -> None:
+        self._app = app
+        self._events = events
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        async def recording_send(message: Message) -> None:
+            if message["type"] == "http.response.start":
+                self._events.append(RESPONSE_STARTED)
+            await send(message)
+
+        await self._app(scope, receive, recording_send)
+
+
+def _mount_session_route(app: FastAPI, *, events: list[str]) -> None:
+    app.state.session_factory = _RecordingSessionFactory(events)
+    app.add_middleware(_ResponseStartRecorder, events=events)
+
+    @app.get(SESSION_ROUTE)
+    def _open_a_session(_session: SessionDep) -> dict[str, str]:
+        return {}
 
 
 async def _get_health_concurrently(
