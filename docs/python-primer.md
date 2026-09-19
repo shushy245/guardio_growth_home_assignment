@@ -345,3 +345,17 @@ every commit as the gate requires.
   Core result row is a tuple-like value, and mypy knows the position types from the `select`, so
   the `StepCount` built from it is fully typed with no cast. A column mapped to an `Enum` type
   arrives as the enum member, not the stored string.
+- **`MappingProxyType`** (`app/experiments/hypothesis.py`): a read-only view over a dict — the
+  closest Python gets to `as const` on an object. `hypothesis_map[key] = ...` raises, so the
+  registry of experiments cannot be edited at runtime by a handler that meant to read it.
+- **`from_attributes=True` through nested models** (`app/experiments/schemas.py`): one
+  `model_validate(read, from_attributes=True)` walks the whole frozen-dataclass tree and builds
+  the matching response tree by attribute name. The domain values (`ZTestResult`, `Lift`,
+  `Estimate`) are built once in the pure modules and never touched by the shell; the response
+  models are the only place camelCase exists. A dataclass field with no counterpart on the
+  response is simply not sent — and a response field with no counterpart on the read is a
+  `ValidationError` at translation, which is how the flattened `test`/`lift` mismatch was caught.
+- **`json.loads(text, parse_constant=...)`** (`tests/drivers/experiments_api.py`): Python's JSON
+  decoder accepts `NaN` and `Infinity` by default, which a browser's `JSON.parse` does not. The
+  driver hands it a `parse_constant` that raises, so a test decodes bodies as strictly as the
+  dashboard will.

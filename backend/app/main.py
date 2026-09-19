@@ -20,6 +20,7 @@ from app.breaches.sync import sync_catalog_in_own_transaction
 from app.config import Settings
 from app.db.engine import build_engine, build_session_factory
 from app.errors import register_exception_handlers
+from app.experiments.router import router as experiments_router
 from app.feature_flags.router import router as feature_flags_router
 from app.funnel_events.router import router as funnel_events_router
 from app.health.router import router as health_router
@@ -71,4 +72,5 @@ def create_app(
     app.include_router(funnel_events_router, prefix="/api")
     app.include_router(signups_router, prefix="/api")
     app.include_router(pwned_passwords_router, prefix="/api")
+    app.include_router(experiments_router, prefix="/api")
     return app
