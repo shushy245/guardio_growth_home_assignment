@@ -30,6 +30,9 @@
 .pair {
     flex-wrap: wrap;
     gap: tokens.$sp-4;
+    // Content-height cards: stretched, the lift card carried 350px of blank white beside the
+    // taller funnel at 1280 (S7 visual pass, V3).
+    align-items: flex-start;
 }
 
 .card {

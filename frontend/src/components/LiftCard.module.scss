@@ -35,4 +35,7 @@
     line-height: tokens.$leading-snug;
     color: tokens.$color-text-secondary;
     margin-bottom: tokens.$sp-3;
+    // A span, so the global `p` measure does not reach it: the S7 visual pass measured the line
+    // at 90 characters at 768 (V2).
+    max-width: tokens.$prose-measure;
 }
