@@ -8,6 +8,7 @@ import { AdminTestIds } from '~/pages/Admin.utils';
 import { SignupTestIds } from '~/pages/Signup.utils';
 import { LandingTestIds } from '~/pages/Landing.utils';
 import { FunnelEventName } from '~/models/funnelEvent';
+import { NotFoundTestIds } from '~/pages/NotFound.utils';
 import { ProtectedTestIds } from '~/pages/Protected.utils';
 import { fakeHttp, HttpMethod } from '~/testkit/fake-http';
 import { renderWithProviders } from '~/testkit/renderWithProviders';
@@ -21,6 +22,7 @@ export type AppDriver = {
         adminIsShown: () => void;
         signupIsShown: () => void;
         protectedIsShown: () => void;
+        notFoundIsShown: () => void;
         visitorsCreated: (count: number) => void;
         flagListsFetched: (count: number) => void;
         stepsPosted: (name: FunnelEventName, count: number) => Promise<void>;
@@ -65,6 +67,9 @@ export const makeAppDriver = (): AppDriver => {
             },
             protectedIsShown: (): void => {
                 expect(screen.getByTestId(ProtectedTestIds.Page)).toBeInTheDocument();
+            },
+            notFoundIsShown: (): void => {
+                expect(screen.getByTestId(NotFoundTestIds.Page)).toBeInTheDocument();
             },
             visitorsCreated: (count: number): void => {
                 expect(requestsTo(HttpMethod.Post, '/visitors')).toBe(count);

@@ -1,0 +1,11 @@
+@use '~/styles/tokens' as tokens;
+
+// One centred panel at every width: the page has one thing to say and one thing to click.
+.page {
+    justify-content: center;
+    padding: tokens.$gutter-sm;
+    min-height: 100dvh;
+    max-width: tokens.$content-max;
+    margin: 0 auto;
+    box-sizing: border-box;
+}

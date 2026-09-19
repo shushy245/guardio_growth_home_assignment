@@ -54,6 +54,21 @@ describe('App', () => {
         driver.assert.protectedIsShown();
     });
 
+    it('shows a way back instead of a blank document at a URL that matches nothing', async () => {
+        // Without a catch-all every unmatched URL renders an empty <Routes>: a white page with
+        // no heading, no error and nothing to click (BF69).
+        driver.given.route('/a-url-that-matches-nothing');
+        await driver.when.created();
+        driver.assert.notFoundIsShown();
+    });
+
+    it('records no step and enrols nobody at a URL that matches nothing', async () => {
+        driver.given.route('/a-url-that-matches-nothing');
+        await driver.when.created();
+        driver.assert.visitorsCreated(0);
+        driver.assert.noStepPosted(FunnelEventName.LandingView);
+    });
+
     it('fetches the flag list once on the admin page', async () => {
         driver.given.route('/admin');
         await driver.when.created();

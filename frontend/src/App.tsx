@@ -6,6 +6,7 @@ import { Admin } from '~/pages/Admin';
 import { Result } from '~/pages/Result';
 import { Signup } from '~/pages/Signup';
 import { Landing } from '~/pages/Landing';
+import { NotFound } from '~/pages/NotFound';
 import { Dashboard } from '~/pages/Dashboard';
 import { Protected } from '~/pages/Protected';
 import { RESULT_ROUTE } from '~/pages/Scan.utils';
@@ -26,6 +27,9 @@ export const App = (): ReactElement => (
         </Route>
         <Route path="/admin" element={<Admin />} />
         <Route path={DASHBOARD_ROUTE} element={<Dashboard />} />
+        {/* Every URL that matched nothing above. Last, and outside the funnel layout: a
+            visitor who never reached a screen enrols in nothing and records nothing. */}
+        <Route path="*" element={<NotFound />} />
     </Routes>
 );
 
