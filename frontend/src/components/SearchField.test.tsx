@@ -18,6 +18,27 @@ describe('SearchField', () => {
         driver.assert.searchedFor('adobe');
     });
 
+    it('asks for nothing until the visitor has actually paused', async () => {
+        await driver.when.created();
+        await driver.type.intoSearch('adobe');
+        await driver.when.almostThePausePasses();
+        driver.assert.searchedFor();
+        await driver.when.thePausePasses();
+        driver.assert.searchedFor('adobe');
+    });
+
+    it('keeps what the visitor typed when the page answers the earlier search late', async () => {
+        // The echo guard (BF80): the page answers with the query the field itself asked for,
+        // and by then the visitor has typed more. Adopting it would rewrite their box.
+        driver.given.thePageAnswersTheSearchLate();
+        await driver.when.created();
+        await driver.type.intoSearch('ado');
+        await driver.when.thePausePasses();
+        await driver.type.intoSearch('be');
+        await driver.when.thePageAnswers();
+        driver.assert.fieldReads('adobe');
+    });
+
     it('clears the search when the field is emptied', async () => {
         driver.given.theCurrentQuery('adobe');
         await driver.when.created();

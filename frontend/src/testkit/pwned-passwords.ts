@@ -74,3 +74,14 @@ export const rangePathsRequested = (): string[] =>
         .requests()
         .filter((request) => request.method === HttpMethod.Get && request.path.startsWith(`${RANGE_PATH}/`))
         .map((request) => request.path);
+
+// The range requests that were abandoned by aborting their signal — the observable half of
+// "the visitor typed on before this answered", which no rendered state can show.
+export const rangeRequestsAbandoned = (): string[] =>
+    fakeHttp
+        .requests()
+        .filter(
+            (request) =>
+                request.method === HttpMethod.Get && request.path.startsWith(`${RANGE_PATH}/`) && request.isAborted(),
+        )
+        .map((request) => request.path);

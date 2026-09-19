@@ -53,6 +53,44 @@ describe('PasswordField', () => {
         driver.assert.rangesRequested(LEAKED_PREFIX);
     });
 
+    it('asks for nothing until the visitor has actually paused', async () => {
+        await driver.given.theRangeSays({ password: LEAKED_PASSWORD, count: LEAK_COUNT });
+        await driver.when.created();
+        await driver.type.password(LEAKED_PASSWORD);
+        await driver.when.almostThePausePasses();
+        driver.assert.rangesRequested();
+        await driver.when.thePausePasses();
+        driver.assert.rangesRequested(LEAKED_PREFIX);
+    });
+
+    it('says nothing about a password the visitor has since deleted', async () => {
+        // The answer to a check nobody is waiting for any more. Aborting the request does not
+        // cover this on its own — an answer already on the wire still arrives — so only the "is
+        // this still the current password" guard keeps it off the screen (BF83).
+        await driver.given.theRangeIsSlowToSay({ password: LEAKED_PASSWORD, count: LEAK_COUNT });
+        await driver.when.created();
+        await driver.type.password(LEAKED_PASSWORD);
+        await driver.when.thePausePasses();
+        await driver.clear.password();
+        await driver.when.theSlowRangeArrives();
+        driver.assert.noWarningIsShown();
+        driver.assert.noUncheckedNoteIsShown();
+    });
+
+    it('abandons the range it asked for when the visitor types on', async () => {
+        // The request itself, not only its answer: a superseded check that is never aborted
+        // leaves the browser holding a request whose answer nobody may use (BF83).
+        await driver.given.theRangeIsSlowToSay({ password: LEAKED_PASSWORD, count: LEAK_COUNT });
+        await driver.given.theRangeIsCleanFor(ANOTHER_PASSWORD);
+        await driver.when.created();
+        await driver.type.password(LEAKED_PASSWORD);
+        await driver.when.thePausePasses();
+        driver.assert.rangesAbandoned();
+        await driver.type.password('1');
+        await driver.when.thePausePasses();
+        driver.assert.rangesAbandoned(LEAKED_PREFIX);
+    });
+
     it('ignores a stale range that arrives after the password was changed and re-checked', async () => {
         // The first password's range is slow and says "leaked"; the visitor edits it into a clean
         // one before it lands. The late answer must not warn about a password no longer in the box.

@@ -12,6 +12,7 @@ import { PASSWORD_CHECK_DEBOUNCE_MS, PASSWORD_LABEL, PasswordFieldTestIds } from
 import {
     RANGE_PATH,
     rangePathsRequested,
+    rangeRequestsAbandoned,
     theProxyFailsFor,
     theRangeIsCleanFor,
     theRangeIsSlowToSay,
@@ -39,14 +40,18 @@ export type PasswordFieldDriver = {
     when: {
         created: () => Promise<void>;
         thePausePasses: () => Promise<void>;
+        almostThePausePasses: () => Promise<void>;
         theSlowRangeArrives: () => Promise<void>;
     };
     type: { password: (text: string) => Promise<void> };
+    clear: { password: () => Promise<void> };
     assert: {
         checkingIsShown: () => void;
         leakedWarningIsShown: (count: number) => void;
         noWarningIsShown: () => void;
         uncheckedNoteIsShown: () => void;
+        noUncheckedNoteIsShown: () => void;
+        rangesAbandoned: (...prefixes: string[]) => void;
         rangesRequested: (...prefixes: string[]) => void;
         fieldIsEditable: () => void;
         fieldIsNamedByItsLabelAlone: () => void;
@@ -105,6 +110,13 @@ export const makePasswordFieldDriver = (): PasswordFieldDriver => {
                     await settleNativeAsyncWork();
                 });
             },
+            // One millisecond short of the pause: advancing by exactly the constant proves one
+            // request per settle and nothing about the wait, so a debounce of 0 passes it (BF85).
+            almostThePausePasses: async (): Promise<void> => {
+                await act(async () => {
+                    vi.advanceTimersByTime(PASSWORD_CHECK_DEBOUNCE_MS - 1);
+                });
+            },
             theSlowRangeArrives: async (): Promise<void> => {
                 const release = releaseSlowRange;
                 if (release === undefined) throw new Error('PasswordFieldDriver: no range is waiting to be released');
@@ -119,6 +131,11 @@ export const makePasswordFieldDriver = (): PasswordFieldDriver => {
                 for (const character of Array.from(text)) {
                     await setFieldValue(`${field().value}${character}`);
                 }
+            },
+        },
+        clear: {
+            password: async (): Promise<void> => {
+                await setFieldValue('');
             },
         },
         assert: {
@@ -137,6 +154,12 @@ export const makePasswordFieldDriver = (): PasswordFieldDriver => {
             },
             uncheckedNoteIsShown: (): void => {
                 expect(screen.getByTestId(PasswordFieldTestIds.Unchecked)).toBeInTheDocument();
+            },
+            noUncheckedNoteIsShown: (): void => {
+                expect(screen.queryByTestId(PasswordFieldTestIds.Unchecked)).not.toBeInTheDocument();
+            },
+            rangesAbandoned: (...prefixes: string[]): void => {
+                expect(rangeRequestsAbandoned()).toStrictEqual(prefixes.map((prefix) => `${RANGE_PATH}/${prefix}`));
             },
             rangesRequested: (...prefixes: string[]): void => {
                 expect(rangePathsRequested()).toStrictEqual(prefixes.map((prefix) => `${RANGE_PATH}/${prefix}`));
