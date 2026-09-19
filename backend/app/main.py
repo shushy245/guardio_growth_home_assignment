@@ -41,11 +41,16 @@ def create_app(
     session_factory = build_session_factory(build_engine(database_url=settings.database_url))
 
     @asynccontextmanager
-    async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+    async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         """Sync the catalog before the first request, so nobody is served an empty table while a
-        fetch is in flight. Blocking here is the point: the app is not ready until it is."""
+        fetch is in flight. Blocking here is the point: the app is not ready until it is.
+
+        The factory is read from `app.state`, not closed over: it is the same object either way
+        in production, and in a test it is the one the harness swapped in — a boot over the
+        closed-over factory wrote past the savepoint and into the test database for real.
+        """
         sync_catalog_in_own_transaction(
-            session_factory=session_factory, catalog=catalog, now=datetime.now(UTC)
+            session_factory=app.state.session_factory, catalog=catalog, now=datetime.now(UTC)
         )
         yield
 

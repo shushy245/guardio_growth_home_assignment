@@ -214,6 +214,13 @@ class _When:
     def two_overlapping_requests(self, correlation_ids: tuple[str, str]) -> None:
         self._driver._perform_concurrently(correlation_ids)
 
+    def the_app_starts_up(self) -> None:
+        """Run the lifespan, as the server does on boot. Entering `TestClient` as a context
+        manager is the only way the startup hook runs at all: a plain request through the
+        client skips it, which is why the sync's *call* was untested wiring (BF77)."""
+        with TestClient(self._driver._app()):
+            pass
+
 
 class _Then:
     def __init__(self, driver: HttpDriver) -> None:
@@ -233,6 +240,10 @@ class _Then:
         body = self._driver._last.json()
         assert set(body) == {"error"}, f"error body must be exactly {{error}}, got {body}"
         assert isinstance(body["error"], str) and body["error"], "error must be a non-empty string"
+
+    def the_catalog_was_fetched(self, times: int) -> None:
+        actual = self._driver._catalog.fetch_count
+        assert actual == times, f"expected {times} catalog fetch(es), the source saw {actual}"
 
     def body_lacks(self, fragment: str) -> None:
         assert fragment not in self._driver._last.text, f"response body leaked {fragment!r}"
