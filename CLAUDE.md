@@ -49,9 +49,31 @@ in-app statistical dashboard.
 - The fake network matches a route's path exactly (or a bare path against the request's pathname): a route registered on `/x` never answers `/x/segment`, and the miss is a silent 599, not a loud failure — register per segment (S6 review, R-2).
 
 ## What's done
+
 Full history: `docs/changelog.md`; commit-level record: `git log`.
 
-- **S8 — docs (closed 2026-09-19).** The repo could be run but not read: the README held a
+- **audit-fixes — the whole-tree audit's fix pass (closed 2026-09-20).** Four Opus reviews had
+  read the repo as one unit and left 28 findings triaged and untouched, with seventeen mutations
+  to production code that no test failed. All closed. The one that mattered: the experiment read
+  counted each rate's numerator and denominator independently, so a visitor who activated without
+  completing a scan gave `successes > trials` — a rate over 100%, then a permanent 500 once the
+  pooled rate passed 1. Also: a fully powered significant loss can now say `KEEP_CONTROL`; the
+  sign-up fields stopped taking their error text into their accessible names; a `*` route and an
+  error boundary replace two ways of reaching a blank document; health proves the database
+  answers; `useLoadedState` is the one shape for a mount-time load and closes BF58; StrictMode is
+  every driver's default. 30 commits, 269 backend + 241 frontend green.
+  Technically: the read is one CTE self-joined per visitor, so a metric's numerator is counted
+  over the visitors who reached its denominator and `successes <= trials` holds by construction
+  (`Proportion` refuses the impossible pair at construction); the `signal` convention for
+  `src/api/**` is written out once in `http-client.ts` — required where the inputs change, absent
+  where a one-shot load or a write would be cancelled for nothing; `eslint.config.mjs` composes
+  the boundary null exemption out of the shared config instead of `off`; `visitor_assignment.
+  flag_key` is indexed; `$color-border-control` (3.29:1) is deviation 15. Decided and recorded
+  rather than changed: the flag-save's orphan race (BF71) and the strict query model (BF76).
+  Reviews: `docs/reviews/full-audit-2026-09-19.md` (the findings),
+  `docs/reviews/audit-fixes-visual-review.md` (the pass over the result).
+
+ **S8 — docs (closed 2026-09-19).** The repo could be run but not read: the README held a
   run recipe and the admin note, nothing answered the brief's first question, and the ADRs
   had no index. Now: a README a reviewer reads in minutes (run, product calls, experiment and
   flag how-to, the read and the call, stack, time spent), `docs/writeup.md` (approach, where
@@ -109,22 +131,26 @@ Full history: `docs/changelog.md`; commit-level record: `git log`.
   the spinner-on-disabled contrast fixed from the code review. Triage in `docs/plan.md`.
 
 ## What's next
-**Full-codebase audit fix pass. Next.** Four Opus reviews (2026-09-19) are triaged in
-`docs/plan.md` → "Full-codebase audit (four agents on Opus, 2026-09-19)": BF60–BF87 plus a
-docs-drift list. **BF60 first**: the experiment read counts numerator and denominator steps
-independently, so a rate can exceed 100% and the endpoint then answers a permanent 500. Record:
-`docs/reviews/full-audit-2026-09-19.md`. S8 (docs) closed; E2 stretch stories (S9–S14) stand
-behind the fix pass. Reader-facing docs stay short — a change to behaviour updates the README in
-the same commit, in as few words as the fact needs.
+**Nothing is queued.** The audit fix pass closed every box in `docs/plan.md` →
+"Full-codebase audit"; the E2 stretch stories (S9 Bayesian read, S10 guardrail with its own CI,
+S11 Cypress e2e, S14 peeking warning) are the next candidates and none is started. Reader-facing
+docs stay short — a change to behaviour updates the README in the same commit, in as few words
+as the fact needs.
 
 Carried, deliberately: the design's `Button` ghost variant has no consumer and is not built; the
-`/admin` variant cards are not tinted by tone (deviation 6); BF58 (admin flag-list effect under
-StrictMode) and BF59 (Argon2 memory × concurrency on an unauthenticated route) stand; DV3 and the
-unmeasured authenticated `/admin` states from D1 stand. Unmeasured in S7: the `ship` and `stop`
-banners, the loading and error states, non-text contrast of the bar fills, real reduced motion.
-RF-backlog (S7): R-8, V5, V9's precondition — see the S7 triage in `docs/plan.md`.
+`/admin` variant cards are not tinted by tone (deviation 6, now stated as a deviation rather than
+a plan); BF59 (Argon2 memory × concurrency on an unauthenticated route) stands; the visitor
+provider has a `reload` with no caller, because no screen tells a visitor their session failed
+and building one is a product decision; DV3 and the unmeasured authenticated `/admin` states from
+D1 stand. Unmeasured in S7: the `ship` and `stop` banners, the loading and error states, non-text
+contrast of the bar fills, real reduced motion. Unmeasured in the audit pass: `/scan` under
+Lighthouse (it redirects on its own), reduced motion under the real media feature, keyboard order
+at 390, and the `calm` arm of the result screen. RF-backlog: the audit's own "RF-backlog
+additions" block (dead code whose precondition expired, duplicated knowledge, structure) plus
+S7's R-8, V5 and V9's precondition — all in `docs/plan.md`.
 
-Review records: `docs/reviews/full-audit-2026-09-19.md`, `docs/reviews/s7-visual-review.md`, `docs/reviews/s6-visual-review.md`,
-`docs/reviews/s5-visual-review.md`, `docs/reviews/s3-review.md`,
-`docs/reviews/s3-fixes-visual-review.md`, `docs/reviews/d1-visual-review.md`, and the S4–S7
-triages in `docs/plan.md`.
+Review records: `docs/reviews/audit-fixes-visual-review.md`,
+`docs/reviews/full-audit-2026-09-19.md`, `docs/reviews/s7-visual-review.md`,
+`docs/reviews/s6-visual-review.md`, `docs/reviews/s5-visual-review.md`,
+`docs/reviews/s3-review.md`, `docs/reviews/s3-fixes-visual-review.md`,
+`docs/reviews/d1-visual-review.md`, and the S4–S7 triages in `docs/plan.md`.

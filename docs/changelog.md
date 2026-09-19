@@ -3,6 +3,37 @@
 The product diary: one entry per story, newest first, in the words of someone who never saw the
 code. Commit-level detail lives in `git log`; the plan holds what is still ahead.
 
+## audit-fixes — the whole-tree audit's fix pass (closed 2026-09-20)
+
+- **Pain** — Four independent reviews had read the whole repository as one unit and left 28
+  findings triaged but untouched. The worst of them: the experiment read counted each rate's two
+  halves separately, so a visitor who signed up without completing a scan could push a
+  conversion rate above 100% — and once the pooled rate passed 1, the dashboard's own endpoint
+  answered a 500 that never cleared, because the rows stay. Beside it, seventeen mutations the
+  reviewers made to production code had not failed a single test.
+- **Fix** — Every box closed. The read now counts each rate over the visitors who could have
+  converted at all, so more successes than trials is impossible by construction. A fully powered,
+  significant *loss* can now say "keep the control" instead of "keep running". The sign-up's
+  fields stopped announcing their error messages as their own names. A page that throws, and a
+  URL that matches nothing, now show a way out instead of a blank white document. Health says
+  503 when the database cannot answer, rather than "ok" beside endpoints that all fail. The two
+  mount-time loads share one shape, which closed a double fetch that had been certified as
+  single for two stories. And every driver renders the way the app actually runs.
+- **Trade-off** — Two findings were decided rather than changed, with the reasoning written next
+  to the code: the flag-save's orphan guard races visitor creation, and closing it properly would
+  serialise the funnel's entry point against an admin write to protect one visitor whose stale
+  assignment already reads as the control; and an unknown query parameter stays a 400, because a
+  typo'd filter answering with the whole catalogue is the failure a list endpoint can least
+  afford. A third — a retry for a failed visitor session — is carried: the hook has one, and
+  there is no screen to put it on.
+- **Result** — 269 backend and 241 frontend tests green, every one of the seventeen mutations now
+  failing. The published read moved by three visitors (7.4% against 9.8%, p = 0.008) and the
+  README, the decision record and the recorded response were re-stated to match. An independent
+  visual reviewer measured seven screens at three widths: no overflow anywhere, no text under
+  16px, accessibility 100 on every screen it could audit, and one real finding — a page built
+  from an error panel had no heading of its own, fixed and re-measured. 30 commits.
+  Record: `docs/reviews/audit-fixes-visual-review.md`.
+
 ## S8 — docs (closed 2026-09-19)
 
 - **Pain** — The repo could be run but not read: the README held a run recipe and the admin
