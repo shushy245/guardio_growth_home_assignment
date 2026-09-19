@@ -44,3 +44,14 @@ def test_a_run_against_an_api_it_cannot_walk_gives_up_instead_of_filling_the_tab
     simulation.when.traffic_is_simulated_against_a_failing_api(visitors=200)
 
     simulation.then.the_run_gave_up_after_the_failure_threshold()
+
+
+def test_a_run_missing_an_arms_activation_rate_says_so_rather_than_guessing(
+    simulation: SimulationDriver,
+) -> None:
+    """The arm is the server's choice, so a rate for every arm the flag can assign is the
+    simulator's precondition; walking an unnamed arm with another's rate would encode an effect
+    nobody asked for (BF86)."""
+    simulation.when.traffic_is_simulated_with_a_rate_for_only_one_arm(visitors=200)
+
+    simulation.then.the_failure_named_the_arm_with_no_rate()

@@ -1,6 +1,8 @@
 """Variant assignment is a pure rule — a visitor id, a flag key and the weights in, a variant
 key out — so it is asserted directly with no database and no HTTP."""
 
+import pytest
+
 from app.feature_flags.assignment import assign_variant, bucket_for
 from tests.builders.weighted_variant import a_variant
 
@@ -78,3 +80,17 @@ def test_a_variant_weighted_zero_is_never_assigned_even_to_the_first_bucket() ->
         assign_variant(visitor_id="vis_103", flag_key="result_screen_tone", variants=split)
         == "calm"
     )
+
+
+def test_a_split_that_leaves_a_bucket_unassigned_raises_naming_the_flag_and_the_visitor() -> None:
+    """The backstop under the two guards that should have caught it first — the update schema on
+    write and `list_enabled_splits` on read. It had never been exercised (BF86), and it is what
+    turns a corrupt row into one loud error naming what to look at instead of a 500 with a
+    traceback into the middle of the assignment loop."""
+    short_split = [a_variant().with_key("calm").with_weight(10).build()]
+
+    with pytest.raises(ValueError, match="result_screen_tone") as error:
+        assign_variant(visitor_id="vis_0", flag_key="result_screen_tone", variants=short_split)
+
+    assert "vis_0" in str(error.value)
+    assert "10" in str(error.value)

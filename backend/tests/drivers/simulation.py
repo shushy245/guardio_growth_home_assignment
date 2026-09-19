@@ -97,6 +97,23 @@ class _When:
             run_id=RUN_ID,
         )
 
+    def traffic_is_simulated_with_a_rate_for_only_one_arm(self, *, visitors: int) -> None:
+        """Rates naming one arm while the flag assigns two: the visitors the server puts in the
+        unnamed arm cannot be walked, and walking them with the other arm's rate would encode an
+        effect nobody asked for."""
+        self._driver._http.given.env(Env.DEV)
+        app = self._driver._http._app()
+        self._driver._visitors_sent = visitors
+        with pytest.raises(SimulationError) as failure:
+            simulate_traffic(
+                visitors=visitors,
+                activation_rates={"calm": ACTIVATION_RATES["calm"]},
+                rng=random.SystemRandom(),
+                open_browser=lambda: TestClient(app),
+                run_id=RUN_ID,
+            )
+        self._driver._failure = failure.value
+
     def traffic_is_simulated_against_a_failing_api(self, *, visitors: int) -> None:
         with pytest.raises(SimulationError) as failure:
             self.traffic_is_simulated(visitors=visitors)
@@ -154,6 +171,11 @@ class _Then:
             .where(FunnelEventRow.metadata_["runId"].astext.is_distinct_from(RUN_ID))
         ).scalar_one()
         assert unmarked == 0, f"{unmarked} events do not name the run that wrote them"
+
+    def the_failure_named_the_arm_with_no_rate(self) -> None:
+        failure = self._driver._failure
+        assert failure is not None, "no failure was recorded"
+        assert "urgent" in str(failure), f"the failure does not name the unwalkable arm: {failure}"
 
     def the_run_gave_up_after_the_failure_threshold(self) -> None:
         """It kept going past the first failure and stopped before walking everybody: one
