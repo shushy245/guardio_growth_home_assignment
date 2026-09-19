@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router';
 
 import { MainColumn } from '~/ui/box';
 import { ErrorState } from '~/components/ErrorState';
+import { ErrorStateKind } from '~/components/ErrorState.utils';
 import {
     NOT_FOUND_ACTION_LABEL,
     NOT_FOUND_DESCRIPTION,
@@ -29,6 +30,7 @@ export const NotFound = (): ReactElement => {
                 title={NOT_FOUND_TITLE}
                 description={NOT_FOUND_DESCRIPTION}
                 retryLabel={NOT_FOUND_ACTION_LABEL}
+                kind={ErrorStateKind.Page}
                 onRetry={handleGoToScan}
             />
         </MainColumn>

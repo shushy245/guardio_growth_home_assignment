@@ -10,6 +10,7 @@ import { Column, MainColumn, Row } from '~/ui/box';
 import { ErrorState } from '~/components/ErrorState';
 import { fetchExperimentResults } from '~/api/experiments';
 import { HypothesisCard } from '~/components/HypothesisCard';
+import { ErrorStateKind } from '~/components/ErrorState.utils';
 import { RESULT_SCREEN_TONE_FLAG } from '~/models/featureFlag';
 import { describeError, isCancelled } from '~/api/http-client';
 import type { ExperimentResultModel } from '~/models/experimentResult';
@@ -80,6 +81,7 @@ const Body = ({ state, onRetry }: { state: DashboardState; onRetry: () => void }
                 title={LOAD_FAILED_TITLE}
                 description={LOAD_FAILED_DESCRIPTION}
                 retryLabel={RETRY_LABEL}
+                kind={ErrorStateKind.Panel}
                 onRetry={onRetry}
             />
         );

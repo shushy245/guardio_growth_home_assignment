@@ -60,6 +60,7 @@ describe('App', () => {
         driver.given.route('/a-url-that-matches-nothing');
         await driver.when.created();
         driver.assert.notFoundIsShown();
+        driver.assert.notFoundIsTitledByAHeading();
     });
 
     it('records no step and enrols nobody at a URL that matches nothing', async () => {

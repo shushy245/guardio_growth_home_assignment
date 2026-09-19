@@ -9,6 +9,7 @@ import { Component, type ErrorInfo, type ReactElement, type ReactNode } from 're
 
 import { logger } from '~/logging/logger';
 import { ErrorState } from '~/components/ErrorState';
+import { ErrorStateKind } from '~/components/ErrorState.utils';
 import {
     type ErrorBoundaryState,
     FAILED,
@@ -41,6 +42,8 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, ErrorBound
 
 // The tree that threw is the one React just unmounted, so re-rendering it is not on offer: a
 // fresh document is the only honest way out, and the visitor is told that is what the button does.
+// `Page`, not `Panel`: whatever heading the screen had went with the tree, so this title is the
+// document's only one.
 const RenderFailure = (): ReactElement => {
     const handleReload = (): void => {
         window.location.reload();
@@ -51,6 +54,7 @@ const RenderFailure = (): ReactElement => {
             title={RENDER_FAILURE_TITLE}
             description={RENDER_FAILURE_DESCRIPTION}
             retryLabel={RENDER_FAILURE_ACTION_LABEL}
+            kind={ErrorStateKind.Page}
             onRetry={handleReload}
         />
     );

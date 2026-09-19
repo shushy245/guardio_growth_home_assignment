@@ -12,6 +12,7 @@ import { generateUniqueId } from '~/shared/ids.utils';
 import { useScanMoment } from '~/hooks/useScanMoment';
 import { FunnelEventName } from '~/models/funnelEvent';
 import { useAnalytics } from '~/providers/AnalyticsProvider';
+import { ErrorStateKind } from '~/components/ErrorState.utils';
 import { useBreachCatalog } from '~/providers/BreachCatalogProvider';
 import { hasCatalogFailed, isCatalogReady } from '~/providers/BreachCatalogProvider.utils';
 import {
@@ -47,6 +48,7 @@ export const Scan = (): ReactElement => {
                     title={SCAN_FAILED_TITLE}
                     description={SCAN_FAILED_DESCRIPTION}
                     retryLabel={SCAN_RETRY_LABEL}
+                    kind={ErrorStateKind.Panel}
                     onRetry={retry}
                 />
             ) : (

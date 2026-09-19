@@ -7,6 +7,7 @@ import type { ReactElement } from 'react';
 import { Column } from '~/ui/box';
 import { BreachRow } from '~/components/BreachRow';
 import { ErrorState } from '~/components/ErrorState';
+import { ErrorStateKind } from '~/components/ErrorState.utils';
 import { useBreachCatalog } from '~/providers/BreachCatalogProvider';
 import { CLEAR_FILTERS_LABEL, withoutFilters } from '~/components/BreachFilters.utils';
 import {
@@ -45,6 +46,7 @@ export const BreachList = (): ReactElement => {
                 title={LIST_FAILED_TITLE}
                 description={LIST_FAILED_DESCRIPTION}
                 retryLabel={LIST_RETRY_LABEL}
+                kind={ErrorStateKind.Panel}
                 onRetry={retry}
             />
         );

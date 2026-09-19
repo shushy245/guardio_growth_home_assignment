@@ -8,10 +8,10 @@ import { AdminTestIds } from '~/pages/Admin.utils';
 import { SignupTestIds } from '~/pages/Signup.utils';
 import { LandingTestIds } from '~/pages/Landing.utils';
 import { FunnelEventName } from '~/models/funnelEvent';
-import { NotFoundTestIds } from '~/pages/NotFound.utils';
 import { ProtectedTestIds } from '~/pages/Protected.utils';
 import { fakeHttp, HttpMethod } from '~/testkit/fake-http';
 import { renderWithProviders } from '~/testkit/renderWithProviders';
+import { NOT_FOUND_TITLE, NotFoundTestIds } from '~/pages/NotFound.utils';
 import { postedSteps, respondToFunnelEvents } from '~/testkit/funnel-events';
 
 export type AppDriver = {
@@ -23,6 +23,7 @@ export type AppDriver = {
         signupIsShown: () => void;
         protectedIsShown: () => void;
         notFoundIsShown: () => void;
+        notFoundIsTitledByAHeading: () => void;
         visitorsCreated: (count: number) => void;
         flagListsFetched: (count: number) => void;
         stepsPosted: (name: FunnelEventName, count: number) => Promise<void>;
@@ -70,6 +71,12 @@ export const makeAppDriver = (): AppDriver => {
             },
             notFoundIsShown: (): void => {
                 expect(screen.getByTestId(NotFoundTestIds.Page)).toBeInTheDocument();
+            },
+            // A page's own title is its `h1`. The error panel this page is built from says its
+            // title in a `p role="alert"`, which is right inside a page that has a heading of
+            // its own and leaves this one with no headings at all (visual pass, V2).
+            notFoundIsTitledByAHeading: (): void => {
+                expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(NOT_FOUND_TITLE);
             },
             visitorsCreated: (count: number): void => {
                 expect(requestsTo(HttpMethod.Post, '/visitors')).toBe(count);
