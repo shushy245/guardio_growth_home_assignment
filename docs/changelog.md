@@ -25,9 +25,12 @@ code. Commit-level detail lives in `git log`; the plan holds what is still ahead
 - **Result** — 31 cases (F0–F30, 9 of them from the story-start pre-mortem and mid-story
   additions), each named by a test; 56 frontend tests added (95→151), 12 of the green-on-arrival
   cases pinned by a mutation that fails only them; 21 commits, every one red-first or a pure
-  refactor. Two independent visual passes, one per variant: the urgent run measured every screen
+  refactor. Three independent visual passes, urgent then calm then a confirmation: the urgent run measured every screen
   at three widths with accessibility 100 on each and found one tap-target defect and three render
-  defects, all fixed the same day; RUN_2_SUMMARY Record: `docs/reviews/s5-visual-review.md`.
+  defects, all fixed the same day; the calm run confirmed the fixes and measured the one
+  thing the tests cannot — the same button computes the calm colour under one class and the
+  urgent colour under the other, so the A/B test's two looks are now proved on screen, not only
+  in a stylesheet. Record: `docs/reviews/s5-visual-review.md`.
 
 ## D1 — design handoff (closed 2026-09-19)
 

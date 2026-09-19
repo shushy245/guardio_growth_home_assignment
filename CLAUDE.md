@@ -54,10 +54,12 @@ Full history: `docs/changelog.md`; commit-level record: `git log`.
   390 and inline in the header at 768+ by CSS alone — and every sort and filter is a server query.
   A visitor outside the experiment gets the calm control framing from a frontend constant
   (ADR-0004, a deliberate second home for the copy). 31 cases, 151 frontend tests, 21 commits;
-  every green-on-arrival case mutation-proved. Two independent visual passes (urgent then calm,
+  every green-on-arrival case mutation-proved. Three independent visual passes (urgent, calm, confirmation,
   the split retuned between them): accessibility 100 on all three screens, V1–V7 fixed the same
   day, V8–V11 recorded with their preconditions in `docs/reviews/s5-visual-review.md`.
-  RUN_2_SUMMARY
+  **D1 finding 1 is fully closed:** the CTA computes `#003b3e` under `toneCalm` and `#681500`
+  under `toneUrgent`, measured. Unmeasured, stated: every interactive and error state
+  (`visual-review-deep` on request), the real reduced-motion feature, `/result` below the fold.
   Technically: `FunnelProviders` (visitor → analytics → `BreachCatalogProvider`) on the funnel
   layout route, reused verbatim by every page driver; the catalog provider owns summary + list
   state on one request descriptor (`isEnabled`/`attempt`/`filters`/`page`) answered by two

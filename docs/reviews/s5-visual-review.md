@@ -1,12 +1,13 @@
 # S5 — visual review (2026-09-19)
 
-Two independent `visual-reviewer` runs against the rebuilt compose bundle, each told only the
+Three independent `visual-reviewer` runs against the rebuilt compose bundle, each told only the
 changed paths, the URLs and procedural steps (a fresh browser context; report every button's
 computed colours). The experiment's split was retuned to 100/0 between the runs so a first-time
 visitor was assigned one variant, then the other; restored to 50/50 afterwards. Run 1 covered `/`,
 `/scan` and `/result` under the **urgent** variant with pass A + B; run 2 covered `/result` under
 the **calm** variant with pass A on the bundle carrying run 1's fixes, so it is also the
-confirmation pass for those.
+confirmation pass for those. Run 3 covered `/result` again (calm, pass A) on the bundle carrying
+V5's second fix, and measured the edges it was about.
 
 ## Triage
 
@@ -14,15 +15,23 @@ confirmation pass for those.
 |---|---|---|---|
 | V1 | Verified-only input measures **44×26** at every viewport (the label around it is 44 tall) | measured, tap target | **Fixed** (`187a528`): the input is the 44×44 hit area, the 26px track is drawn inside it with pseudo-elements |
 | V2 | "Credential" breaks **mid-word** in the Largest-breach tile at 768 | observed | **Fixed**: `overflow-wrap: anywhere` → `break-word` (both tile value and row title), and the largest-breach *name* reads at `$text-300` — a name is not a number, and at 28px bold it needed six lines in a 768 tile |
-| V3 | Tiles stretch to the tallest, ~140px empty at 1280, ~400px at 390 | observed | **Reduced by V2's fix** (the name no longer needs six lines); equal-height tiles are the design's, so the residual is not a defect. Run 2 measures the result |
+| V3 | Tiles stretch to the tallest, ~140px empty at 1280, ~400px at 390 | observed | **Reduced by V2's fix**, not removed: run 2 sees the name on four lines at 390/768 and two at 1280, with blank area still beneath the number tiles. Equal-height rows are the design's; the residual is a long title's content, recorded rather than fought |
 | V4 | Chip scroller clips the fourth chip at 390 with no affordance | observed | **Fixed**: a right-edge `mask-image` fade on the scroller, removed at md+ where the chips wrap |
-| V5 | Header and body do not share a left/right edge at 1280 (h1 at x=64, tiles at x=144) | observed | **Fixed**: the header band stays full-bleed, its row shares the body's `$content-max` cap |
+| V5 | Header and body do not share a left/right edge at 1280 (h1 at x=64, tiles at x=144) | observed | **Fixed twice.** The first fix capped the header's row and run 2 measured the gap at 64px (h1 at x=80, tiles at x=144): the header capped an unpadded row while the body capped a padded border-box. The body is now the header's band-and-row shape (`c30ed64`); run 3 measures both edges |
 | V6 | Line-length boxes >75ch: the synced line (95/134ch) and every row meta line (113ch) | measured, with the reviewer's caveat that the strings are shorter and do not wrap | **Fixed** for hygiene: both capped at `$prose-measure`, so the box the script measures is the measure |
 | V7 | Console: the search `<input>` has no `id` or `name` | measured | **Fixed**: `name="q"` |
 | V8 | Tab order diverges from visual order **at 390**: the CTA is first in the DOM and rendered at the bottom | observed (from the 1280 traversal + the 390 capture) | **Recorded, not fixed.** One node, two placements (deviation 2): whichever end of the DOM it sits at, one width tabs it out of visual order. First is the choice — the primary action is reached first from the top of the document — and it is the precondition of deviation 2, written there |
 | V9 | `/scan` has no heading of any level | measured (pass B) | **Recorded**: a transient two-second state announced through `role="status"`; a heading would be read once and gone. Reopen if the moment ever holds longer |
 | V10 | `/result` CLS **0.047** (Lighthouse scores it 0.99, lists it as failing) | measured | **Recorded**: under the 0.1 "good" line; the shift is the skeleton→rows swap and the count-up. Revisit if a later story adds shift above the fold |
+| V12 | (run 3) at 390 the fixed CTA bar covers a row's chevron mid-scroll | observed | **Recorded, precondition written:** the page reserves `padding-bottom` equal to the bar's height (`$sticky-bar-height` in `Result.module.scss`), so every row scrolls clear of the bar at the end of the page; a row under the bar mid-scroll is what a fixed bar is. Nothing is unreachable |
+| V13 | (runs 2 and 3) the subheadline measures 37–43 characters, under the 45 floor | measured | **Recorded, not a defect:** it is one sentence of product-owned copy from the flag, not running prose; the floor is for paragraphs |
 | V11 | `/result` has no `h2`–`h6`: tiles, filters and the list are not headed sections | measured (pass B) | **Recorded** as an S6/S7 candidate: the design has no section headings; adding them is a deviation to decide, not a fix to slip in |
+
+**Run 3 (calm) confirmed V5:** at 768 the `h1` and the first tile both start at x=32; at 1280
+both start at x=80 and the CTA's right edge equals the last tile's (1200). Every measured check
+passes at all three widths, console clean on both reads.
+
+**Run 2 (calm) confirmed:** zero tap targets under 44×44 (the switch input is 44×44), no word broken inside any tile at 768 or 1280, no line-length box over 75 characters, the chip scroller's right-edge fade computed, console empty on both reads, `<main>` carrying `_toneCalm_…`. **The tone seam re-points by class alone, measured:** the CTA computes `rgb(0, 59, 62)` (`#003b3e`, calm accent-strong) under `toneCalm` and `rgb(104, 21, 0)` (`#681500`, urgent accent-strong) under `toneUrgent`, with Load more's text following the same pair — the second half of D1's finding 1, now closed. Run 2's script-level label read returned empty for the row toggles; run 1's pass B named them by `aria-label` "Show details" and its `button-name` audit passed, so this is the probe, not the control.
 
 **Unmeasured and stated as such** (from run 1's own list): the calm variant (run 2 covers it);
 every interactive and error state (row expanded, chip selected, search typed, sort changed, Load
@@ -192,4 +201,130 @@ Text renders crisply at all three widths on this screen; the row meta lines, bad
 
 ## Run 2 — verbatim report (calm variant, `/result`, pass A, confirmation of V1–V7)
 
-RUN_2_VERBATIM
+VISUAL PASS A — screen: http://localhost:5173/result (one screen, three viewports)
+
+Proof the change is live: served stylesheet is `/assets/index-DBAHvjU-.css` (the hash you named), and `<main>` carries `_toneCalm_lrmdz_9` from the changed `Result.module.scss`. No rebuild was needed and nothing in the stack was changed. All measurement ran in a fresh isolated browser context (`vr-fresh`, empty jar/storage); at the end `localStorage` (`breach-scan.visitorId`) and `sessionStorage` were cleared and the page/context was closed. An unrelated pre-existing page in context `vr-clean` was left untouched.
+
+== MEASURED ==
+
+Source signals (one grep over all 11 changed files, patterns: max-width media query, matchMedia/isMobile/innerWidth, `width:<n>px`, `min-width:<digit>`, `100vh`):
+- No `@media ... max-width` anywhere in the changed files — no non-mobile-first query found.
+- No `matchMedia`, no `isMobile` prop/state, no `innerWidth` read in `BreachSummary.tsx`, `SearchField.tsx`, `Result.tsx`, `Result.utils.ts`, `BreachSummary.utils.ts` — no width branch in the components.
+- No `100vh` (and no `100dvh` needed anywhere the grep could see).
+- Four px-literal hits, none a container width: `BreachRow.module.scss:33 min-width: 0`, `BreachSummary.module.scss:23 min-width: 0` (flex min-size fixes), `BreachFilters.module.scss:85 width: 20px` (an icon), `BreachFilters.module.scss:145 width: 1px` (visually-hidden clip). No breakpoint literal outside a token; the only `min-width: 390px` text is a comment in `tokens.scss:15`.
+
+Measurement script (run verbatim from ~/.claude/docs/visual-review-script.js) at each viewport:
+- Horizontal overflow: none at any viewport. `documentElement.scrollWidth` = 390 / 768 / 1280, equal to the visual viewport each time.
+- Offenders past the viewport right edge: at 390 only, two chips — `BUTTON._chip` right=477 (w 109) and right=602 (w 118). Their parent `_row _chips` is `overflow-x: auto`, `scrollWidth` 586 vs `clientWidth` 358, so these are inside a deliberately scrollable strip, not page overflow. No offenders at 768 or 1280.
+- Tap targets under 44x44: none at 390, none at 768, none at 1280 (the script found zero in each run). `BreachFiltersTestIds.VerifiedOnly` is exactly 44x44 at 390.
+- Body text under 16px: none at any of the three viewports.
+- Line length outside 45–75 characters: every flagged block is **short** (below 45), never above 75. At 390: 32 blocks, 14–43 chars — e.g. subheadline "Here's the public record of da…" 18px / 43 chars, tile label "Breaches, last 12 months" 16px / 19 chars, every breach meta line 16px / 27 chars. At 768: 13 blocks, 13–37 chars (subheadline 37, "Synthient Credential Stuffing…" 20px / 13). At 1280: 13 blocks, 19–37 chars. No block exceeds 75 characters at any viewport.
+
+Buttons — computed `background-color` / `color` (30 button elements per viewport; values are identical at 390, 768 and 1280, so one list covers all three):
+- "Protect me" (`ResultTestIds.Cta`) — bg `rgb(0, 59, 62)`, color `rgb(252, 252, 252)`
+- "Email addresses" (`BreachFiltersTestIds.Chip.Email addresses`) — bg `rgb(255, 255, 255)`, color `rgb(18, 28, 35)`
+- "Passwords" (`…Chip.Passwords`) — bg `rgb(255, 255, 255)`, color `rgb(18, 28, 35)`
+- "Names" (`…Chip.Names`) — bg `rgb(255, 255, 255)`, color `rgb(18, 28, 35)`
+- "Usernames" (`…Chip.Usernames`) — bg `rgb(255, 255, 255)`, color `rgb(18, 28, 35)`
+- "IP addresses" (`…Chip.IP addresses`) — bg `rgb(255, 255, 255)`, color `rgb(18, 28, 35)`
+- "Newest" (`BreachFiltersTestIds.Sort.Newest`) — bg `rgb(255, 255, 255)`, color `rgb(18, 28, 35)`
+- "Most accounts" (`…Sort.MostAccounts`) — bg `rgba(0, 0, 0, 0)`, color `rgb(78, 87, 93)`
+- "Name" (`…Sort.Name`) — bg `rgba(0, 0, 0, 0)`, color `rgb(78, 87, 93)`
+- 20 × empty text (`BreachRowTestIds.Toggle`, one per row) — bg `rgba(0, 0, 0, 0)`, color `rgb(78, 87, 93)`; no text content and no `aria-label` was found on them by the script's label read (see UNCERTAIN)
+- "Load more" (`BreachListTestIds.LoadMore`) — bg `rgb(255, 255, 255)`, color `rgb(0, 59, 62)`
+
+`<main>` class list — identical at all three viewports: `_column_17g6y_8 _page_lrmdz_23 _toneCalm_lrmdz_9`.
+
+At 768 and 1280:
+- 768 — `h1` left x = 32; first tile (`BreachSummaryTestIds.Tile.RecentBreaches`) left x = 32. Same left edge.
+- 1280 — `h1` left x = 80; first tile left x = 144. **64px apart**; the heading block and the tile grid do not share a left edge at 1280 (they do at 768).
+- Broken words inside tiles: none. Every word in all four `BreachSummaryTestIds.Tile.*` elements resolves to a single line box at 768 and at 1280 (per-word Range rects, zero words with more than one distinct top). Tile computed `word-break: normal`, `overflow-wrap: normal`, `hyphens: manual`.
+- Tile x/width at 768: 32/211/390/569, each 167 wide. At 1280: 144/395/646/897, each 239 wide, all 149 tall.
+
+At 390:
+- Chip container (`_row_17g6y_3 _chips_4t1wv_5`, the direct parent of the `BreachFiltersTestIds.Chip.*` buttons): `mask-image: linear-gradient(90deg, rgb(0, 0, 0) calc(100% - 40px), rgba(0, 0, 0, 0))`, same value for `-webkit-mask-image`; `overflow-x: auto`, scrollWidth 586 vs clientWidth 358. Its parent (`_column _bar`) has `mask-image: none`.
+- `BreachFiltersTestIds.VerifiedOnly`: `INPUT[type=checkbox]`, bounding box x=16, y=602.78, w=44, h=44; `opacity: 1`, `position: relative`, `appearance: none`.
+
+Console (read once, reload with `ignoreCache: true`, read again, both at 1280): **no messages of any type** on either read — no errors, warnings or logs.
+
+== OBSERVED ==
+- The layout reorganizes rather than shrinking. At 390 the four summary tiles are a 2×2 grid, the CTA "Protect me" is a full-width button in a bar pinned to the bottom of the viewport, the five filter chips are a horizontally scrolling strip showing three with a fade at the right edge, and "Verified only" sits above the sort segments. At 768 the tiles are one 4-across row, "Protect me" has moved into the top-right of the header (no bottom bar visible in the viewport capture), all five chips fit inline, and "Verified only" and the sort segments share a row at opposite ends. At 1280 the same 768 arrangement holds at a wider measure. The 390 and 1280 renders are not the same layout.
+- At 1280 the header band (white, full-bleed, containing "Known breaches", the subheadline and "Protect me") runs from x≈80 to x≈1200, while everything below it (tiles, search field, chips, rows) runs from x=144 to x≈1136. The two blocks are visibly inset by different amounts; this is the 64px number above.
+- At 390 and 768 the "Largest breach" tile's value wraps to four and four lines respectively ("Synthient / Credential / Stuffing Threat / Data"), and because the tiles in a row equalise height the neighbouring tiles render with a large empty area below their value — most visible at 390, where "Passwords leaked / 65%" occupies roughly the top third of its tile and the lower two thirds are blank. At 1280 the same value wraps to two lines and the blank area is smaller but still present in the first three tiles.
+- The 20 row-toggle buttons render as a chevron glyph only, with no adjacent text label.
+- No clipped or truncated text, no broken images, no element rendering as though disabled, no obvious font-swap flash or z-index stacking problem in any of the three captures.
+- Text/background pairs seen in the captures: body copy `rgb(18,28,35)` and the muted `rgb(78,87,93)` on white/very light `#f4f7f7`-ish page background; the "Verified" dot and word render dark green on white.
+
+== UNCERTAIN ==
+- Screenshots were viewport-only (`fullPage` not used), the same mode at all three viewports. Everything below the fold — the remaining breach rows, the "Load more" button, and whether the sticky bottom bar reappears at 768/1280 after scrolling — was **not** visually inspected. The measurement script measured the whole document, so the numbers cover it; the render does not.
+- The script's label read returned an empty string for all 20 `BreachRowTestIds.Toggle` buttons, which means no text content and no `aria-label`; I did not probe `aria-labelledby` or a visually-hidden child, so I cannot say the control has no accessible name. Pass B was not requested and no accessibility audit, keyboard traversal, heading-order or focus check was run.
+- Contrast ratios were not computed (that is pass B's `lighthouse_audit`); the colour values above are raw computed values, not ratios.
+- The page rendered as a first-time visitor with the default (calm) tone class. The urgent tone variant, the empty/zero-breach state, loading and error states, and any state behind interaction (a chip pressed, the toggle on, a row expanded, search typed) were not reached or measured.
+- Cookies: `document.cookie` was empty from JS, so any server-set visitor cookie is HttpOnly and could not be cleared from the page. It existed only inside the throwaway isolated context, which was closed at the end of the run, so nothing persists.
+- The 1280 h1/tile 64px offset is reported as a measurement and an observation only; whether the two blocks are intended to share an edge is not something I can determine.
+
+## Run 3 — verbatim report (calm variant, `/result`, pass A, confirmation of V5's second fix)
+
+Environment: fresh isolated browser context (`vr-fresh`), created empty for this run. No rebuild was needed. At the end: `localStorage` cleared (1 key → 0, verified), `sessionStorage` empty, isolated page closed so the context is discarded. Nothing written to the repo. **All three viewports ran; none skipped.**
+
+**Proof the change is live:** served stylesheet is `http://localhost:5173/assets/index-DeWIonYs.css` — the expected hash. `<main>` carries the `Result.module.scss` hashed classes `_page_168k5_23 _toneCalm_168k5_9`.
+
+---
+
+### MEASURED
+
+**Source signals** — one grep over `frontend/src/pages/Result.module.scss` and `Result.tsx`:
+
+- **No `max-width` media query.** Both media queries are `min-width` over tokens: `Result.module.scss:94` `@media (min-width: tokens.$breakpoint-md)`, `Result.module.scss:134` `@media (min-width: tokens.$breakpoint-lg)`.
+- **No width branch in the component.** Searched `matchMedia`, `isMobile`, `innerWidth` across both files — **no matches**.
+- **No hardcoded px width on a container, no non-token breakpoint literal.** Searched `width:\s*[0-9]+px` and `min-width:\s*[0-9]` — **no matches**. The three `max-width` declarations are all tokens: `Result.module.scss:41` and `:90` `max-width: tokens.$content-max`, `:47` `max-width: tokens.$prose-measure`.
+- **No `100vh`.** `Result.module.scss:24` is `min-height: 100dvh`.
+- No `order:`, `row-reverse`, `column-reverse`, `grid-area`/`grid-row`/`grid-column`, or `position: absolute` in `Result.module.scss` — searched, none found.
+
+**Horizontal overflow — passes at all three.** `documentElement.scrollWidth` vs `visualViewport.width`: 390/390, 768/768, 1280/1280. FAIL=false at each.
+
+- At **390** the script listed two offenders: `BUTTON._chip_4t1wv_5` at right 477 (w 109) and right 602 (w 118). Their parent (`_row_17g6y_3 _chips_4t1wv_5`) computes `overflow-x: auto`, scrollWidth 586 / clientWidth 358, right edge 374 — a contained horizontal scroller, not page overflow. At 768 and 1280 the offender list is empty.
+
+**Tap targets ≥ 44×44 — passes at all three.** `tapTargetsUnder44` empty at 390, 768 and 1280.
+
+**Body text ≥ 16px — passes at all three.** `bodyTextUnder16` empty at 390, 768 and 1280. Smallest measured size anywhere is 16px.
+
+**Line length 45–75 characters.** Nothing exceeds 75 at any viewport. Under 45:
+- The only running prose on the screen, the subheadline "Here's the public record of data breaches." at 18px: **43 chars at 390**, **37 chars at 768**, **37 chars at 1280** — below the 45 floor at every viewport.
+- Every other flagged entry is a single-phrase label rather than a paragraph: tile captions ("Breaches, last 12 months" 19 chars at 390 / 17 at 768 / 31 at 1280), the largest-breach title ("Synthient Credential Stuffing…" at 20px, 14/13/23 chars), row titles (19–26 chars), row meta lines ("magairports.com · 2026 · 8.8M accounts" etc., 27 chars at every viewport) and data-class badges ("Partial credit card data" 24, "Browser user agent details" 27).
+
+**`<main>` class list — identical at all three viewports:** `_column_17g6y_8 _page_168k5_23 _toneCalm_168k5_9`
+
+**Requested x-coordinates (CSS px, left / right):**
+
+| element | 768 | 1280 |
+|---|---|---|
+| `h1` | 32 / 342.6 | 80 / 390.6 |
+| first `BreachSummaryTestIds.Tile.*` (`.RecentBreaches`) | 32 / 199 | 80 / 351 |
+| last `BreachSummaryTestIds.Tile.*` (`.LargestBreach`) | 569 / 736 | 929 / 1200 |
+| `ResultTestIds.Cta` | 613 / 736 | 1077 / 1200 |
+
+Derived from those numbers: the CTA's right edge equals the last tile's right edge at both widths (736 at 768, 1200 at 1280), and the `h1`'s left edge equals the first tile's left edge at both (32, 80). The `h1` right edge is its text box, not a container edge. 4 tiles at both widths, all on one row (`top` 171.1 at 768, 267.1 at 1280). The tiles wrapper measures 80→1200, width 1120, at 1280.
+
+**Console — clean.** Read at 1280 after the three viewports: no messages. Reloaded with `ignoreCache: true`, read again with preserved messages: no messages. No errors or warnings on first load or on reload.
+
+---
+
+### OBSERVED
+
+- **The layout reorganizes rather than shrinking.** Four changes between 390 and 1280: the `Protect me` CTA renders as a full-width bar pinned to the bottom of the viewport at 390 and inline at the top right of the header at 768/1280; the summary tiles are 2×2 at 390 and 1×4 at 768/1280; the filter chips are a horizontal scroller at 390 (3 of 5 visible, 2 off-screen) and all 5 inline at 768/1280; the sort segmented control sits below the "Verified only" toggle at 390 and to its right at 768/1280.
+- **Tile heights equalize to the tallest tile in the row, leaving large empty areas.** At 390 the "Passwords leaked / 65%" tile renders with roughly 250px of blank space below its value, because "Synthient Credential Stuffing Threat Data" wraps to four lines in the tile beside it. At 768 the first three tiles each carry roughly 200px of blank space below their values for the same reason. At 1280 that title wraps to two lines and the blank space drops to roughly 30px.
+- **At 390 the sticky CTA bar overlays page content.** In the capture a breach row's chevron toggle glyph renders partly behind the bar's top edge, cut off horizontally by it.
+- No clipped or truncated text elsewhere, no broken images, no font-loading flash across the three captures, no control rendering as though disabled, no visible z-index stacking problem other than the sticky bar noted above.
+
+---
+
+### UNCERTAIN
+
+- Screenshots are **viewport-only**, the same mode at all three widths. Content below the fold at each width was not visually inspected; the measurement script did run over the whole document at each width, so the numbers above cover it and the OBSERVED notes do not.
+- The 390 sticky-bar overlap: I can see the chevron intersecting the bar in the capture but did not measure z-order or the bar height against the scroll container's bottom padding, so I cannot say whether any content is permanently unreachable behind it.
+- `<main>` carries `_toneCalm_168k5_9` at every viewport — only the calm tone rendered. Any other tone state on this screen was not reached and is unmeasured.
+- The visitor cookie set on first load was not readable from `document.cookie` (0 entries visible — likely HttpOnly), so I could not clear or verify it directly. It existed only inside the throwaway isolated context, which I closed.
+- I did not determine whether the equalized tile heights and the resulting blank areas are a row-alignment consequence or explicit sizing; I report only the measured geometry and what the captures show.
+
+**Not checked, and why:** pass B was not requested, so no Lighthouse audit, keyboard traversal, focus-indicator, heading-order, accessible-name or reduced-motion checks were run. Contrast was therefore not measured. Only `/result` was given, so no other screen was reviewed.
