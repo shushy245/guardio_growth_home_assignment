@@ -1,6 +1,10 @@
 import { visitorModel } from '~/models';
 // Visitor endpoints. Responses are typed with the wire DTO and mapped through the model
 // translator, so nothing past this file sees a raw body.
+//
+// No signal: the session is a one-shot load at mount, made through `useLoadedState`, and
+// aborting it would cancel the request StrictMode's surviving run is waiting for. The
+// convention for this directory is written out in `http-client.ts`.
 import { httpClient } from '~/api/http-client';
 import type { VisitorDTO, VisitorModel } from '~/models/visitor';
 

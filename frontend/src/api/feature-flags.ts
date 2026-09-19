@@ -1,6 +1,9 @@
 import { featureFlagModel } from '~/models';
 // Feature-flag endpoints. The write carries the admin token as a header — never in the URL,
 // which lands in access logs, and never in the body, which the update schema would reject.
+//
+// No signal on either: the list is a one-shot load at mount and the save is a write from a
+// button. The convention for this directory is written out in `http-client.ts`.
 import { httpClient } from '~/api/http-client';
 import type { FeatureFlagDTO, FeatureFlagModel, FeatureFlagUpdatedDTO } from '~/models/featureFlag';
 

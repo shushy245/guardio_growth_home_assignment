@@ -1,4 +1,19 @@
 // The one place axios is imported. Everything else imports httpClient from here.
+//
+// **The signal convention for this whole directory**, so a new endpoint has a rule to follow
+// rather than a neighbour to copy (BF70 found four files that stated it and four that did not):
+//
+//  - A read whose inputs change — filters, a page, a flag key — takes a **required**
+//    `signal: AbortSignal`. Its caller owns an `AbortController` per effect and aborts it in the
+//    cleanup, because an older request's answer is one nobody wants and the bytes are worth
+//    cancelling. `fetchBreaches`, `fetchBreachSummary`, `fetchExperimentResults` and
+//    `fetchPwnedRange` are these.
+//  - A one-shot load at mount — the visitor session, the flag list — takes **no signal**, and is
+//    called through `useLoadedState`, which holds the request in a ref so StrictMode's second
+//    mount joins it. A signal here would cancel the request the surviving run is waiting for.
+//  - A write from an event handler — a sign-up, a flag save, a funnel step — takes **no signal**:
+//    nobody wants a POST the server may already have applied to be forgotten halfway, and a
+//    funnel step aborted on navigation is a step the experiment never counts.
 import axios from 'axios';
 
 import { isPlainObject, normaliseNulls } from '~/api/http-client.utils';

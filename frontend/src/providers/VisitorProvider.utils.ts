@@ -28,6 +28,8 @@ export type VisitorState =
     | { status: VisitorStatus.Ready; session: VisitorSession }
     | { status: VisitorStatus.Failed; error: string };
 
+export const LOADING: VisitorState = { status: VisitorStatus.Loading };
+
 export const isReady = (state: VisitorState): state is Extract<VisitorState, { status: VisitorStatus.Ready }> =>
     state.status === VisitorStatus.Ready;
 

@@ -175,8 +175,10 @@ export const makeAdminDriver = (): AdminDriver => {
                 expect(screen.getByTestId(AdminTestIds.LoadError)).not.toHaveTextContent(SERVER_ERROR_DETAIL);
             },
             loadFailureWasLogged: (): void => {
+                // The prefix is the function that failed, not the page it is read from: that is
+                // what makes a grep for the message land on the code that wrote it.
                 expect(loggedErrors).toHaveBeenCalledWith(
-                    expect.stringContaining('Admin'),
+                    expect.stringContaining('loadFlags'),
                     expect.objectContaining({ detail: SERVER_ERROR_DETAIL }),
                 );
             },

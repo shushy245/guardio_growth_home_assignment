@@ -1,8 +1,7 @@
 import { httpClient } from '~/api/http-client';
 // The experiment read. One endpoint, typed with the wire DTO and mapped through the model, so
-// nothing past this file sees a raw results body. The signal is required for the same reason
-// it is on the breach fetches: a fetch an effect can forget to abort is a state update after
-// unmount waiting to happen.
+// nothing past this file sees a raw results body. The read answers a flag key and is refetched
+// on Retry, so it takes a required signal — the convention is in `http-client.ts`.
 import { experimentResultModel } from '~/models';
 import type { ExperimentResultDTO, ExperimentResultModel } from '~/models/experimentResult';
 

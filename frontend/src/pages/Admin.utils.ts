@@ -1,6 +1,9 @@
 // The Admin page's testable surface: its test ids and the load state machine. The component file
 // exports only the component. The flag editor's own surface lives in `FlagEditor.utils.ts`.
 
+import { logger } from '~/logging/logger';
+import { describeError } from '~/api/http-client';
+import { fetchFeatureFlags } from '~/api/feature-flags';
 import type { FeatureFlagModel } from '~/models/featureFlag';
 
 // A test id is its own access path (docs/testing-conventions.md §test ids): the string in the
@@ -37,3 +40,17 @@ export const isReady = (state: AdminState): state is Extract<AdminState, { statu
 
 export const isFailedToLoad = (state: AdminState): state is Extract<AdminState, { status: LoadStatus.Failed }> =>
     state.status === LoadStatus.Failed;
+
+export const LOADING: AdminState = { status: LoadStatus.Loading };
+
+// Answers with a state and never rejects, which is what `useLoadedState` asks of a loader: the
+// page has one failure to show and the detail belongs in the log.
+export const loadFlags = async (): Promise<AdminState> => {
+    try {
+        return { status: LoadStatus.Ready, flags: await fetchFeatureFlags() };
+    } catch (error) {
+        logger.error('loadFlags: the flag list could not be loaded', { detail: describeError(error) });
+
+        return { status: LoadStatus.Failed };
+    }
+};

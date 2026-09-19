@@ -4,13 +4,11 @@
 // There is no login. The operator pastes the admin token into the field at the top and it lives
 // in React state for this tab only: never in the Vite build, which would ship it to every
 // visitor, and never in localStorage, which would leave it on the machine.
-import { type ChangeEvent, type ReactElement, useEffect, useState } from 'react';
+import { type ChangeEvent, type ReactElement, useState } from 'react';
 
-import { logger } from '~/logging/logger';
 import { Column, MainColumn } from '~/ui/box';
-import { describeError } from '~/api/http-client';
 import { FlagEditor } from '~/components/FlagEditor';
-import { fetchFeatureFlags } from '~/api/feature-flags';
+import { useLoadedState } from '~/hooks/useLoadedState';
 import { type FeatureFlagModel, replaceFlag, setLockTokenIn } from '~/models/featureFlag';
 import {
     type AdminState,
@@ -18,43 +16,25 @@ import {
     isFailedToLoad,
     isReady,
     LOAD_FAILED_MESSAGE,
-    LoadStatus,
+    LOADING,
+    loadFlags,
 } from '~/pages/Admin.utils';
 
 import styles from '~/pages/Admin.module.scss';
 
 export const Admin = (): ReactElement => {
-    const [state, setState] = useState<AdminState>({ status: LoadStatus.Loading });
+    // One load shape for the two mount-time loads in this app (`useLoadedState`): the list is
+    // asked for once however many times StrictMode mounts the page — it fetched twice before
+    // (BF58) — and Retry asks again without throwing away the token the operator has pasted.
+    const { state, setState, reload } = useLoadedState({ load: loadFlags, loading: LOADING });
     const [adminToken, setAdminToken] = useState('');
-    // Bumped by Retry. A failed load used to be terminal — the only way back was a page reload,
-    // which also threw away the token the operator had already pasted.
-    const [attempt, setAttempt] = useState(0);
-
-    useEffect(() => {
-        // Not an AbortSignal: the flag list is a plain read and the only thing that must not
-        // happen is a state update after the operator has navigated away.
-        let cancelled = false;
-        setState({ status: LoadStatus.Loading });
-        void fetchFeatureFlags()
-            .then((flags) => {
-                if (!cancelled) setState({ status: LoadStatus.Ready, flags });
-            })
-            .catch((error: unknown) => {
-                logger.error('Admin: the flag list could not be loaded', { detail: describeError(error) });
-                if (!cancelled) setState({ status: LoadStatus.Failed });
-            });
-
-        return (): void => {
-            cancelled = true;
-        };
-    }, [attempt]);
 
     const handleAdminTokenChange = (event: ChangeEvent<HTMLInputElement>): void => {
         setAdminToken(event.target.value);
     };
 
     const handleRetry = (): void => {
-        setAttempt((current) => current + 1);
+        reload();
     };
 
     const handleFlagChange = (flag: FeatureFlagModel): void => {
