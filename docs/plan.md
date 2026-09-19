@@ -1621,7 +1621,7 @@ Pre-mortem (2026-09-19, before any code — each is a case, red-first):
 
 #### Correctness — fix first, each red-first
 
-- [ ] **BF60** `backend/app/experiments/results.py:150-160` + `stats.py:66-68` — the primary,
+- [x] **BF60** (closed `ef0a4f3`) `backend/app/experiments/results.py:150-160` + `stats.py:66-68` — the primary,
   secondary and guardrail metrics count numerator and denominator steps **independently**, so a
   visitor who records `activation` without `scan_completed` (accepted by the write endpoint with
   a 201, reachable from `/signup` by link or bookmark) gives `successes > trials`: a rate above
@@ -1631,12 +1631,12 @@ Pre-mortem (2026-09-19, before any code — each is a case, red-first):
   (BE-1, BE-2, BE-12). Fix: count the numerator over visitors who also reached the denominator
   step; guard `two_proportion_z_test`/`measure_lift` against `successes > trials`; the red test
   is a visitor with a later step and no earlier one.
-- [ ] **BF61** `backend/app/experiments/recommendation.py:90-91` — R-1's guard is
+- [x] **BF61** (closed `e387d59`) `backend/app/experiments/recommendation.py:90-91` — R-1's guard is
   one-directional: a fully powered, significant **loss** where the variant never converted has
   `lift=None` and reads `KEEP_RUNNING` (p = 0.0), keeping a losing variant live. CONFIRMED (BE-3).
   Fix: refuse `SHIP_VARIANT` without a statable lift, but let a significant negative z with a
   full sample answer `KEEP_CONTROL`.
-- [ ] **BF62** `frontend/src/components/PasswordField.tsx:40-58`, `pages/Signup.tsx:94-118` — the
+- [x] **BF62** (closed `5aeffe8`) `frontend/src/components/PasswordField.tsx:40-58`, `pages/Signup.tsx:94-118` — the
   wrapping `<label>` encloses the notices, so the leak warning **becomes the password field's
   accessible name** ("Password This password appeared in 3 leaks…", changing as the visitor
   types) and the email error is both the input's name and its description, announced twice.
@@ -1644,11 +1644,11 @@ Pre-mortem (2026-09-19, before any code — each is a case, red-first):
   built from attributes, never one inherited from a label, and the two `getByLabelText` regexes
   are `^`-anchored so a polluted name passes by construction (FE-17). Fix: notices as siblings
   outside the label with `aria-describedby`; an exact-name assertion per form driver.
-- [ ] **BF63** `frontend/src/hooks/useCountUp.ts:21-44` — `useState(target)` seeds once and the
+- [x] **BF63** (closed `34908cb`) `frontend/src/hooks/useCountUp.ts:21-44` — `useState(target)` seeds once and the
   effect reconciles after paint, so the first commit that shows real tiles under the calm tone
   paints **"0"** in "Accounts exposed" before the figure. CONFIRMED (FE-4). Fix: return the target
   directly on the still path; the effect owns only the animated value.
-- [ ] **BF64** `frontend/src/components/FlagEditor.tsx:75-105` — a copy field edited while a
+- [x] **BF64** (closed `c303b16`) `frontend/src/components/FlagEditor.tsx:75-105` — a copy field edited while a
   save is in flight keeps `Saving`, then the response sets `Saved`, so "Saved." stands beside a
   value that was never sent — the invariant the `handleFlagEdited` comment states. PLAUSIBLE
   (FE-3). Fix: set `Saved` only if the flag still equals the snapshot the save carried.
@@ -1658,13 +1658,13 @@ Pre-mortem (2026-09-19, before any code — each is a case, red-first):
   holds. BF28 moved one file left; the global HARD RULE on hardcoded credentials has no
   exceptions, and README, CLAUDE.md and the compose comment all say "no default". CONFIRMED
   (DD-18). Fix: `ADMIN_TOKEN=` empty with the `openssl rand -hex 24` line; the guard then fires.
-- [ ] **BF66** `eslint.config.mjs:43-44` — `'no-restricted-syntax': 'off'` for
+- [x] **BF66** (closed `1c5d54a`) `eslint.config.mjs:43-44` — `'no-restricted-syntax': 'off'` for
   `http-client.utils.ts`, its test and `main.tsx`: the BF33 shape (HARD RULE 3) in a third site
   Phase 4 never listed. `main.tsx` renders JSX, so `noInlineJsxLambda`, `jsxTextBackticks`,
   `noRawTestId`, `noBooleanParam` and `noOptionalChaining` are silently retired there to buy one
   `noNullLiteral` exemption — and the block nineteen lines above argues against exactly this move.
   CONFIRMED (CV-1, FE-32). Fix: compose every selector except `noNullLiteral`.
-- [ ] **BF67** `backend/app/pwned_passwords/router.py:36-40` — the 503 `detail` is the adapter's
+- [x] **BF67** (closed `28800c4`) `backend/app/pwned_passwords/router.py:36-40` — the 503 `detail` is the adapter's
   on-call string, with the upstream URL and the exception `repr`, sent as the client-facing
   `{ error }` (the BF38 defect on the API side). CONFIRMED (CV-2). Fix: a fixed visitor-safe
   detail; the adapter string stays in the `log.warning` that already carries it.
