@@ -6,6 +6,7 @@ source was asked for.
 """
 
 from tests.drivers.http import HttpDriver
+from tests.fakes.pwned_password_range import UNREACHABLE_REASON
 
 RANGE_PATH = "/api/pwned-passwords/range"
 
@@ -58,3 +59,8 @@ class _Then:
     def the_source_is_unavailable(self) -> None:
         self._driver._http.then.status(503)
         self._driver._http.then.error_body()
+
+    def the_source_s_own_words_were_not_repeated_to_the_browser(self) -> None:
+        """The adapter's message names the upstream URL and carries the exception's repr — it is
+        written for whoever is on call, and the response body is read by a visitor's browser."""
+        self._driver._http.then.body_lacks(UNREACHABLE_REASON)

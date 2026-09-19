@@ -21,6 +21,11 @@ router = APIRouter()
 
 PREFIX_PATTERN = r"^[0-9A-F]{5}$"
 
+# What the browser is told. The adapter's own message names the upstream URL and carries the
+# exception's repr — on-call detail, written for whoever reads the log, and not for a visitor's
+# browser (BF67; BF38 is the same defect on the operator side). It stays in the warning below.
+RANGE_SOURCE_UNAVAILABLE = "the password-leak source is unavailable — the check could not run"
+
 
 @router.get("/pwned-passwords/range/{prefix}", response_class=PlainTextResponse)
 def get_pwned_password_range_text(
@@ -36,7 +41,7 @@ def get_pwned_password_range_text(
         log.warning("get_pwned_password_range: source failed", prefix=prefix, reason=str(error))
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=f"get_pwned_password_range: the password-leak source is unavailable — {error}",
+            detail=RANGE_SOURCE_UNAVAILABLE,
         ) from error
 
     log.info("get_pwned_password_range: answered", prefix=prefix, line_count=text.count("\n") + 1)

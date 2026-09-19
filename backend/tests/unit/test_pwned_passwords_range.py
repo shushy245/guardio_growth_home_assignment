@@ -44,3 +44,4 @@ def test_an_unreachable_source_is_a_503_with_the_house_error_body(
     pwned_passwords.get.the_range("5BAA6")
 
     pwned_passwords.then.the_source_is_unavailable()
+    pwned_passwords.then.the_source_s_own_words_were_not_repeated_to_the_browser()
