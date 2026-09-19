@@ -27,6 +27,7 @@ def test_two_points_of_difference_on_a_thousand_visitors_an_arm_is_not_significa
         variant=Proportion(successes=100, trials=1000),
     )
 
+    assert result is not None
     assert result.p_value == pytest.approx(0.118, abs=0.001)
 
 
@@ -37,6 +38,7 @@ def test_the_same_two_points_on_ten_times_the_traffic_is_significant() -> None:
         variant=Proportion(successes=1000, trials=10_000),
     )
 
+    assert result is not None
     assert result.p_value < 0.001
 
 
@@ -48,6 +50,7 @@ def test_the_z_score_is_positive_when_the_variant_converts_better() -> None:
         variant=Proportion(successes=100, trials=1000),
     )
 
+    assert result is not None
     assert result.z > 0
 
 
@@ -57,6 +60,7 @@ def test_the_z_score_is_negative_when_the_variant_converts_worse() -> None:
         variant=Proportion(successes=80, trials=1000),
     )
 
+    assert result is not None
     assert result.z < 0
 
 
@@ -71,6 +75,7 @@ def test_the_absolute_interval_straddles_zero_when_the_difference_is_not_signifi
         variant=Proportion(successes=100, trials=1000),
     )
 
+    assert lift is not None
     assert lift.absolute.low < 0 < lift.absolute.high
 
 
@@ -81,6 +86,7 @@ def test_the_absolute_interval_excludes_zero_when_the_difference_is_significant(
         variant=Proportion(successes=1000, trials=10_000),
     )
 
+    assert lift is not None
     assert (lift.absolute.low, lift.absolute.high) == pytest.approx((0.01207, 0.02793), abs=1e-5)
 
 
@@ -92,6 +98,7 @@ def test_the_relative_lift_is_read_from_the_rates_not_from_their_difference() ->
         variant=Proportion(successes=100, trials=1000),
     )
 
+    assert lift is not None
     assert lift.relative.point == pytest.approx(0.25)
 
 
@@ -104,6 +111,7 @@ def test_the_relative_interval_is_the_delta_method_on_the_log_ratio() -> None:
         variant=Proportion(successes=1000, trials=10_000),
     )
 
+    assert lift is not None
     assert (lift.relative.low, lift.relative.high) == pytest.approx((0.14385, 0.36600), abs=1e-5)
 
 
@@ -115,6 +123,7 @@ def test_the_relative_interval_is_wider_above_the_point_than_below_it() -> None:
         variant=Proportion(successes=100, trials=1000),
     )
 
+    assert lift is not None
     assert lift.relative.high - lift.relative.point > lift.relative.point - lift.relative.low
 
 

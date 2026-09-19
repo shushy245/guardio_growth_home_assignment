@@ -42,15 +42,27 @@ class ZTestResult:
     p_value: float
 
 
-def two_proportion_z_test(*, control: Proportion, variant: Proportion) -> ZTestResult:
-    """The pooled two-proportion z-test.
+def two_proportion_z_test(*, control: Proportion, variant: Proportion) -> ZTestResult | None:
+    """The pooled two-proportion z-test, or `None` when there is no test to run.
 
     Pooled, not unpooled: the null hypothesis is that both arms share one rate, so the standard
     error is estimated under that assumption. The unpooled form is what the confidence interval
     uses, because there the two rates are not assumed equal — the two standard errors differ on
     purpose and are not a duplication to collapse.
+
+    `None`, not a NaN. Two arms nobody converted in have a pooled rate of 0, a standard error of
+    0 and a z-score of 0/0; so do two arms everybody converted in. Python carries that NaN all
+    the way to the response, where it serialises as the bare literal `NaN` — which is not JSON,
+    and which `JSON.parse` rejects. The dashboard would go blank on the one input it most needs
+    to render calmly: an experiment nobody has been through yet.
     """
+    if not _has_trials(control) or not _has_trials(variant):
+        return None
+
     pooled_rate = (control.successes + variant.successes) / (control.trials + variant.trials)
+    if pooled_rate in (0.0, 1.0):
+        return None
+
     standard_error = math.sqrt(
         pooled_rate * (1 - pooled_rate) * (1 / control.trials + 1 / variant.trials)
     )
@@ -63,6 +75,14 @@ def two_proportion_z_test(*, control: Proportion, variant: Proportion) -> ZTestR
 
 def _rate_of(arm: Proportion) -> float:
     return arm.successes / arm.trials
+
+
+def _has_trials(arm: Proportion) -> bool:
+    return arm.trials > 0
+
+
+def _has_conversions(arm: Proportion) -> bool:
+    return arm.successes > 0
 
 
 @dataclass(frozen=True)
@@ -88,14 +108,25 @@ class Lift:
     relative: Estimate
 
 
-def measure_lift(*, control: Proportion, variant: Proportion) -> Lift:
-    """Both intervals at `ALPHA`, unpooled.
+def measure_lift(*, control: Proportion, variant: Proportion) -> Lift | None:
+    """Both intervals at `ALPHA`, unpooled — or `None` when there is no lift to measure.
 
     Unpooled here, pooled in the z-test, on purpose: the test asks "could these have come from
     one rate", so it estimates one; the interval asks "how far apart are they", so it estimates
     two. Collapsing the two standard errors into one shared helper would be collapsing two
     different questions.
+
+    The preconditions are stricter than the z-test's, and deliberately not shared: a control
+    nobody converted in still supports a z-test (the pooled rate rises above zero as soon as the
+    variant converts anyone) but makes every variant infinitely better, and `log(0)` is where
+    the relative interval would fail. One shared guard would throw away a real test result to
+    protect a lift nobody can state.
     """
+    if not _has_trials(control) or not _has_trials(variant):
+        return None
+    if not _has_conversions(control) or not _has_conversions(variant):
+        return None
+
     return Lift(
         absolute=_absolute_lift(control=control, variant=variant),
         relative=_relative_lift(control=control, variant=variant),
