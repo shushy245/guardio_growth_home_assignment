@@ -1529,6 +1529,286 @@ Commits:
 - C2 `[chore]` write-up: approach, where AI helped, where it was wrong and how it was caught, what I'd do with more time
 - C3 `[chore]` `docs/changelog.md`, final ADR index, clean-clone verification
 
+### Full-codebase audit (four agents on Opus, 2026-09-19) — **open**
+
+Run after S8 closed, on `main` at `8b4f215`: the whole tree read as one unit, not a diff. Four
+independent agents, each given only the docs for its angle (the `/story-done` finder table):
+backend, frontend, testing, conventions + docs drift. Every claim marked CONFIRMED below was
+reproduced by execution or proved by a mutation the reviewer ran and reverted; 50 targeted
+mutations, 17 survived. Full reports verbatim in `docs/reviews/full-audit-2026-09-19.md`
+(BE-*, FE-*, T-*, CV-*, DD-* are the reviewers' ids). Baseline before the review: 225 backend +
+208 frontend green, mypy, ruff, tsc and eslint clean, `alembic check` clean. **Not covered:**
+no browser was opened — design fidelity was checked in code against the inventory only, so
+every visual claim below is by reading (`/visual-review-deep` is the follow-up); no
+dependency/CVE audit; no concurrent-load run.
+
+The pattern worth keeping: three of the four correctness defects live in the one place no story
+case reached — the experiment read assumes the funnel it counts is monotonic, and the writer
+never promised that. The rest is accumulation: rules stated in one file and skipped in the next
+(`AbortSignal`, `no-restricted-syntax`, `**ctx` re-spread), and dismissals whose preconditions
+have since expired (the unused tokens, BF51–BF53).
+
+#### Correctness — fix first, each red-first
+
+- [ ] **BF60** `backend/app/experiments/results.py:150-160` + `stats.py:66-68` — the primary,
+  secondary and guardrail metrics count numerator and denominator steps **independently**, so a
+  visitor who records `activation` without `scan_completed` (accepted by the write endpoint with
+  a 201, reachable from `/signup` by link or bookmark) gives `successes > trials`: a rate above
+  100% on the wire, and once the pooled rate passes 1 the z-test takes `sqrt` of a negative and
+  `GET /api/experiments/{flagKey}/results` answers **500 forever** — the rows persist. The
+  hypothesis says "complete a scan *and go on to* activate"; the query does not. CONFIRMED
+  (BE-1, BE-2, BE-12). Fix: count the numerator over visitors who also reached the denominator
+  step; guard `two_proportion_z_test`/`measure_lift` against `successes > trials`; the red test
+  is a visitor with a later step and no earlier one.
+- [ ] **BF61** `backend/app/experiments/recommendation.py:90-91` — R-1's guard is
+  one-directional: a fully powered, significant **loss** where the variant never converted has
+  `lift=None` and reads `KEEP_RUNNING` (p = 0.0), keeping a losing variant live. CONFIRMED (BE-3).
+  Fix: refuse `SHIP_VARIANT` without a statable lift, but let a significant negative z with a
+  full sample answer `KEEP_CONTROL`.
+- [ ] **BF62** `frontend/src/components/PasswordField.tsx:40-58`, `pages/Signup.tsx:94-118` — the
+  wrapping `<label>` encloses the notices, so the leak warning **becomes the password field's
+  accessible name** ("Password This password appeared in 3 leaks…", changing as the visitor
+  types) and the email error is both the input's name and its description, announced twice.
+  CONFIRMED by render (FE-1, FE-2). The three `toHaveAccessibleName` assertions all cover names
+  built from attributes, never one inherited from a label, and the two `getByLabelText` regexes
+  are `^`-anchored so a polluted name passes by construction (FE-17). Fix: notices as siblings
+  outside the label with `aria-describedby`; an exact-name assertion per form driver.
+- [ ] **BF63** `frontend/src/hooks/useCountUp.ts:21-44` — `useState(target)` seeds once and the
+  effect reconciles after paint, so the first commit that shows real tiles under the calm tone
+  paints **"0"** in "Accounts exposed" before the figure. CONFIRMED (FE-4). Fix: return the target
+  directly on the still path; the effect owns only the animated value.
+- [ ] **BF64** `frontend/src/components/FlagEditor.tsx:75-105` — a copy field edited while a
+  save is in flight keeps `Saving`, then the response sets `Saved`, so "Saved." stands beside a
+  value that was never sent — the invariant the `handleFlagEdited` comment states. PLAUSIBLE
+  (FE-3). Fix: set `Saved` only if the flag still equals the snapshot the save carried.
+- [ ] **BF65** `.env.example:20` ships `ADMIN_TOKEN=change-me-before-exposing-this`, so the
+  documented first step (`cp .env.example .env`) **defeats the compose `${ADMIN_TOKEN:?}` guard**:
+  a user who skips the comment boots a stack whose flag write is gated by a token every cloner
+  holds. BF28 moved one file left; the global HARD RULE on hardcoded credentials has no
+  exceptions, and README, CLAUDE.md and the compose comment all say "no default". CONFIRMED
+  (DD-18). Fix: `ADMIN_TOKEN=` empty with the `openssl rand -hex 24` line; the guard then fires.
+- [ ] **BF66** `eslint.config.mjs:43-44` — `'no-restricted-syntax': 'off'` for
+  `http-client.utils.ts`, its test and `main.tsx`: the BF33 shape (HARD RULE 3) in a third site
+  Phase 4 never listed. `main.tsx` renders JSX, so `noInlineJsxLambda`, `jsxTextBackticks`,
+  `noRawTestId`, `noBooleanParam` and `noOptionalChaining` are silently retired there to buy one
+  `noNullLiteral` exemption — and the block nineteen lines above argues against exactly this move.
+  CONFIRMED (CV-1, FE-32). Fix: compose every selector except `noNullLiteral`.
+- [ ] **BF67** `backend/app/pwned_passwords/router.py:36-40` — the 503 `detail` is the adapter's
+  on-call string, with the upstream URL and the exception `repr`, sent as the client-facing
+  `{ error }` (the BF38 defect on the API side). CONFIRMED (CV-2). Fix: a fixed visitor-safe
+  detail; the adapter string stays in the `log.warning` that already carries it.
+
+#### Robustness
+
+- [ ] **BF68** `backend/app/health/router.py:11-13`, `config.py:39` — with an unreachable
+  database the app boots, `/api/health` answers 200 "ok" and every data endpoint 500s;
+  `database_url` is the one unvalidated setting. BF18's lesson in another guise. CONFIRMED
+  (BE-5). Fix: `SELECT 1` in the health handler → 503 `{ error }`; a scheme validator on the URL.
+- [ ] **BF69** `frontend/src/App.tsx:19-29`, `main.tsx` — no catch-all route and no error
+  boundary: an unknown URL or a render-time throw (`FunnelBars` with >2 series, a hook outside
+  its provider) is a **blank document**, the F31 failure as a class. (FE-5, FE-6). Fix: a `*`
+  route and one boundary at the composition root rendering `ErrorState`.
+- [ ] **BF70** the abort/cleanup rule is stated in `api/breaches.ts` and `api/experiments.ts`
+  ("the signal is required") and absent in `visitors.ts`, `feature-flags.ts`, `signups.ts`,
+  `funnel-events.ts`, all called from effects. `VisitorProvider.tsx:17-21` is the only effect with
+  no cleanup (`void load.then(setState)`), a failed session is terminal for the visit with no
+  retry and every later step dropped, and `Admin.tsx:33-50` (`let cancelled`) and
+  `Dashboard.tsx:41-62` (`AbortController`) solve one problem two ways with contradicting
+  comments — which is the mechanical cause of the still-open **BF58**. (FE-7, FE-8, FE-10, CV-3,
+  CV-4). Fix: one signature convention across `src/api/**`, one load-with-cancel shape, a `retry`
+  on the visitor provider; BF58 closes with it.
+- [ ] **BF71** `backend/app/feature_flags/router.py:57-76` — the orphan guard (BF31) reads
+  `visitor_assignment` and writes the flag in one READ COMMITTED transaction while
+  `create_visitor` inserts in another: a visitor created inside the PATCH can be assigned the key
+  being removed. PLAUSIBLE (BE-4). Fix: `SELECT … FOR UPDATE` on the flag row before the read, or
+  accept the one-visitor race and record it.
+- [ ] **BF72** `backend/app/experiments/simulation.py:112-121,173-181` — one non-201 raises out
+  of the whole run and the rows written so far stay in the table with no run marker; it happened
+  (the 750 crashed-run visitors in the published read). (BE-6). Fix: per-visitor catch with a
+  failure threshold, and a run id in the event `metadata`.
+- [ ] **BF73** `backend/app/adapters/hibp/breach_catalog.py:81` — `Domain`, `Title`, `LogoPath`
+  are declared non-nullable; a JSON `null` from HIBP fails validation and, by B1d's
+  all-or-nothing rule, aborts the whole 1,036-record sync. Today's payload writes `""`, so it does
+  not reproduce live. PLAUSIBLE (BE-8). Fix: `str | None` and let `_none_if_empty` cover both.
+- [ ] **BF74** `frontend/src/providers/BreachCatalogProvider.utils.ts:137` — `FILTER_KEYS` is
+  typed `readonly (keyof CatalogFilters)[]`, which accepts any subset; a filter added to the
+  model and forgotten here would have every change swallowed by `areSameFilters` with no error.
+  CONFIRMED by mutation (FE-9). Fix: derive it from a `Record<keyof CatalogFilters, true>`.
+- [ ] **BF75** `frontend/src/components/BreachList.tsx:59` — rows keyed by `breach.name` across
+  appended pages; a refresh between page 1 and page 2 (S2b makes it a real event) can put one
+  record on both pages: a duplicate key, a dropped row. (FE-11). Fix: de-duplicate by name in
+  `receivePage`.
+- [ ] **BF76** `backend/app/breaches/schemas.py:45` — `extra="forbid"` on the query model makes
+  `GET /api/breaches?utm_source=news` a 400. CONFIRMED (BE-7). Decide: keep and record in the
+  docstring (a body must be strict; a query string cannot be forged by an extra key), or `ignore`.
+- [ ] (decision, record) `/dashboard` and `GET /api/experiments/{flagKey}/results` are public
+  while `/admin`'s write is gated; deliberate within the loopback posture, recorded nowhere.
+  (FE-12). One sentence beside the admin-gate note.
+
+#### Testing — gaps and wrong-reason passes, each a red test
+
+- [ ] **BF77** `backend/app/main.py:43-50` — reducing the lifespan to `yield` leaves 225/225
+  green: the boot-time sync's **call** is untested wiring, BF21 one level up. CONFIRMED by
+  mutation (BE-9). Fix: enter `TestClient(app)` as a context manager with the fake catalog and the
+  savepoint-bound factory, assert one fetch.
+- [ ] **BF78** `backend/app/experiments/repository.py:31` — replacing
+  `flag_key == flag_key` with `flag_key IS NOT NULL` survives (M15b): S7 B12's "no assignment
+  *for the flag*" half is tested only with a visitor holding no assignment at all, so a second
+  enabled flag would silently count its visitors into the wrong arms. CONFIRMED (T-1). Fix:
+  `given.a_visitor_assigned_to_another_flag()` → `nothing_was_counted()`.
+- [ ] **BF79** `backend/app/feature_flags/assignment.py:70` — `== 100` → `>= 100` survives (M5):
+  every weights test is an under-100 case, so a 60/60 split (a dead trailing arm, one arm at zero
+  trials on the dashboard) is refused by a comparison nothing pins. CONFIRMED (T-2). Fix: one
+  schema case and one stored-row case.
+- [ ] **BF80** `frontend/src/components/SearchField.tsx:36-40` — deleting the `lastSent` echo
+  guard, the BF24-shaped case S5 C6 "pinned before it could ship", leaves 20/20 green. CONFIRMED
+  (FE-13). Fix: a case where the same `q` comes back as a prop and the box keeps the visitor's text.
+- [ ] **BF81** `frontend/src/providers/BreachCatalogProvider.tsx:60-82` — widening the summary
+  effect's deps to `[request]` (every chip, sort and search refetches the tiles and flashes the
+  skeleton) leaves 20/20 green. CONFIRMED (FE-14). Fix: assert one `GET /breaches/summary` after a
+  filter change.
+- [ ] **BF82** `frontend/src/pages/Protected.test.tsx:22` — "confirms the Basic plan with its own
+  next steps" asserts only the plan line; swapping in the Family steps survives (F-M23). The Basic
+  steps are deviation 12, so the one design-diverging choice on the page is unpinned. CONFIRMED
+  (T-3). Fix: `assert.nextStepsRead([...])` on both plan tests.
+- [ ] **BF83** `frontend/src/hooks/usePasswordLeakCheck.ts:61,71` — S6 F5 stays green with
+  `isCurrent` removed (F-M17) and with `abort()` removed (F-M20); only both together fail it. The
+  header gives them different jobs (the hash step has no request to abort). CONFIRMED (T-4). Fix:
+  a case that changes the password while the *hash* is outstanding.
+- [ ] **BF84** boundary values nothing pins, each a survived mutation (T-5–T-8, T-10, T-11):
+  `clock_skew.py` `>`→`>=` and 5→30 min (cases sit at +1 min / +1 h); `assignment.py`
+  `bucket < upper`→`<=` (a leading zero-weight variant takes ~1%; `[0, 100]` is how the S5 visual
+  pass forced a variant); `clampWeight` cleared-input → `WEIGHT_TOTAL` (BF39's other half);
+  `variantFor`'s flag-not-found guard; `MAX_PASSWORD_LENGTH` 256 → 1,000,000 and the cookie
+  `max_age` → session (both carry a written rationale; the first partly mitigates BF59);
+  `recommendation.py` `p < ALPHA`→`<=` and `>= required`→`>` (ADR-0006's two thresholds). One
+  case each, spelled against the constant.
+- [ ] **BF85** `SearchField.driver.tsx:97`, `PasswordField.driver.tsx:102` — each advances fake
+  timers by the constant it imports, so `SEARCH_DEBOUNCE_MS` 300 → 0 survives (F-M26): "one
+  request per settle" is proved, "after the visitor pauses" is not. CONFIRMED (T-9). Fix: advance
+  to just under the constant and assert no request yet.
+- [ ] **BF86** `backend/app/experiments/simulation.py` (84% — `plan_transitions`' range guard,
+  the two assignment errors and `_expect` untested), `backend/scripts/simulate_traffic.py`
+  (`parse_arm_rate`, `build_parser`: no test at all, the file the README tells a reviewer to
+  run), `assignment.py:60-64` (the corrupt-split `ValueError` never exercised). CONFIRMED by
+  coverage (BE-10, BE-11, BE-13). Fix: bare-assert unit cases; the script's parser is three lines.
+- [ ] **BF87** `frontend/src/testkit/renderWithProviders.tsx:25` — `RenderMode.Plain` is the
+  default and 12 of 20 drivers never opt into Strict while `main.tsx` ships it; BF58 sits in one
+  of the twelve. (T-15, FE-15). Fix: flip the default to Strict and let the failures name
+  themselves.
+- [ ] Partial planned cases (T-14 and the coverage table): S2 B1d asserts the wire field, never
+  the *index* the case and `_describe`'s docstring promise; S2 B17's "equals the items gathered
+  across all its pages" half runs on a one-page fixture; `isPlainObject`'s `!Array.isArray`
+  clause is load-bearing only for `isProtectedRouteState`, which has no unit test;
+  `usePasswordLeakCheck.ts:25` `password !== ''` is dead (`isTooShort('')` already holds).
+- [ ] **T-13** (decide once) the 14 entity drivers expose `given / when / then` and route
+  ordinary HTTP calls through `when.*`; `docs/python-conventions.md` and CLAUDE.md define
+  `given / get / post / patch / delete / when / then` with `when` reserved for the rare
+  non-verb action, and `HttpDriver` follows that. The drivers read better; amend the table or
+  rename the methods.
+
+#### Docs / plan drift — a `chore`, all CONFIRMED (DD-*, BE-14–17, CV-6, CV-12)
+
+- [ ] `docs/plan.md` Repository layout (`:61-94`) is stale in six places: `httpx` (the forbidden
+  package; it is `httpx2`), `app/db/alembic/` (migrations are `backend/migrations/`),
+  `src/layout/` (it is `src/ui/box.tsx`, seven primitives), `FunnelChart LiftChart` (neither
+  exists — `charts/FunnelBars`, `LiftCard`, and seven shipped components unlisted),
+  `testkit/drivers/` (drivers sit beside components), five directories unlisted (`charts/`,
+  `hooks/`, `logging/`, `shared/`, `storage/`). (DD-1)
+- [ ] Decisions → Charts still says Recharts; the Feature-flag section (`:123`) and S5 (`:1073`)
+  say 17.8B where the seed says 17.7B. (DD-2, DD-3, BE-17)
+- [ ] API contract: `POST /api/visitors` answers **200** on a recognised cookie (BF26) and the
+  table, the router docstring and `simulation.py:146`'s hard-coded 201 disagree; the summary row
+  omits `syncedAt`; the PATCH row omits the 400 for an orphaning split (BF31). (DD-7, DD-8, BE-14)
+- [ ] The TDD contract's "nothing else exists" and the write-up's "every commit is one of three
+  kinds" are contradicted by 23 commits (10 `fix:`, 2 `test:`, 10 unprefixed S1, 1 `wip`).
+  Name `fix` as a kind or acknowledge the history. (DD-6, DD-13)
+- [ ] **BF36 / BF42** are unticked at `:644` / `:662` while `:811` declares and `:961` measures
+  them closed — tick them. **BF51 / BF52 / BF53** were scheduled "before or during S5" and are
+  **all three still open in code** (Admin's failed-load chip is still `styles.message`;
+  `SaveStatus.Failed` and `Conflict` still share `SaveTone.Unsaved`; `$color-border` on
+  `$color-surface` still 1.48:1; `button-base` still has no `box-sizing`), no commit names them,
+  and CLAUDE.md's "Carried, deliberately" omits them — the one state the plan's format exists to
+  prevent. Either fix them (BF51 through the FlagEditor driver, BF52/BF53 as token/mixin
+  changes measured by the visual pass) or carry them explicitly. (DD-4, DD-5, DD-20)
+- [ ] RF5 "the only raw literal left in a `.module.scss`" is stale: `Signup.module.scss:85`
+  400px (deviation 13), `Protected.module.scss:18` 480px and `:25` 56px (unrecorded — FE-22),
+  `RecommendationBanner.module.scss:42,45` `rgba(255,255,255,.5)` twice (the only raw colour,
+  on the one non-text pair D1 never measured — FE-23), `PlanPicker.module.scss:62-64`. (DD-9)
+- [ ] The S3 RF item on the flag key understates it: 37 literal occurrences across 23 files,
+  **six** backend drivers each declaring `RESULT_SCREEN_TONE`; the production half is fixed
+  (three readers of `RESULT_SCREEN_TONE_FLAG`). (DD-10)
+- [ ] Component inventory: `message-error` now has two consumers (the cell's other half — the
+  Admin surfaces — is still true, split it); deviation 6's "S5 introduces … adopts it then" is
+  past tense and did not happen. (DD-11, DD-12)
+- [ ] `docs/python-primer.md` has no `scipy` entry (S7 landed it; the `sf`-over-`1 - cdf` comment
+  is the least obvious line in `stats.py`). (DD-14)
+- [ ] `docs/python-conventions.md`: "nothing else imports those libraries" is false for `httpx2`
+  (`simulation.py`, `scripts/simulate_traffic.py` — the first states its exemption, the second
+  does not); `PLR2004` is in the **global** ignore, not tests-only, so the "partially" enforced
+  row credits a rule that does not run; `FBT` reads as live and is not selected. (DD-15/CV-6,
+  DD-16, DD-17)
+- [ ] `story/S6-done` points at S5's closing commit (`e8eee7d9`), so `git log
+  story/S6..story/S6-done` is empty and S6's fifteen commits are bracketed by nothing. Move it to
+  `61c346b9^` or delete it and say so. (DD-22)
+- [ ] `.env.example:1` "every value is validated at backend startup" — `TEST_DATABASE_URL` is
+  read only by `tests/integration/conftest.py`; move it under a tests heading. (BE-16)
+- [ ] `backend-conventions.md` asks migrations for `IF [NOT] EXISTS`; none use it and the
+  version table is the mechanism — record that in `python-conventions.md`. `backend/migrations/`
+  is outside mypy's `files`, the one directory that writes production data by hand. (BE-15,
+  CV-12)
+- [ ] `visitor_assignment.flag_key` still has no index and `count_visitors_per_step` now filters
+  on it on every dashboard load — the S3 RF prediction is a live query.
+
+#### RF-backlog additions (batched, not now)
+
+- **Dead code, precondition expired** (CV-5, FE-24, T-12, BE-21): the D1 dismissal of the unused
+  scale said "an entry still unused when S7 closes is dead code" — S7 closed and `$breakpoint-base`,
+  `$focus-ring` (RF7's duplicate), `$radius-lg`, `$shadow-md`, `$weight-regular`, `$weight-medium`
+  have zero readers. `forgetVisitorId`, `hasLeakedPasswords`, `formatPValue`, `formatSignedPercent`,
+  `shareOfFirst` are tested and unconsumed (the R-6/R-7 shape); `Box`/`FullRow`/`FullColumn`/
+  `FullBox` have no production consumer (a judgement call: the doctrine names them as vocabulary).
+  Nineteen `export`s have no importer outside their file (`FlagEditor`'s five message constants
+  — the driver asserts substrings instead, FE-16 — `describeBar`, `isValidEmail`, `CONTROL_COPY`,
+  `NO_FILTERS`, `FIRST_PAGE`, `isFirstPage`, `hasSummaryFailed`, `areSameFilters`, three translator
+  helpers re-exported by `export *` barrels, …). Backend: `when.listed_page`, four
+  `feature_flag` and three `hibp_breach` builder methods, `disabled` / `withTotalBreaches` on the
+  frontend builders — `feature_flag.disabled()` is dead because S3 B6 disables the flag with a
+  raw UPDATE in `visitors_api.py:100`. Four backend functions public with one in-module caller.
+- **Duplicated knowledge with no recorded reason** (section C, BE-18–20, FE-26): "reached per
+  arm is the smaller arm" in `results.py:122` and `recommendation.py:114` (the R-1 class of
+  defect waiting); `FUNNEL_IN_ORDER` redeclared in `experiments_api.py:21` instead of imported,
+  so the order assertion compares against a local copy; the simulator's rate bound checked in
+  `simulation.py:62` and `simulate_traffic.py:41` with two messages; `X-Admin-Token` a raw
+  literal in `main.py:65` beside the constant one import away; `409` in `FlagEditor.utils.ts:6`
+  and `Signup.utils.ts:37`, `404` in `VisitorProvider.utils.ts:37`; route constants each living
+  in the page that links to the route while `/` and `/admin` are literals in `App.tsx`;
+  `PASSWORDS_CLASS` / `PASSWORDS_DATA_CLASS` and `FunnelEventName` mirrored across sides with no
+  cross-side note (the other four enums carry one); the control copy in `Result.utils.ts` and
+  the seed is byte-identical today with nothing enforcing it — assert the pair in a seed test.
+- **Structure** (BE-22–25, CV-7–11, FE-19–21, FE-27–31, FE-33): `**ctx` re-spread per log call
+  is now the pattern in four handlers, not the one the S3 RF named; `revalidate_catalog` is a
+  line each handler must remember (a `Depends` on the validated query keeps the 400-first order);
+  `list_breaches` names a handler and a repository function one directory apart; every driver
+  reaches `HttpDriver._last` — the batched accessor is overdue; `saveToneClassMap` is rebuilt in
+  the render body, the one map of six not at module scope; `ExperimentResultModel` is read through
+  `result.metrics.primary.numerator` and five other chains while its `selectors.ts` holds two
+  predicates (Law of Demeter); two log lines carry another function's prefix
+  (`_recognised_visitor`, `_known_visitor`); the range adapter builds its URL twice by two routes;
+  `simulate_traffic.py:49` reads `__doc__` unguarded; `Protected.tsx:40` is the only page on a
+  raw `<main>` instead of `MainColumn`; the sort `SegmentedControl` is `aria-pressed` buttons
+  where `PlanPicker` is a radio group and no deviation records the choice; `Scan` has no
+  heading and the Result body's three regions have none; `RecommendationBanner` maps
+  `Recommendation → BannerClass → class` in two hops and reuses the name `toneClassMap`;
+  `LiftCard.tsx:32-53` renders one tree twice; the model layer's `(subject, options)` signatures
+  are the one holdout from the named-options rule — normalise or record the form;
+  `Dashboard.tsx:103,107` join classes with a template literal instead of `joinClassNames` (the
+  V9 shape); four value-imports of types.
+
+Case coverage across the plan: every planned case S1–S7 is named by a test except S1 B5b
+(structural proof, already recorded) and the four partials above. No `.only`, `.skip` or `xfail`
+anywhere; assertions sit where the conventions put them; the fake-timer drivers are sound.
+
 ---
 
 ## E2 — Stretch (day two, priority order)
