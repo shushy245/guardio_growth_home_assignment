@@ -3,6 +3,25 @@
 The product diary: one entry per story, newest first, in the words of someone who never saw the
 code. Commit-level detail lives in `git log`; the plan holds what is still ahead.
 
+## S8 — docs (closed 2026-09-19)
+
+- **Pain** — The repo could be run but not read: the README held a run recipe and the admin
+  note, nothing answered the brief's first question (approach, where AI helped, where it was
+  wrong, what next), and the six decision records had no index.
+- **Fix** — A README a reviewer can read in a few minutes: run it, the product calls, the
+  experiment and how product retunes it, the simulated read and why the call is "keep
+  running", the stack, time spent. `docs/writeup.md` answers the brief's questions with only
+  what the review records back. `docs/adr/README.md` indexes the six decisions. Both reader
+  files were cut by half after a first draft ran long *(the reviewer has seen dozens of these)*.
+- **Trade-off** — The write-up lists eight things the AI got wrong. Leaving them out would read
+  better and be less true; the brief asks for them, and each one names how it was caught.
+- **Result** — D1 verified on a clean clone in a fresh directory: `cp .env.example .env`, set the
+  token, `docker compose up -d --build` — health 200, 1,031 breaches pulled from HIBP, the flag
+  seeded, the results endpoint answering on an empty table, the landing page served; the
+  simulator command ran; `pnpm install` and `pnpm test` green (208 frontend, 225 backend). The
+  check found the leftover `pnpm dev` servers holding the ports, not a README defect. 4 commits,
+  no code.
+
 ## S7 — simulation-and-dashboard (closed 2026-09-19)
 
 - **Pain** — The experiment had a feature flag, stored assignments and a table of funnel
