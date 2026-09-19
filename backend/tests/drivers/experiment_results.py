@@ -14,11 +14,14 @@ from sqlalchemy.orm import Session
 
 from app.experiments import repository
 from app.experiments.results import StepPairCount
+from app.feature_flags.models import FeatureFlagRow
 from app.funnel_events.models import FunnelEventName, FunnelEventRow
 from app.shared.ids import generate_unique_id
 from app.visitors.models import VisitorAssignmentRow, VisitorRow
 
 RESULT_SCREEN_TONE = "result_screen_tone"
+# A second experiment running beside the one under test.
+ANOTHER_FLAG = "checkout_button_colour"
 
 
 class ExperimentResultsDriver:
@@ -43,10 +46,21 @@ class ExperimentResultsDriver:
 
         return visitor_id
 
-    def _insert_assignment(self, *, visitor_id: str, variant_key: str) -> None:
+    def _insert_assignment(
+        self, *, visitor_id: str, variant_key: str, flag_key: str = RESULT_SCREEN_TONE
+    ) -> None:
         self._session.execute(
             insert(VisitorAssignmentRow).values(
-                visitor_id=visitor_id, flag_key=RESULT_SCREEN_TONE, variant_key=variant_key
+                visitor_id=visitor_id, flag_key=flag_key, variant_key=variant_key
+            )
+        )
+
+    def _insert_flag(self, key: str) -> None:
+        """`visitor_assignment.flag_key` is a foreign key, so another flag's assignment needs
+        another flag to point at."""
+        self._session.execute(
+            insert(FeatureFlagRow).values(
+                key=key, description="another experiment", is_enabled=True, variants=[]
             )
         )
 
@@ -102,6 +116,18 @@ class _Given:
         self._driver._insert_event(
             visitor_id=self._driver._the_last_visitor, step=step, tagged_as=tagged_as
         )
+        self._driver._session.flush()
+
+    def a_visitor_in_another_experiment(self, *, took: tuple[FunnelEventName, ...]) -> None:
+        """Assigned to a different flag entirely. Their steps belong to that experiment's read,
+        and folding them into these two arms would put a stranger's traffic in both samples."""
+        self._driver._insert_flag(ANOTHER_FLAG)
+        visitor_id = self._driver._insert_visitor()
+        self._driver._insert_assignment(
+            visitor_id=visitor_id, variant_key="green", flag_key=ANOTHER_FLAG
+        )
+        for step in took:
+            self._driver._insert_event(visitor_id=visitor_id, step=step, tagged_as=None)
         self._driver._session.flush()
 
     def a_visitor_outside_the_experiment(self, *, took: tuple[FunnelEventName, ...]) -> None:

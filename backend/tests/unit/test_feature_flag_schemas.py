@@ -33,6 +33,23 @@ def test_a_flag_update_whose_weights_do_not_sum_to_a_hundred_is_rejected() -> No
         FeatureFlagUpdate.model_validate(payload)
 
 
+def test_a_flag_update_whose_weights_sum_past_a_hundred_is_rejected_too() -> None:
+    """The other side of the same rule, and the one nothing pinned (BF79): weights over 100
+    leave the buckets past the hundredth unreachable, so a trailing variant is a dead arm that
+    reads as zero trials on the dashboard for as long as the flag runs."""
+    payload = (
+        a_feature_flag_update()
+        .with_variants(
+            a_wire_variant().with_key("calm").with_weight(60),
+            a_wire_variant().with_key("urgent").with_weight(60),
+        )
+        .build()
+    )
+
+    with pytest.raises(ValidationError, match="100"):
+        FeatureFlagUpdate.model_validate(payload)
+
+
 def test_a_flag_update_with_two_variants_sharing_a_key_is_rejected() -> None:
     """Two `calm`s would make an assignment ambiguous and merge two configs under one label."""
     payload = (

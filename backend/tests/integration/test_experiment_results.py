@@ -55,6 +55,19 @@ def test_a_visitor_is_counted_in_the_arm_they_hold_whatever_their_events_are_tag
     experiment_results.then.the_arm_counted(arm="calm", step=ACTIVATION, visitors=0)
 
 
+def test_a_visitor_assigned_to_a_different_flag_is_in_neither_arm(
+    experiment_results: ExperimentResultsDriver,
+) -> None:
+    """The half of "no assignment *for this flag*" that nothing pinned (BF78): the query filters
+    on the flag key, and dropping that filter — a second enabled experiment's visitors counted
+    into these arms by their other flag's variant key — left every test green."""
+    experiment_results.given.a_visitor_in_another_experiment(took=(SCAN_COMPLETED, ACTIVATION))
+
+    experiment_results.when.the_funnel_is_read()
+
+    experiment_results.then.nothing_was_counted()
+
+
 def test_a_visitor_with_no_assignment_for_the_flag_is_in_neither_arm(
     experiment_results: ExperimentResultsDriver,
 ) -> None:
