@@ -48,6 +48,19 @@ class Settings(BaseModel):
     def log_format(self) -> LogFormat:
         return _log_format_map[self.env]
 
+    @field_validator("database_url")
+    @classmethod
+    def _reject_anything_but_a_postgres_url(cls, value: str) -> str:
+        if is_postgres_url(value):
+            return value
+
+        msg = (
+            "must be a PostgreSQL SQLAlchemy URL — postgresql[+driver]://user:password@host/db "
+            "— because the migrations, the jsonb columns and the text[] ones are Postgres's; "
+            f"found {value!r}"
+        )
+        raise ValueError(msg)
+
     @field_validator("frontend_origin")
     @classmethod
     def _reject_anything_but_a_bare_origin(cls, value: str) -> str:
@@ -72,6 +85,17 @@ def is_bare_origin(value: str) -> bool:
         and not parsed.query
         and not parsed.fragment
     )
+
+
+def is_postgres_url(value: str) -> bool:
+    """`postgresql+psycopg://u:p@db:5432/x` yes; `sqlite:///x.db`, `postgres//db/x` no.
+
+    Checked here because `create_engine` is lazy: a URL with a typo'd scheme builds an app that
+    boots, answers health and 500s on the first request that touches data (BF68).
+    """
+    scheme = urlsplit(value).scheme
+
+    return scheme == "postgresql" or scheme.startswith("postgresql+")
 
 
 class SettingsError(Exception):

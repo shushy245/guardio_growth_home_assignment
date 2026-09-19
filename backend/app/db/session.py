@@ -21,9 +21,19 @@ from fastapi import Depends, Request
 from sqlalchemy.orm import Session, sessionmaker
 
 
-def get_session(request: Request) -> Iterator[Session]:
+def get_session_factory(request: Request) -> sessionmaker[Session]:
+    """The one reader of `app.state.session_factory`, so a test that swaps the factory swaps it
+    for every caller at once. `app.state` is untyped, hence the local annotation."""
     session_factory: sessionmaker[Session] = request.app.state.session_factory
-    with session_factory.begin() as session:
+
+    return session_factory
+
+
+SessionFactoryDep = Annotated[sessionmaker[Session], Depends(get_session_factory)]
+
+
+def get_session(request: Request) -> Iterator[Session]:
+    with get_session_factory(request).begin() as session:
         yield session
 
 

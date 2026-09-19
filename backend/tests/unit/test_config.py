@@ -27,6 +27,23 @@ def test_missing_database_url_fails_loudly_naming_the_variable() -> None:
         load_settings(environ)
 
 
+def test_a_database_url_that_is_not_a_postgres_url_fails_loudly_naming_the_variable() -> None:
+    """The one setting nothing checked. A typo'd scheme boots cleanly and every data endpoint
+    500s on its first request, because SQLAlchemy resolves the driver lazily."""
+    environ = {**COMPLETE_ENVIRON, "DATABASE_URL": "postgres//db:5432/breachscan"}
+
+    with pytest.raises(SettingsError, match="DATABASE_URL"):
+        load_settings(environ)
+
+
+def test_a_database_url_for_another_engine_fails_loudly_too() -> None:
+    """SQLite is not what the migrations, the `jsonb` columns or the `text[]` ones run on."""
+    environ = {**COMPLETE_ENVIRON, "DATABASE_URL": "sqlite:///./breachscan.db"}
+
+    with pytest.raises(SettingsError, match="DATABASE_URL"):
+        load_settings(environ)
+
+
 def test_missing_hibp_user_agent_fails_loudly_naming_the_variable() -> None:
     """HIBP refuses API calls that do not identify their consumer, so an unset value is a 403."""
     environ = {key: value for key, value in COMPLETE_ENVIRON.items() if key != "HIBP_USER_AGENT"}

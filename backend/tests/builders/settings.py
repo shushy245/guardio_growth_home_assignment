@@ -42,6 +42,9 @@ class _SettingsBuilder:
     def with_env(self, env: Env) -> _SettingsBuilder:
         return replace(self, env=env)
 
+    def with_database_url(self, database_url: str) -> _SettingsBuilder:
+        return replace(self, database_url=database_url)
+
     def build(self) -> Settings:
         return Settings(
             env=self.env,

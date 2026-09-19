@@ -2,7 +2,7 @@
 
 Tests read as Given / When / Then and never touch the client directly:
 
-    driver.get.path("/api/health")
+    driver.get.path(PROBE_ROUTE)
     driver.then.status(200)
     driver.then.json({"status": "ok"})
 
@@ -37,6 +37,12 @@ from tests.fakes.pwned_password_range import FakePwnedPasswordRange
 CRASHING_ROUTE = "/api/_test/crash"
 CRASH_DETAIL = "secret detail that must never reach the client"
 SESSION_ROUTE = "/api/_test/session"
+# A route that needs nothing — no database, no fake, no state. The middleware tests are about
+# the middleware, and `/api/health` stopped being trivial when it started proving the database
+# answers (BF68); borrowing it would have made every CORS and correlation-id test need Postgres.
+PROBE_ROUTE = "/api/_test/probe"
+# Port 1 is reserved and unbound: a connect attempt is refused at once rather than hanging.
+UNREACHABLE_DATABASE_URL = "postgresql+psycopg://breachscan:breachscan@127.0.0.1:1/breachscan"
 TRANSACTION_CLOSED = "transaction closed"
 RESPONSE_STARTED = "response started"
 
@@ -86,7 +92,7 @@ class HttpDriver:
         """
         app = self._app()  # create_app configures logging; must precede the capture
         with capture_logs(processors=[structlog.contextvars.merge_contextvars]) as logs:
-            responses = asyncio.run(_get_health_concurrently(app, correlation_ids))
+            responses = asyncio.run(_get_probe_concurrently(app, correlation_ids))
         self._logs = logs
         self._overlapping = dict(zip(correlation_ids, responses, strict=True))
 
@@ -104,6 +110,7 @@ class HttpDriver:
                 catalog=self._catalog,
                 pwned_passwords=self._pwned_passwords,
             )
+            _mount_probe_route(app)
             if self._crashing_route:
                 _mount_crashing_route(app)
             if self._session_route:
@@ -140,6 +147,11 @@ class _Given:
 
     def env(self, env: Env) -> None:
         self._driver._settings = self._driver._settings.with_env(env)
+
+    def the_database_is_unreachable(self) -> None:
+        """A real engine pointed at a port nothing listens on. `create_engine` is lazy, so the
+        app still builds and the failure happens where a live outage would: on the connect."""
+        self._driver._settings = self._driver._settings.with_database_url(UNREACHABLE_DATABASE_URL)
 
     def a_route_that_raises(self) -> None:
         """Mounted by the test, never by the app.
@@ -280,6 +292,12 @@ class _Then:
         )
 
 
+def _mount_probe_route(app: FastAPI) -> None:
+    @app.get(PROBE_ROUTE)
+    def _probe() -> dict[str, str]:
+        return {"status": "ok"}
+
+
 def _mount_crashing_route(app: FastAPI) -> None:
     @app.get(CRASHING_ROUTE)
     def _raise() -> None:
@@ -323,13 +341,13 @@ def _mount_session_route(app: FastAPI, *, events: list[str]) -> None:
         return {}
 
 
-async def _get_health_concurrently(
+async def _get_probe_concurrently(
     app: FastAPI, correlation_ids: tuple[str, ...]
 ) -> list[httpx.Response]:
     transport = httpx.ASGITransport(app)
     async with httpx.AsyncClient(transport=transport, base_url="http://driver.test") as client:
         requests: list[Coroutine[Any, Any, httpx.Response]] = [
-            client.get("/api/health", headers={CORRELATION_ID_HEADER: correlation_id})
+            client.get(PROBE_ROUTE, headers={CORRELATION_ID_HEADER: correlation_id})
             for correlation_id in correlation_ids
         ]
 
