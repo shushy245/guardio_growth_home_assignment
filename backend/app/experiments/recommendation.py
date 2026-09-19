@@ -37,8 +37,8 @@ class Analysis:
     """The read: the figures, the sample it would take to trust them, and the call.
 
     `test` and `lift` are `None` independently — an experiment can have a valid z-test and no
-    statable lift (a control nobody converted in), so a reader must not infer one from the
-    other. The call needs both: see `_recommend`.
+    statable lift (an arm nobody converted in), so a reader must not infer one from the other.
+    Shipping needs both, keeping the control needs only the test: see `_recommend`.
     """
 
     test: ZTestResult | None
@@ -81,13 +81,18 @@ def _recommend(
 ) -> Recommendation:
     """Guard clauses, cheapest refusal first; the happy path is the last line.
 
-    A call needs a statable lift as well as a test. The z-test is defined for a control nobody
-    converted in — the pooled rate rises as soon as the variant converts anyone — and enormous,
-    while the relative lift is infinite. Calling that would put "ship variant, with high
-    confidence" beside a lift card reading "not enough data yet" (S7 review, R-1); a full
-    sample with zero conversions in one arm is a funnel to look into, not a variant to ship.
+    The lift is required for one of the two calls and not for the other, which is the whole of
+    BF61. Shipping needs a statable lift as well as a test: the z-test is defined for a control
+    nobody converted in — the pooled rate rises as soon as the variant converts anyone — and
+    enormous, while the relative lift is infinite, so calling it would put "ship variant, with
+    high confidence" beside a lift card reading "not enough data yet" (S7 review, R-1).
+
+    Keeping the control needs no lift, because it is the status quo: a significant negative z
+    over a full sample is a finished result whether or not the variant's zero conversions leave
+    a ratio to state. Requiring a lift in both directions is how a fully powered, significant
+    loss read "keep running" and left a losing variant live.
     """
-    if test is None or lift is None:
+    if test is None:
         return Recommendation.KEEP_RUNNING
 
     if not _is_significant(test):
@@ -96,7 +101,13 @@ def _recommend(
     if not _has_enough_traffic(control=control, variant=variant, required_per_arm=required_per_arm):
         return Recommendation.KEEP_RUNNING
 
-    return Recommendation.SHIP_VARIANT if _variant_won(test) else Recommendation.KEEP_CONTROL
+    if not _variant_won(test):
+        return Recommendation.KEEP_CONTROL
+
+    if lift is None:
+        return Recommendation.KEEP_RUNNING
+
+    return Recommendation.SHIP_VARIANT
 
 
 def _is_significant(test: ZTestResult) -> bool:

@@ -97,6 +97,23 @@ def test_a_win_over_a_control_nobody_converted_in_is_not_called() -> None:
     assert analysis.recommendation is Recommendation.KEEP_RUNNING
 
 
+def test_a_loss_to_a_variant_nobody_converted_in_keeps_the_control() -> None:
+    """The mirror of R-1, and the half its guard missed (BF61). A variant nobody converted in
+    over a full sample has no statable relative lift either — but "keep the control" needs no
+    lift to state, it is the status quo, and answering "keep running" here leaves a variant
+    that is significantly worse live for as long as nobody reads the p-value themselves."""
+    analysis = analyse(
+        control=Proportion(successes=400, trials=5000),
+        variant=Proportion(successes=0, trials=5000),
+        required_per_arm=REQUIRED_PER_ARM,
+    )
+
+    assert analysis.test is not None
+    assert analysis.test.z < 0
+    assert analysis.lift is None
+    assert analysis.recommendation is Recommendation.KEEP_CONTROL
+
+
 def test_an_experiment_nobody_has_reached_yet_reads_as_keep_running_with_no_statistics() -> None:
     """Zero denominators. The alternative is a ZeroDivisionError on the dashboard's first
     render, before a single visitor has been through the funnel."""

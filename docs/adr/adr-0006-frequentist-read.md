@@ -31,7 +31,12 @@ move the finish line every time somebody refreshed the page.
 
 **Significance alone does not earn a call.** `recommend` answers `SHIP_VARIANT` or
 `KEEP_CONTROL` only when the test is significant *and* the smaller arm has reached the required
-sample; everything else is `KEEP_RUNNING`. This is the peeking guard: a dashboard that is
+sample; everything else is `KEEP_RUNNING`. Shipping asks for one thing more — a statable
+relative lift — because a variant that beat an arm nobody converted in is an infinite ratio and
+a funnel to look into, not a result to roll out. Keeping the control does not: it is the status
+quo, and a fully powered significant loss is a finished result whether or not the losing arm's
+zero conversions leave a ratio to print (BF61; requiring the lift in both directions left such a
+variant live and reading "keep running"). This is the peeking guard: a dashboard that is
 refreshed daily is a sequential look at the data, and a null experiment will cross p < 0.05 at
 some look if the reader is allowed to stop there. Waiting for the powered sample is the cheapest
 honest answer to that; it does not make the read a proper sequential test, and the ADR says so.
