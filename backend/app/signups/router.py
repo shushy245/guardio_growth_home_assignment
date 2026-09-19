@@ -44,6 +44,9 @@ def create_signup(
     }
     log.info("create_signup: started", **ctx, has_cookie=VISITOR_COOKIE in request.cookies)
 
+    # Hash before the first query: the hash is tens of milliseconds of CPU, and a pooled
+    # connection checked out by the visitor lookup would otherwise sit idle across it.
+    password_hash = hasher.hash_password(signup.password.get_secret_value())
     visitor_id = _known_visitor(session=session, request=request)
     log.info("create_signup: attributing", **ctx, visitor_id=visitor_id)
 
@@ -54,7 +57,7 @@ def create_signup(
             visitor_id=visitor_id,
             email=signup.email,
             plan=signup.plan,
-            password_hash=hasher.hash_password(signup.password.get_secret_value()),
+            password_hash=password_hash,
             password_was_pwned=signup.password_was_pwned,
         ),
     )

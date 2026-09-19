@@ -44,20 +44,10 @@ export type PasswordCheck =
 
 export const IDLE_CHECK: PasswordCheck = { status: PasswordCheckStatus.Idle };
 
-export const isChecking = (
-    check: PasswordCheck,
-): check is Extract<PasswordCheck, { status: PasswordCheckStatus.Checking }> =>
-    check.status === PasswordCheckStatus.Checking;
-
 export const isLeaked = (
     check: PasswordCheck,
 ): check is Extract<PasswordCheck, { status: PasswordCheckStatus.Leaked }> =>
     check.status === PasswordCheckStatus.Leaked;
-
-export const isUnchecked = (
-    check: PasswordCheck,
-): check is Extract<PasswordCheck, { status: PasswordCheckStatus.Unchecked }> =>
-    check.status === PasswordCheckStatus.Unchecked;
 
 // What the sign-up sends: true only when the check finished, found a leak, and it was for the
 // very password being submitted. A pending or failed check is not a leak, and a warning for a

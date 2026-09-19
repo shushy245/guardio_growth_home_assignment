@@ -17,7 +17,7 @@ import { PasswordFieldTestIds } from '~/components/PasswordField.utils';
 import { postedSteps, respondToFunnelEvents } from '~/testkit/funnel-events';
 import { fakeHttp, HttpMethod, type RecordedRequest } from '~/testkit/fake-http';
 import { PROTECTED_ROUTE, type ProtectedRouteState, SignupTestIds } from '~/pages/Signup.utils';
-import { theRangeIsCleanFor, theRangeIsSlowToSay, theRangeSays } from '~/testkit/pwned-passwords';
+import { rangePathsRequested, theRangeIsCleanFor, theRangeIsSlowToSay, theRangeSays } from '~/testkit/pwned-passwords';
 
 const SIGNUPS_PATH = '/signups';
 const HTTP_CONFLICT = 409;
@@ -67,6 +67,7 @@ export type SignupDriver = {
         signupsSent: (count: number) => void;
         protectedRouteIsShownFor: (plan: Plan) => Promise<void>;
         leakedWarningIsShown: () => Promise<void>;
+        checkCompletedClean: () => Promise<void>;
         emailErrorIsShown: () => void;
         passwordErrorIsShown: () => void;
         serverMessageIsShown: (message: string) => Promise<void>;
@@ -201,6 +202,16 @@ export const makeSignupDriver = (): SignupDriver => {
                 await waitFor(() => {
                     expect(screen.getByTestId(PasswordFieldTestIds.Leaked)).toBeInTheDocument();
                 });
+            },
+            // The range was asked for and the check settled with nothing to say: a submit after
+            // this sends a clean flag because the range was clean, not because the check was
+            // still pending.
+            checkCompletedClean: async (): Promise<void> => {
+                await waitFor(() => {
+                    expect(rangePathsRequested()).toHaveLength(1);
+                    expect(screen.queryByTestId(PasswordFieldTestIds.Checking)).not.toBeInTheDocument();
+                });
+                expect(screen.queryByTestId(PasswordFieldTestIds.Leaked)).not.toBeInTheDocument();
             },
             emailErrorIsShown: (): void => {
                 expect(screen.getByTestId(SignupTestIds.EmailError)).toBeInTheDocument();

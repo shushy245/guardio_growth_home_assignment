@@ -60,13 +60,14 @@ describe('PasswordField', () => {
     });
 
     it("shows a soft couldn't-check note when the proxy fails, and does not block the field", async () => {
-        driver.given.theProxyFails();
+        await driver.given.theProxyFailsFor(LEAKED_PASSWORD);
         await driver.when.created();
         await driver.type.password(LEAKED_PASSWORD);
         await driver.when.thePausePasses();
         driver.assert.uncheckedNoteIsShown();
         driver.assert.noWarningIsShown();
         driver.assert.fieldIsEditable();
+        driver.assert.checkFailureWasLogged();
     });
 
     it("shows the couldn't-check note when this browser has no Web Crypto, without a request or a crash", async () => {

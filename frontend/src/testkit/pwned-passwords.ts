@@ -55,12 +55,17 @@ export const theRangeIsSlowToSay = async ({
     return release;
 };
 
-export const theProxyFails = (): void => {
+export const PROXY_FAILURE_DETAIL = 'get_pwned_password_range: the password-leak source is unavailable';
+
+// The proxy answers this password's prefix with its 503 — registered per prefix, because the
+// fake matches a path exactly and a route on the bare range path would never be asked.
+export const theProxyFailsFor = async (password: string): Promise<void> => {
+    const { prefix } = splitHash(await sha1Hex(password));
     fakeHttp.respond({
         method: HttpMethod.Get,
-        path: RANGE_PATH,
+        path: `${RANGE_PATH}/${prefix}`,
         status: HTTP_SERVICE_UNAVAILABLE,
-        body: { error: 'the password-leak source is unavailable' },
+        body: { error: PROXY_FAILURE_DETAIL },
     });
 };
 

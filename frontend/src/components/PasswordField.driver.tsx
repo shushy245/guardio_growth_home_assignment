@@ -2,6 +2,7 @@ import { expect, vi } from 'vitest';
 import { act, type ReactElement, useState } from 'react';
 import { fireEvent, screen } from '@testing-library/react';
 
+import { logger } from '~/logging/logger';
 import { PasswordField } from '~/components/PasswordField';
 import { removeWebCryptoSubtle } from '~/testkit/web-crypto';
 import { settleNativeAsyncWork } from '~/testkit/native-async';
@@ -11,10 +12,11 @@ import { PASSWORD_CHECK_DEBOUNCE_MS, PasswordFieldTestIds } from '~/components/P
 import {
     RANGE_PATH,
     rangePathsRequested,
-    theProxyFails,
+    theProxyFailsFor,
     theRangeIsCleanFor,
     theRangeIsSlowToSay,
     theRangeSays,
+    PROXY_FAILURE_DETAIL,
 } from '~/testkit/pwned-passwords';
 
 // A test-only parent wired the way the sign-up page wires it: it holds the password, runs the
@@ -31,7 +33,7 @@ export type PasswordFieldDriver = {
         theRangeSays: (leak: { password: string; count: number }) => Promise<void>;
         theRangeIsCleanFor: (password: string) => Promise<void>;
         theRangeIsSlowToSay: (leak: { password: string; count: number }) => Promise<void>;
-        theProxyFails: () => void;
+        theProxyFailsFor: (password: string) => Promise<void>;
         theBrowserHasNoWebCrypto: () => void;
     };
     when: {
@@ -47,6 +49,7 @@ export type PasswordFieldDriver = {
         uncheckedNoteIsShown: () => void;
         rangesRequested: (...prefixes: string[]) => void;
         fieldIsEditable: () => void;
+        checkFailureWasLogged: () => void;
     };
 };
 
@@ -54,6 +57,7 @@ export const makePasswordFieldDriver = (): PasswordFieldDriver => {
     // Only the clock the pause is measured on; promises and the fake network stay real.
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
     let releaseSlowRange: (() => void) | undefined = undefined;
+    const loggedErrors = vi.spyOn(logger, 'error').mockImplementation(() => {});
 
     const field = (): HTMLInputElement => {
         const element = screen.getByTestId(PasswordFieldTestIds.Input);
@@ -80,7 +84,9 @@ export const makePasswordFieldDriver = (): PasswordFieldDriver => {
             theRangeIsSlowToSay: async ({ password, count }): Promise<void> => {
                 releaseSlowRange = await theRangeIsSlowToSay({ password, count });
             },
-            theProxyFails,
+            theProxyFailsFor: async (password: string): Promise<void> => {
+                await theProxyFailsFor(password);
+            },
             // Plain http off localhost: the browser leaves `crypto.subtle` undefined.
             theBrowserHasNoWebCrypto: removeWebCryptoSubtle,
         },
@@ -135,6 +141,14 @@ export const makePasswordFieldDriver = (): PasswordFieldDriver => {
             },
             fieldIsEditable: (): void => {
                 expect(field()).toBeEnabled();
+            },
+            // The proxy's own 503 body reached the log — proof the failure the field reports is
+            // the server's, not a fixture that never matched.
+            checkFailureWasLogged: (): void => {
+                expect(loggedErrors).toHaveBeenCalledWith(
+                    expect.stringContaining('checkPassword'),
+                    expect.objectContaining({ detail: PROXY_FAILURE_DETAIL }),
+                );
             },
         },
     };

@@ -29,6 +29,7 @@ describe('Signup', () => {
         await driver.click.plan(Plan.Basic);
         await driver.type.email(AN_EMAIL);
         await driver.type.password(A_CLEAN_PASSWORD);
+        await driver.assert.checkCompletedClean();
         await driver.click.submit();
         driver.assert.signupSent({
             email: AN_EMAIL,
@@ -79,7 +80,6 @@ describe('Signup', () => {
 
     it('sends one sign-up on a double tap: the button is busy while the request is in flight', async () => {
         driver.given.theSignupHangs();
-        await driver.given.theRangeIsCleanFor(A_CLEAN_PASSWORD);
         await driver.when.created();
         await driver.type.email(AN_EMAIL);
         await driver.type.password(A_CLEAN_PASSWORD);
@@ -103,7 +103,6 @@ describe('Signup', () => {
 
     it('tells the visitor when the email already has an account, and keeps the form editable', async () => {
         driver.given.theEmailIsTaken();
-        await driver.given.theRangeIsCleanFor(A_CLEAN_PASSWORD);
         await driver.when.created();
         await driver.type.email(AN_EMAIL);
         await driver.type.password(A_CLEAN_PASSWORD);
@@ -114,7 +113,6 @@ describe('Signup', () => {
 
     it('shows one retryable failure for anything else the server refuses, and logs the detail', async () => {
         driver.given.theSignupFails();
-        await driver.given.theRangeIsCleanFor(A_CLEAN_PASSWORD);
         await driver.when.created();
         await driver.type.email(AN_EMAIL);
         await driver.type.password(A_CLEAN_PASSWORD);
