@@ -26,7 +26,7 @@ A browser is assigned once and keeps its arm — to see both, use a private wind
 split to 100/0 on `/admin`.
 
 Dev loop: `pnpm dev` (needs `uv`, `pnpm`, Docker). Checks: `pnpm typecheck`, `pnpm lint`,
-`pnpm test` (needs `docker compose up -d db`) — 433 tests, all three run pre-commit.
+`pnpm test` (needs `docker compose up -d db`) — 515 tests, all three run pre-commit.
 
 ## Product decisions on the result screen
 
