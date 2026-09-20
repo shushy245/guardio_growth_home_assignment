@@ -114,4 +114,4 @@ would put both behind the same login as the write.
 
 ## Time spent
 
-About 9–10 hours.
+About 9-10 hours.
