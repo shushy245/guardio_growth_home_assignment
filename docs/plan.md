@@ -1919,6 +1919,54 @@ anywhere; assertions sit where the conventions put them; the fake-timer drivers 
 
 ---
 
+### audit-fixes — review triage (Opus, separate agent, 2026-09-20) — **all closed 2026-09-20**
+
+The story's own diff, 30 commits, reviewed blind against the seven angles. **No correctness bug
+in the new counting, the recommendation rule, the error boundary, the catch-all route or the
+index** — the reviewer re-derived the CTE self-join line by line and mutated each of the pass's
+headline changes to confirm every one is pinned. Five findings, all fixed; the record is in
+`git log` and the visual half in `docs/reviews/audit-fixes-visual-review.md`.
+
+Correctness of the tests themselves — the class this whole story was about:
+
+- [x] **R-1** (closed `dd4027f`) `useLoadedState`'s stale-answer case asserted that nothing
+  renders after unmount, which is React's own behaviour: deleting the guard left all 241 green.
+  It now pins the property only the guard has — a reload answers, then the attempt it replaced
+  answers, and the screen keeps the newer value. The real scenario is the admin list hanging,
+  Retry answering, and the first request then landing with pre-retry flags under a stale token.
+- [x] **R-2** (closed `dd4027f`) the simulator's threshold case stated itself in terms of
+  `MAX_FAILED_VISITS`, so setting the constant to 1 — give up on the *first* failure, the
+  opposite of what it is for — passed. It spells ten, and a second case proves a run carries on
+  past one failure. The BF84 anti-pattern, in this story's own new test.
+- [x] **R-3** (closed `dd4027f`) the simulator caught refusals the server sent and not requests
+  that never came back, so a read timeout killed the whole run on visitor one — while the
+  constant's comment called exactly that "a flaky request". `httpx.HTTPError` is caught too.
+- [x] **R-4** (closed `dd4027f`) `describedBy` shipped with two documented properties and no
+  test: dropping the absent-not-empty branch, or every id but the first, left everything green.
+- [x] **R-5** (closed `dd4027f`) the error panel's `role="alert"` could be deleted with all 241
+  green, although the lookup table's stated purpose is that a kind decides *how it is announced*.
+- [x] **R-6** (closed `dd4027f`) the published interval: re-recording turned a correct
+  +7% to +63% into +8% to +64% at both ends. The README's funnel row now reads "Activated after
+  a scan", which is what that number counts — the funnel step itself is 144 and 186, and a reader
+  comparing the table to `/dashboard` would otherwise see two different "Activated" figures.
+- [x] **R-7** (closed `d21912e`) conventions: keyword-only arguments on the two new pure helpers;
+  the two drivers that assert a message's tone read the class from the stylesheet module rather
+  than holding a copy of its name; `ErrorState`'s `retryLabel`/`onRetry` became
+  `actionLabel`/`onAction`, because two of its four call sites do not retry anything.
+
+Carried, with the reasoning:
+
+- **Two When→Then cycles in one test body**, in six cases (the paged total, the password bound,
+  the two debounce pauses, the three `useLoadedState` cases). Each is a boundary pair — the
+  value at the line and the value past it — and splitting them would duplicate the Given for no
+  added statement. Recorded as the pattern it is, not fixed case by case.
+- **`1c5d54a` is tagged `chore:` and changes what lint enforces** on `main.tsx`; `fix:` would
+  have been truer. Left as history rather than rewritten.
+- **Pre-existing, not from this diff:** `test_catalog_refresh.py` and `test_breaches_summary.py`
+  pass in a full run and fail when run as a subset — an ordering dependence on state an earlier
+  test leaves, in a suite that advertises the opposite. RF-backlog.
+
+
 ## E2 — Stretch (day two, priority order)
 
 Each stretch story gets its own Cases/Commits block when opened; the TDD contract applies unchanged.

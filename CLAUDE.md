@@ -61,7 +61,10 @@ Full history: `docs/changelog.md`; commit-level record: `git log`.
   sign-up fields stopped taking their error text into their accessible names; a `*` route and an
   error boundary replace two ways of reaching a blank document; health proves the database
   answers; `useLoadedState` is the one shape for a mount-time load and closes BF58; StrictMode is
-  every driver's default. 30 commits, 269 backend + 241 frontend green.
+  every driver's default. 33 commits, 271 backend + 244 frontend green. Its own review then found
+  two of the story's new tests measuring the wrong thing — `useLoadedState`'s stale-answer case
+  asserted React's behaviour, and the simulator's threshold stated itself in terms of its own
+  constant — plus a `except SimulationError` that never covered a read timeout. All fixed.
   Technically: the read is one CTE self-joined per visitor, so a metric's numerator is counted
   over the visitors who reached its denominator and `successes <= trials` holds by construction
   (`Proportion` refuses the impossible pair at construction); the `signal` convention for

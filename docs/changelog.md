@@ -26,13 +26,16 @@ code. Commit-level detail lives in `git log`; the plan holds what is still ahead
   typo'd filter answering with the whole catalogue is the failure a list endpoint can least
   afford. A third — a retry for a failed visitor session — is carried: the hook has one, and
   there is no screen to put it on.
-- **Result** — 269 backend and 241 frontend tests green, every one of the seventeen mutations now
+- **Result** — 271 backend and 244 frontend tests green, every one of the seventeen mutations now
   failing. The published read moved by three visitors (7.4% against 9.8%, p = 0.008) and the
-  README, the decision record and the recorded response were re-stated to match. An independent
-  visual reviewer measured seven screens at three widths: no overflow anywhere, no text under
-  16px, accessibility 100 on every screen it could audit, and one real finding — a page built
-  from an error panel had no heading of its own, fixed and re-measured. 30 commits.
-  Record: `docs/reviews/audit-fixes-visual-review.md`.
+  README, the decision record and the recorded response were re-stated to match. Two independent
+  reviewers were then set on the result and told nothing about it: one measured seven screens at
+  three widths — no overflow anywhere, no text under 16px, accessibility 100 on every screen it
+  could audit, one real finding (a page built from an error panel had no heading of its own,
+  fixed and re-measured); the other read the whole diff and found no bug in the new counting,
+  but did find two of this story's own new tests measuring the wrong thing and a guard that
+  never covered the failure it was named for — all fixed. 33 commits.
+  Records: `docs/reviews/audit-fixes-visual-review.md` and the review triage in `docs/plan.md`.
 
 ## S8 — docs (closed 2026-09-19)
 
