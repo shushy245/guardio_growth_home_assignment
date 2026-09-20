@@ -1,6 +1,6 @@
 import { expect } from 'vitest';
 import { act, type ReactElement } from 'react';
-import { cleanup, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 
 import { useLoadedState } from '~/hooks/useLoadedState';
 import { renderWithProviders } from '~/testkit/renderWithProviders';
@@ -14,44 +14,41 @@ export type LoadedStateDriver = {
     when: {
         created: () => Promise<void>;
         theLoadAnswers: () => Promise<void>;
+        theSupersededLoadAnswers: (value: string) => Promise<void>;
         reloaded: () => Promise<void>;
-        unmounted: () => Promise<void>;
     };
     assert: {
         wasAsked: (times: number) => void;
         isShowing: (value: string) => void;
-        nothingWasShownAfterUnmount: () => void;
     };
 };
 
 export const makeLoadedStateDriver = (): LoadedStateDriver => {
     let asked = 0;
     let answer = 'the record';
-    let release: (() => void) | undefined = undefined;
-    const shown: string[] = [];
+    // One resolver per load the hook started, oldest first: a superseded attempt is still
+    // waiting to answer, and answering it late is the thing the hook has to ignore.
+    const waiting: ((value: string) => void)[] = [];
     let reloadFromHook: (() => void) | undefined = undefined;
 
     const load = (): Promise<string> =>
         new Promise<string>((resolve) => {
             asked += 1;
-            release = (): void => {
-                resolve(answer);
-            };
+            waiting.push(resolve);
         });
 
     const Host = (): ReactElement => {
         const { state, reload } = useLoadedState({ load, loading: LOADING });
         reloadFromHook = reload;
-        shown.push(state);
 
         return <span>{state}</span>;
     };
 
-    const releaseTheLoad = async (): Promise<void> => {
-        const answered = release;
-        if (answered === undefined) throw new Error('LoadedStateDriver: nothing is loading');
+    const answerLoad = async ({ index, value }: { index: number; value: string }): Promise<void> => {
+        const resolve = waiting[index];
+        if (resolve === undefined) throw new Error(`LoadedStateDriver: no load is waiting at ${index}`);
         await act(async () => {
-            answered();
+            resolve(value);
         });
     };
 
@@ -67,17 +64,19 @@ export const makeLoadedStateDriver = (): LoadedStateDriver => {
                     renderWithProviders(<Host />);
                 });
             },
-            theLoadAnswers: releaseTheLoad,
+            // The most recent load — the one the screen is waiting for.
+            theLoadAnswers: async (): Promise<void> => {
+                await answerLoad({ index: waiting.length - 1, value: answer });
+            },
+            // The one a reload replaced, answering after the newer one already has.
+            theSupersededLoadAnswers: async (value: string): Promise<void> => {
+                await answerLoad({ index: 0, value });
+            },
             reloaded: async (): Promise<void> => {
                 const reload = reloadFromHook;
                 if (reload === undefined) throw new Error('LoadedStateDriver: when.created first');
                 await act(async () => {
                     reload();
-                });
-            },
-            unmounted: async (): Promise<void> => {
-                await act(async () => {
-                    cleanup();
                 });
             },
         },
@@ -87,11 +86,6 @@ export const makeLoadedStateDriver = (): LoadedStateDriver => {
             },
             isShowing: (value: string): void => {
                 expect(screen.getByText(value)).toBeInTheDocument();
-            },
-            // Nothing rendered after the component left: the answer to an unmounted load is
-            // applied to nothing at all.
-            nothingWasShownAfterUnmount: (): void => {
-                expect(shown.filter((rendered) => rendered !== LOADING)).toStrictEqual([]);
             },
         },
     };

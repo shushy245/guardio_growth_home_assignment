@@ -11,10 +11,10 @@ import { ErrorStateTestIds } from '~/components/ErrorState.utils';
 import { renderWithProviders } from '~/testkit/renderWithProviders';
 import type { ExperimentResultDTO } from '~/models/experimentResult';
 import { HypothesisCardTestIds } from '~/components/HypothesisCard.utils';
-import { DASHBOARD_ROUTE, DashboardTestIds } from '~/pages/Dashboard.utils';
 import { FunnelBarsTestIds, funnelBarTestId } from '~/charts/FunnelBars.utils';
 import { fakeHttp, HttpMethod, type RecordedRequest } from '~/testkit/fake-http';
 import { RecommendationBannerTestIds } from '~/components/RecommendationBanner.utils';
+import { DASHBOARD_ROUTE, DashboardTestIds, LOAD_FAILED_TITLE } from '~/pages/Dashboard.utils';
 
 const RESULTS_PATH = `/experiments/${RESULT_SCREEN_TONE_FLAG}/results`;
 const HTTP_SERVER_ERROR = 500;
@@ -155,6 +155,9 @@ export const makeDashboardDriver = (): DashboardDriver => {
                     expect(screen.getByTestId(ErrorStateTestIds.Root)).toBeInTheDocument();
                 });
                 expect(screen.getByTestId(DashboardTestIds.Page)).not.toHaveTextContent(SERVER_ERROR_DETAIL);
+                // Announced: the page swapped its content for a failure while the reader was
+                // looking elsewhere, and a panel that changes silently is one they may miss.
+                expect(screen.getByRole('alert')).toHaveTextContent(LOAD_FAILED_TITLE);
             },
             loadFailureWasLogged: (): void => {
                 expect(loggedErrors).toHaveBeenCalledWith(

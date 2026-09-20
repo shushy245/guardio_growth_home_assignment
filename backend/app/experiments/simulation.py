@@ -40,9 +40,10 @@ SIGNUP_STARTED_OF_CTA_CLICK = 0.60
 MAX_ACTIVATION_RATE = CTA_CLICK_OF_SCAN_COMPLETED * SIGNUP_STARTED_OF_CTA_CLICK
 
 LOG_EVERY = 500
-# How many visits may fail before the run is called off. One failure is a flaky request and the
-# next visitor is unaffected; a stream of them is an API that is down, and walking the remaining
-# thousands into it writes half-funnels the dashboard cannot tell from real drop-off (BF72).
+# How many visits may fail before the run is called off — whether the failure is a refusal the
+# server sent or a request that never came back. One is a flaky request and the next visitor is
+# unaffected; a stream of them is an API that is down, and walking the remaining thousands into
+# it writes half-funnels the dashboard cannot tell from real drop-off (BF72).
 MAX_FAILED_VISITS = 10
 
 
@@ -133,7 +134,12 @@ def simulate_traffic(
         browser = open_browser()
         try:
             _one_visit(browser=browser, transitions_map=transitions_map, rng=rng, run_id=run_id)
-        except SimulationError as error:
+        # The transport too, not only a refusal the server managed to send: a read timeout or a
+        # dropped connection is the likeliest flaky request there is against a real server, and
+        # it never arrives as a response at all. Catching only `SimulationError` made the
+        # threshold below cover the failure a run is least likely to meet and miss the one it
+        # is most likely to (audit-fixes review, finding 2a).
+        except (SimulationError, httpx.HTTPError) as error:
             failed += 1
             log.warning(
                 "simulate_traffic: a visit failed",

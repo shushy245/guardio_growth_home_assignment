@@ -11,7 +11,9 @@ import random
 from collections import Counter
 from itertools import pairwise
 
+import httpx2 as httpx
 import pytest
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
@@ -30,6 +32,18 @@ ACTIVATION_RATES = {"calm": 0.08, "urgent": 0.10}
 
 
 RUN_ID = "run_simulated_by_a_test"
+A_TRANSPORT_FAILURE = "simulated read timeout"
+
+
+def _a_browser_whose_requests_time_out() -> httpx.Client:
+    """A real client over a transport that raises instead of answering — what a browser does
+    against a server that has stopped replying. Not a non-2xx: this is the failure the run's own
+    comment calls "a flaky request", and it does not arrive as a response at all."""
+
+    def time_out(request: httpx.Request) -> httpx.Response:
+        raise httpx.ReadTimeout(A_TRANSPORT_FAILURE, request=request)
+
+    return httpx.Client(transport=httpx.MockTransport(time_out), base_url="http://simulated.test")
 
 
 class SimulationDriver:
@@ -38,9 +52,20 @@ class SimulationDriver:
         self._session = session
         self._visitors_sent = 0
         self._failure: SimulationError | None = None
+        self._visits_that_fail: set[int] = set()
+        self._browsers_opened = 0
         self.given = _Given(self)
         self.when = _When(self)
         self.then = _Then(self)
+
+    def _open_browser(self, app: FastAPI) -> httpx.Client:
+        """A fresh browser per visitor, as the simulator asks for — and a broken one for the
+        visits a test named."""
+        self._browsers_opened += 1
+        if self._browsers_opened in self._visits_that_fail:
+            return _a_browser_whose_requests_time_out()
+
+        return TestClient(app)
 
     def _counts(self) -> list[StepPairCount]:
         return repository.count_visitors_per_step_pair(
@@ -70,6 +95,13 @@ class _Given:
     def __init__(self, driver: SimulationDriver) -> None:
         self._driver = driver
 
+    def the_browser_of_visit(self, ordinal: int) -> None:
+        """That visit's browser talks to a server that never answers."""
+        self._driver._visits_that_fail.add(ordinal)
+
+    def every_browser_talks_to_a_server_that_never_answers(self, *, visits: int) -> None:
+        self._driver._visits_that_fail.update(range(1, visits + 1))
+
     def the_experiment_is_not_running(self) -> None:
         """The flag disabled: every visitor is created and assigned to nothing, so every visit
         fails at the same step — the shape of an API a run cannot continue against."""
@@ -93,7 +125,7 @@ class _When:
             visitors=visitors,
             activation_rates=ACTIVATION_RATES,
             rng=random.SystemRandom(),
-            open_browser=lambda: TestClient(app),
+            open_browser=lambda: self._driver._open_browser(app),
             run_id=RUN_ID,
         )
 
@@ -177,21 +209,49 @@ class _Then:
         assert failure is not None, "no failure was recorded"
         assert "urgent" in str(failure), f"the failure does not name the unwalkable arm: {failure}"
 
-    def the_run_gave_up_after_the_failure_threshold(self) -> None:
-        """It kept going past the first failure and stopped before walking everybody: one
-        visitor row per attempted visit, and exactly the threshold of them."""
-        attempted = self._driver._session.execute(
-            select(func.count()).select_from(VisitorRow)
-        ).scalar_one()
-        assert attempted == MAX_FAILED_VISITS, (
-            f"expected the run to stop after {MAX_FAILED_VISITS} failed visits, "
-            f"it attempted {attempted}"
+    def the_run_gave_up_after_ten_failures(self) -> None:
+        """Ten, spelled out. Stating it as `MAX_FAILED_VISITS` would follow the constant
+        anywhere, including to 1 — which is "give up on the first failure", the opposite of what
+        the constant is for (audit-fixes review, finding 2b)."""
+        assert MAX_FAILED_VISITS == 10, (
+            f"the threshold is stated as ten failures; it is {MAX_FAILED_VISITS}"
         )
         failure = self._driver._failure
         assert failure is not None, "no failure was recorded"
-        assert str(MAX_FAILED_VISITS) in str(failure), (
-            f"the failure does not say how many visits failed: {failure}"
+        assert "10 failed visits of 10 attempted" in str(failure), (
+            f"the failure does not say how many visits failed of how many: {failure}"
         )
+
+    def ten_visitors_were_created_before_it_stopped(self) -> None:
+        """This failure happens after the visitor exists — the server assigns them to nothing —
+        so the rows are the count of visits the run actually attempted."""
+        attempted = self._driver._session.execute(
+            select(func.count()).select_from(VisitorRow)
+        ).scalar_one()
+        assert attempted == 10, (
+            f"expected 10 visitors before the run stopped, the table holds {attempted}"
+        )
+
+    def nobody_was_created(self) -> None:
+        """A request that never arrives writes nothing: the run stopped on ten failures it
+        could not even send."""
+        created = self._driver._session.execute(
+            select(func.count()).select_from(VisitorRow)
+        ).scalar_one()
+        assert created == 0, f"expected no visitors, the table holds {created}"
+
+    def every_visitor_but_the_failed_one_walked(self, *, of: int) -> None:
+        """The other half of the threshold: one failure is a flaky request and the run carries
+        on, so the visitors after it are in the table."""
+        walked = self._driver._session.execute(
+            select(func.count()).select_from(VisitorRow)
+        ).scalar_one()
+        assert walked == of - 1, (
+            f"expected {of - 1} visitors to have walked, the table holds {walked}"
+        )
+
+    def no_failure_was_raised(self) -> None:
+        assert self._driver._failure is None, f"the run raised: {self._driver._failure}"
 
     def every_event_is_tagged_with_its_visitors_arm(self) -> None:
         """The API stamped the tag; the simulator sent none. Every stored event carries the

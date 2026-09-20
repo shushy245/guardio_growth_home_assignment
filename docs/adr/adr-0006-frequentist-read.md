@@ -66,7 +66,7 @@ instead of failing to parse.
 **Harder.** The simulated read shows the cost of the guard plainly. 4,000 simulated visitors
 (4,764 in the table with the crashed first run and the manual ones) at 8% against 10% gave
 control 143/1,940 (7.4%) and variant 184/1,886 (9.8%): z = 2.64, p = 0.008, relative lift +32%
-with a 95% interval of +8% to +64% — and the call is `KEEP_RUNNING`, because 1,886 scan
+with a 95% interval of +7% to +63% — and the call is `KEEP_RUNNING`, because 1,886 scan
 completions per arm is short of the 4,921 the hypothesis asks for. That is the intended
 behaviour, and it is the line the README has to explain: the effect is significant at this
 look, and the dashboard still declines to call it until the sample it was powered for is in.

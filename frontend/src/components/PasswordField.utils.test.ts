@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+    describedBy,
     findSuffixCount,
     isLeaked,
     PasswordCheckStatus,
@@ -68,5 +69,24 @@ describe('wasPwned', () => {
         expect(
             wasPwned({ check: { status: PasswordCheckStatus.Unchecked, password: 'hunter22' }, password: 'hunter22' }),
         ).toBe(false);
+    });
+});
+
+describe('describedBy', () => {
+    it('names every id that describes the field, in the order they are given', () => {
+        // Both at once is the case the field is built for: a leak notice under the box and a
+        // validation error under that. Keeping only the first would silently drop one of them.
+        expect(describedBy('notice-id', 'error-id')).toBe('notice-id error-id');
+    });
+
+    it('names the one id there is', () => {
+        expect(describedBy(undefined, 'error-id')).toBe('error-id');
+        expect(describedBy('notice-id', undefined)).toBe('notice-id');
+    });
+
+    it('is absent, not empty, when nothing describes the field', () => {
+        // `aria-describedby=""` points at no element, which is not the same as having no
+        // description: the attribute has to be gone.
+        expect(describedBy(undefined, undefined)).toBeUndefined();
     });
 });
