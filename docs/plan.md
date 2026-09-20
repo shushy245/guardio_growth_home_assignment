@@ -1926,7 +1926,7 @@ Each stretch story gets its own Cases/Commits block when opened; the TDD contrac
 - [ ] S9 — Bayesian read (P(urgent > calm), expected loss) beside the frequentist one
 - [ ] S10 — Guardrail metric on the dashboard with its own CI
 - [ ] S11 — Cypress e2e for the critical funnel path against the real stack
-- [ ] S14 — Peeking warning on the dashboard when read before the required sample
+- [ ] S12 — Peeking warning on the dashboard when read before the required sample
 
 ## Assumptions (confirm at review, not blocking)
 

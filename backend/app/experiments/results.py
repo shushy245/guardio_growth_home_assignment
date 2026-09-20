@@ -158,27 +158,29 @@ def _read_arm(*, key: str, counts: Mapping[str, Mapping[StepPair, int]]) -> ArmR
     return ArmRead(
         key=key,
         steps=tuple(
-            StepRead(name=step, visitors=_visitors_at(step, visitors_reaching))
+            StepRead(
+                name=step, visitors=_visitors_at(step=step, visitors_reaching=visitors_reaching)
+            )
             for step in FUNNEL_IN_ORDER
         ),
-        primary=_read_metric(PRIMARY_METRIC, visitors_reaching),
-        secondary=_read_metric(SECONDARY_METRIC, visitors_reaching),
-        guardrail=_read_metric(GUARDRAIL_METRIC, visitors_reaching),
+        primary=_read_metric(definition=PRIMARY_METRIC, visitors_reaching=visitors_reaching),
+        secondary=_read_metric(definition=SECONDARY_METRIC, visitors_reaching=visitors_reaching),
+        guardrail=_read_metric(definition=GUARDRAIL_METRIC, visitors_reaching=visitors_reaching),
     )
 
 
-def _visitors_at(step: FunnelEventName, visitors_reaching: Mapping[StepPair, int]) -> int:
+def _visitors_at(*, step: FunnelEventName, visitors_reaching: Mapping[StepPair, int]) -> int:
     """The arm's count at one step: the pair whose two halves are that step."""
     return visitors_reaching.get((step, step), 0)
 
 
 def _read_metric(
-    definition: MetricDefinition, visitors_reaching: Mapping[StepPair, int]
+    *, definition: MetricDefinition, visitors_reaching: Mapping[StepPair, int]
 ) -> MetricRead:
     """The numerator is the pair, never the numerator step on its own: only visitors who
     reached the denominator were ever eligible to convert."""
     successes = visitors_reaching.get((definition.numerator, definition.denominator), 0)
-    trials = _visitors_at(definition.denominator, visitors_reaching)
+    trials = _visitors_at(step=definition.denominator, visitors_reaching=visitors_reaching)
 
     return MetricRead(
         successes=successes,

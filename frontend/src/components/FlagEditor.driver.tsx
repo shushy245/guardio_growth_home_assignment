@@ -20,6 +20,8 @@ import {
     setLockToken,
 } from '~/models/featureFlag';
 
+import styles from '~/components/FlagEditor.module.scss';
+
 const RESULT_SCREEN_TONE = 'result_screen_tone';
 const URGENT = 'urgent';
 const SAVE_PATH = `/feature-flags/${RESULT_SCREEN_TONE}`;
@@ -140,6 +142,14 @@ export const makeFlagEditorDriver = (): FlagEditorDriver => {
 
     const messageOf = (): HTMLElement =>
         screen.getByTestId(flagFieldTestId({ flagKey: RESULT_SCREEN_TONE, field: FlagField.SaveMessage }));
+
+    // The stylesheet's own name for the class, so the driver holds no copy of it. A module that
+    // no longer defines it fails here, by name, instead of asserting against `undefined`.
+    const classNamed = (className: string | undefined): string => {
+        if (className === undefined) throw new Error('FlagEditorDriver: the stylesheet has no such class');
+
+        return className;
+    };
 
     return {
         given: {
@@ -298,8 +308,8 @@ export const makeFlagEditorDriver = (): FlagEditorDriver => {
                 // A lock conflict is someone else's save to reapply over; a failure is a save
                 // that did not happen. They shared one tone, so the words were the only thing
                 // telling them apart (BF51).
-                expect(messageOf()).toHaveClass('conflict');
-                expect(messageOf()).not.toHaveClass('failed');
+                expect(messageOf()).toHaveClass(classNamed(styles.conflict));
+                expect(messageOf()).not.toHaveClass(classNamed(styles.failed));
             },
             failureMessageIsShown: async (message: string): Promise<void> => {
                 await waitFor(() => {
@@ -313,8 +323,8 @@ export const makeFlagEditorDriver = (): FlagEditorDriver => {
                     expect(messageOf()).toHaveTextContent('could not be saved');
                 });
                 expect(messageOf()).not.toHaveTextContent(SERVER_ERROR_DETAIL);
-                expect(messageOf()).toHaveClass('failed');
-                expect(messageOf()).not.toHaveClass('conflict');
+                expect(messageOf()).toHaveClass(classNamed(styles.failed));
+                expect(messageOf()).not.toHaveClass(classNamed(styles.conflict));
             },
             saveFailureWasLogged: (): void => {
                 expect(loggedErrors).toHaveBeenCalledWith(

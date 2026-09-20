@@ -47,9 +47,9 @@ export const Scan = (): ReactElement => {
                 <ErrorState
                     title={SCAN_FAILED_TITLE}
                     description={SCAN_FAILED_DESCRIPTION}
-                    retryLabel={SCAN_RETRY_LABEL}
+                    actionLabel={SCAN_RETRY_LABEL}
                     kind={ErrorStateKind.Panel}
-                    onRetry={retry}
+                    onAction={retry}
                 />
             ) : (
                 <Scanning />

@@ -80,9 +80,9 @@ const Body = ({ state, onRetry }: { state: DashboardState; onRetry: () => void }
             <ErrorState
                 title={LOAD_FAILED_TITLE}
                 description={LOAD_FAILED_DESCRIPTION}
-                retryLabel={RETRY_LABEL}
+                actionLabel={RETRY_LABEL}
                 kind={ErrorStateKind.Panel}
-                onRetry={onRetry}
+                onAction={onRetry}
             />
         );
     }

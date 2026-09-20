@@ -8,25 +8,28 @@ import { ErrorStateKind, ErrorStateTestIds } from '~/components/ErrorState.utils
 
 import styles from '~/components/ErrorState.module.scss';
 
+// `actionLabel`/`onAction`, not `retry*`: two of the four call sites offer something else —
+// the not-found page sends the visitor to the scan and the boundary reloads the document —
+// and a prop named for one caller's verb reads as a lie at the others.
 export const ErrorState = ({
     title,
     description,
-    retryLabel,
+    actionLabel,
     kind,
-    onRetry,
+    onAction,
 }: {
     title: string;
     description: string;
-    retryLabel: string;
+    actionLabel: string;
     kind: ErrorStateKind;
-    onRetry: () => void;
+    onAction: () => void;
 }): ReactElement => (
     <Column className={styles.panel} data-testid={ErrorStateTestIds.Root}>
         <span className={styles.mark} aria-hidden="true" />
         {titleElementMap[kind](title)}
         <p className={styles.description}>{description}</p>
-        <button className={styles.retry} type="button" data-testid={ErrorStateTestIds.Retry} onClick={onRetry}>
-            {retryLabel}
+        <button className={styles.retry} type="button" data-testid={ErrorStateTestIds.Retry} onClick={onAction}>
+            {actionLabel}
         </button>
     </Column>
 );

@@ -29,9 +29,9 @@ export const NotFound = (): ReactElement => {
             <ErrorState
                 title={NOT_FOUND_TITLE}
                 description={NOT_FOUND_DESCRIPTION}
-                retryLabel={NOT_FOUND_ACTION_LABEL}
+                actionLabel={NOT_FOUND_ACTION_LABEL}
                 kind={ErrorStateKind.Page}
-                onRetry={handleGoToScan}
+                onAction={handleGoToScan}
             />
         </MainColumn>
     );

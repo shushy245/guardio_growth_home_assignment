@@ -45,9 +45,9 @@ export const BreachList = (): ReactElement => {
             <ErrorState
                 title={LIST_FAILED_TITLE}
                 description={LIST_FAILED_DESCRIPTION}
-                retryLabel={LIST_RETRY_LABEL}
+                actionLabel={LIST_RETRY_LABEL}
                 kind={ErrorStateKind.Panel}
-                onRetry={retry}
+                onAction={retry}
             />
         );
     }

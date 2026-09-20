@@ -53,9 +53,9 @@ const RenderFailure = (): ReactElement => {
         <ErrorState
             title={RENDER_FAILURE_TITLE}
             description={RENDER_FAILURE_DESCRIPTION}
-            retryLabel={RENDER_FAILURE_ACTION_LABEL}
+            actionLabel={RENDER_FAILURE_ACTION_LABEL}
             kind={ErrorStateKind.Page}
-            onRetry={handleReload}
+            onAction={handleReload}
         />
     );
 };

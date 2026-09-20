@@ -14,6 +14,8 @@ import { fakeHttp, HttpMethod, type RecordedRequest } from '~/testkit/fake-http'
 import type { FeatureFlagDTO, FeatureFlagUpdatePayload } from '~/models/featureFlag';
 import { flagFieldTestId, FlagField, variantFieldTestId } from '~/components/FlagEditor.utils';
 
+import styles from '~/pages/Admin.module.scss';
+
 const RESULT_SCREEN_TONE = 'result_screen_tone';
 const URGENT = 'urgent';
 const SAVE_PATH = `/feature-flags/${RESULT_SCREEN_TONE}`;
@@ -83,6 +85,14 @@ export const makeAdminDriver = (): AdminDriver => {
         const field = screen.getByTestId(testId);
         await user.clear(field);
         await user.type(field, value);
+    };
+
+    // The stylesheet's own name for the class, so the driver holds no copy of it. A module that
+    // no longer defines it fails here, by name, instead of asserting against `undefined`.
+    const classNamed = (className: string | undefined): string => {
+        if (className === undefined) throw new Error('AdminDriver: the stylesheet has no such class');
+
+        return className;
     };
 
     return {
@@ -188,8 +198,8 @@ export const makeAdminDriver = (): AdminDriver => {
             // only the words changed (BF51).
             theFailedLoadDoesNotLookLikeTheLoadingOne: (): void => {
                 const failed = screen.getByTestId(AdminTestIds.LoadError);
-                expect(failed).toHaveClass('messageError');
-                expect(failed).not.toHaveClass('message');
+                expect(failed).toHaveClass(classNamed(styles.messageError));
+                expect(failed).not.toHaveClass(classNamed(styles.message));
             },
             adminTokenFieldIsShown: (): void => {
                 expect(screen.getByTestId(AdminTestIds.AdminToken)).toBeInTheDocument();
